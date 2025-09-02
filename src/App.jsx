@@ -221,14 +221,16 @@ if (mode === "preview") {
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
           />
         </div>
-        <div className="wechat-export">
-          <div>
-            <div
-              className="markdown-body"
-              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-            />
-          </div>
-        </div>
+        {showWechat && (
+    <div className="wechat-export">
+      <div>
+        <div
+          className="markdown-body"
+          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+        />
+      </div>
+    </div>
+  )}
     </div>
        {/* 底部状态栏 */}
       <div className="status-bar">

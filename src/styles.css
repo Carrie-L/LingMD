@@ -11,7 +11,7 @@ body, html, .app {
   height: 100%;
   background: #ffffff;
   color: #000000;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* 添加了通用回退 */
   box-sizing: border-box; /* 统一盒模型 */
 }
 
@@ -31,7 +31,6 @@ body, html, .app {
 /*            顶部工具栏 & 底部状态栏        */
 /* ========================================= */
 
-/* 工具栏固定在顶部 */
 .toolbar {
   position: fixed;
   top: 0;
@@ -62,7 +61,6 @@ body, html, .app {
   background-color: #e6e6e6;
 }
 
-/* 状态栏固定在底部 */
 .status-bar {
   position: fixed;
   bottom: 0;
@@ -87,19 +85,15 @@ body, html, .app {
 /* ========================================= */
 
 .main {
-  flex: 1; /* 占据剩余的所有垂直空间 */
-  margin-top: 40px;    /* 避开顶部工具栏 */
-  margin-bottom: 24px; /* 避开底部状态栏 */
-  padding: 10px;       /* 为整个网格提供一些外边距 */
-
+  flex: 1;
+  margin-top: 40px;
+  margin-bottom: 24px;
+  padding: 10px;
   display: grid;
-  gap: 10px; /* 列之间的统一间距 */
-
-  /* --- 默认两栏布局 (编辑器 + 预览) --- */
+  gap: 10px;
   grid-template-columns: 1fr 1fr; 
 }
 
-/* --- 激活三栏布局 (编辑器 + 预览 + 公众号) --- */
 .main.wechat-visible {
   grid-template-columns: 1fr 1fr 760px;
 }
@@ -109,145 +103,21 @@ body, html, .app {
 /*        各功能区域 (编辑器, 预览等)         */
 /* ========================================= */
 
-/* 通用样式：每栏撑满格子，并使其内部的“文字区域”居中 */
-/* ========================================= */
-/*               全局样式 & 主题             */
-/* ========================================= */
-
-@import "github-markdown-css/github-markdown.css";
-
-/* 默认亮色 UI */
-body, html, .app {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #ffffff;
-  color: #000000;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  box-sizing: border-box; /* 统一盒模型 */
-}
-
-/* 确保所有元素继承盒模型 */
-*, *::before, *::after {
-  box-sizing: inherit;
-}
-
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* 使用 vh 单位确保全屏 */
-}
-
-
-/* ========================================= */
-/*            顶部工具栏 & 底部状态栏        */
-/* ========================================= */
-
-/* 工具栏固定在顶部 */
-.toolbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 0 10px;
-  background: #f0f0f0;
-  border-bottom: 1px solid #ddd;
-  z-index: 100;
-}
-
-.toolbar button {
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #ccc;
-  padding: 5px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease;
-}
-
-.toolbar button:hover {
-  background-color: #e6e6e6;
-}
-
-/* 状态栏固定在底部 */
-.status-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  padding: 0 15px;
-  font-size: 12px;
-  background: #f0f0f0;
-  border-top: 1px solid #ddd;
-  color: #333;
-  z-index: 100;
-}
-
-
-/* ========================================= */
-/*              主体布局容器 (核心)          */
-/* ========================================= */
-
-.main {
-  flex: 1; /* 占据剩余的所有垂直空间 */
-  margin-top: 40px;    /* 避开顶部工具栏 */
-  margin-bottom: 24px; /* 避开底部状态栏 */
-  padding: 10px;       /* 为整个网格提供一些外边距 */
-
-  display: grid;
-  gap: 10px; /* 列之间的统一间距 */
-
-  /* --- 默认两栏布局 (编辑器 + 预览) --- */
-  grid-template-columns: 1fr 1fr; 
-}
-
-/* --- 激活三栏布局 (编辑器 + 预览 + 公众号) --- */
-.main.wechat-visible {
-  grid-template-columns: 1fr 1fr 760px;
-}
-
-
-/* ========================================= */
-/*        各功能区域 (编辑器, 预览等)         */
-/* ========================================= */
-
-/* ========================================= */
-/*        各功能区域 (编辑器, 预览等)         */
-/* ========================================= */
-
-/* 
-  通用样式：
-  这里是普通的块级容器，没有 display: flex 
-*/
 .editor,
 .preview,
 .wechat-export {
-  overflow: auto; /* 内容超出时，栏内部滚动 */
+  overflow: auto;
   border: 1px solid #e0e0e0;
   background: #fdfdfd;
   padding: 25px 20px;
-  min-width: 0; /* 防止内容撑破网格，非常重要 */
+  min-width: 0;
 }
 
-/* 
-  编辑器区域的文字区：
-  用 margin: 0 auto 实现居中 
-*/
 .editor > textarea {
-  display: block; /* 确保 textarea 是块级元素 */
+  display: block;
   width: 100%;       
   max-width: 680px; 
-  margin: 0 auto; /* ✅ 在父容器内水平居中 */
+  margin: 0 auto;
   height: 100%;
   border: none;
   outline: none;
@@ -258,20 +128,15 @@ body, html, .app {
   line-height: 1.6;
 }
 
-/* 
-  预览区域的文字区：
-  用 margin: 0 auto 实现居中
-*/
 .preview .markdown-body {
-  display: block !important; /* 强制覆盖 github-markdown.css 可能的冲突 */
+  display: block !important;
   width: 100%;
   max-width: 650px;
-  margin: 0 auto; /* ✅ 在父容器内水平居中 */
+  margin: 0 auto;
   min-height: 100%;
   background-color: transparent;
 }
 
-/* 公众号区域 */
 .wechat-export {
   background: #fafafa;
   border-left: 1px solid #ddd;
@@ -291,7 +156,6 @@ body, html, .app {
 /*            代码高亮 & 其他样式            */
 /* ========================================= */
 
-/* 覆盖 github-markdown-css 的代码块样式 */
 .markdown-body pre {
   background-color: #0d1117 !important;
   color: #c9d1d9 !important;
@@ -308,10 +172,9 @@ body, html, .app {
   color: inherit !important;
 }
 
-/* Toast 提示消息 */
 .toast {
   position: fixed;
-  bottom: 40px; /* 在状态栏上方 */
+  bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   background-color: rgba(0, 0, 0, 0.75);
@@ -329,136 +192,17 @@ body, html, .app {
 
 .preview-mode {
   display: grid;
-  grid-template-columns: 2fr 0.8fr; /* 左预览，右目录 */
+  grid-template-columns: 2fr 0.8fr;
   height: 100%;
 }
 
 .preview-mode .preview {
   grid-column: 1 / 2;
-  justify-content: center;
+  /* `justify-content: center` 在这里可能无效，因为父元素不是flex/grid的行轴 */
 }
 
 .preview-mode .preview .markdown-body {
-    max-width: 800px; /* 预览模式可以宽一些 */
-}
-
-.outline {
-  grid-column: 2 / 3;
-  border-left: 1px solid #ddd;
-  padding: 20px;
-  background: #fafafa;
-  overflow-y: auto;
-}
-
-.outline ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.outline li {
-  cursor: pointer;
-  margin: 6px 0;
-  padding-left: 10px;
-  border-left: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.outline li:hover {
-  color: #0366d6;
-  border-left-color: #0366d6;
-}
-
-/* 编辑器区域 */
-.editor > textarea {
-  width: 100%;       /* 尝试填满父容器 */
-  max-width: 680px;  /* 但最大宽度不超过 680px */
-  height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background-color: transparent; /* 继承父容器背景 */
-  font-family: Consolas, Monaco, "Courier New", monospace;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-/* 预览区域 */
-.preview .markdown-body {
-  width: 100%;
-  max-width: 650px; /* 预览区的文字内容最大宽度 */
-  min-height: 100%;
-  background-color: transparent;
-}
-
-/* 公众号区域 */
-.wechat-export {
-  background: #fafafa;
-  border-left: 1px solid #ddd;
-}
-
-.wechat-export > div {
-  width: 760px; /* 公众号内容的固定宽度 */
-  min-height: 100%;
-  background: #ffffff;
-  padding: 20px;
-  border: 1px solid #e0e0e0; /* 给公众号内容区一个边框，使其更突出 */
-  box-shadow: 0 0 10px rgba(0,0,0,0.05); /* 添加一点阴影 */
-}
-
-
-/* ========================================= */
-/*            代码高亮 & 其他样式            */
-/* ========================================= */
-
-/* 覆盖 github-markdown-css 的代码块样式 */
-.markdown-body pre {
-  background-color: #0d1117 !important;
-  color: #c9d1d9 !important;
-  font-family: Consolas, Monaco, "Courier New", monospace;
-  font-size: 14px;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-}
-
-.markdown-body pre code {
-  padding: 0 !important;
-  background: none !important;
-  color: inherit !important;
-}
-
-/* Toast 提示消息 */
-.toast {
-  position: fixed;
-  bottom: 40px; /* 在状态栏上方 */
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.75);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  z-index: 200;
-  font-size: 14px;
-}
-
-
-/* ========================================= */
-/*       预览模式 (新窗口) - 独立布局        */
-/* ========================================= */
-
-.preview-mode {
-  display: grid;
-  grid-template-columns: 2fr 0.8fr; /* 左预览，右目录 */
-  height: 100%;
-}
-
-.preview-mode .preview {
-  grid-column: 1 / 2;
-  justify-content: center;
-}
-
-.preview-mode .preview .markdown-body {
-    max-width: 800px; /* 预览模式可以宽一些 */
+    max-width: 800px;
 }
 
 .outline {

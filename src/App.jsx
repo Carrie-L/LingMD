@@ -116,7 +116,8 @@ if (mode === "preview") {
     return (
       <div className="app light">
         <div className="main preview-mode">
-          <Preview value={content} />
+          {/* ✅ 同样给新窗口的预览传递 filePath */}
+          <Preview value={content} filePath={filePath} />
           <Outline value={content} />
         </div>
       </div>
@@ -133,11 +134,16 @@ if (mode === "preview") {
         <button onClick={handlePreview}>👁️ 预览</button>
         <button onClick={() => setShowWechat(!showWechat)}>📱 公众号</button>
       </div>
+
+
      <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
-  <Editor value={content} onChange={setContent} />
-  <Preview value={content} />
-  {showWechat && <WechatExport value={content} />}
-</div>
+        <Editor value={content} onChange={setContent} />
+        {/* ✅ 将 filePath 作为 prop 传递给 Preview 组件 */}
+        <Preview value={content} filePath={filePath} />
+        
+        {/* ✅ 将 filePath 作为 prop 传递给 WechatExport 组件 */}
+        {showWechat && <WechatExport value={content} filePath={filePath} />}
+    </div>
        {/* 底部状态栏 */}
       <div className="status-bar">
         <span>{filePath || "未打开文件"}</span>

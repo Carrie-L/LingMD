@@ -89,13 +89,19 @@ body, html, .app {
   margin-top: 40px;
   margin-bottom: 24px;
   padding: 10px;
+
   display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr; 
+  gap: 10px; /* 卡片之间的间距 */
+
+  /* ✅ 新增：为卡片提供一个柔和的背景底座 */
+  background-color: #fbfbfb; 
+
+  /* --- 默认两栏布局 --- */
+  grid-template-columns: 1fr 1fr;
 }
 
 .main.wechat-visible {
-  grid-template-columns: 1fr 1fr 760px;
+  grid-template-columns: 1fr 1fr 375px;
 }
 
 
@@ -103,14 +109,37 @@ body, html, .app {
 /*        各功能区域 (编辑器, 预览等)         */
 /* ========================================= */
 
+/* 
+  通用卡片样式：
+  - 移除边框 (border)
+  - 添加圆角 (border-radius)
+  - 添加阴影 (box-shadow)
+  - 调整内边距 (padding)
+*/
 .editor,
 .preview,
 .wechat-export {
   overflow: auto;
-  border: 1px solid #e0e0e0;
-  background: #fdfdfd;
-  padding: 25px 20px;
+  
+  /* ✅ 卡片样式核心 */
+  background: #ffffff; /* 卡片背景为纯白 */
+  border: none; /* 移除旧的边框 */
+  border-radius: 8px; /* 卡片圆角 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 柔和的阴影，营造悬浮感 */
+  transition: box-shadow 0.3s ease; /* 添加过渡效果 */
+
+  /* 增加内边距，让内容离卡片边缘更远 */
+  padding: 30px; 
+  margin: 15px;
+  
   min-width: 0;
+}
+
+/* (可选) 鼠标悬浮时，卡片阴影加深，提供交互感 */
+.editor:hover,
+.preview:hover,
+.wechat-export:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .editor > textarea {
@@ -143,7 +172,7 @@ body, html, .app {
 }
 
 .wechat-export > div {
-  width: 760px; 
+  width: 100%; 
   min-height: 100%;
   background: #ffffff;
   padding: 20px;

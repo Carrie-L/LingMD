@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
-import WechatExport from "./WechatExport.jsx";
-
+import WechatExport from "./WechatExport.jsx"; 
+import { useMarkdownRenderer } from './useMarkdownRenderer'; 
 
 function App() {
   // 直接解析 URL 参数
@@ -16,6 +16,10 @@ function App() {
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState("");
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
+
+  // ✅ 直接在顶层组件调用 Hook，获取渲染结果
+  // 这样，我们只需要渲染一次，所有子组件和复制功能都可以共享结果
+  const { rawHtml, sanitizedHtml } = useMarkdownRenderer(content, filePath);
 
   const [attachmentFolder, setAttachmentFolder] = useState(null); // ✅ 新增 state
 
@@ -150,6 +154,45 @@ if (mode === "preview") {
     );
   }
 
+
+  // ✅ 新增：处理公众号复制的函数
+  const handleCopyToWechat = async () => {
+    // 现在可以直接访问 value 和 rawHtml
+    if (!content.trim()) {
+      alert("没有内容可复制");
+      return;
+    }
+
+    try {
+      console.log("Step 1: Using pre-rendered raw HTML for conversion...");
+      // 1. 直接使用 Hook 生成的 rawHtml，它已经包含了 safe-file:// 路径
+      // 这避免了重新渲染，保证了内容一致性
+
+      // 2. 将此 HTML 发送到主进程进行 Base64 转换
+      console.log("Step 2: Sending to main process for Base64 conversion...");
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard(rawHtml);
+      
+      // 3. 写入剪贴板
+      console.log("Step 3: Writing to clipboard...");
+      const blobHtml = new Blob([finalHtml], { type: "text/html" });
+      const blobText = new Blob([content], { type: "text/plain" });
+      const clipboardItem = new ClipboardItem({
+        "text/html": blobHtml,
+        "text/plain": blobText,
+      });
+
+      await navigator.clipboard.write([clipboardItem]);
+      
+      console.log("Successfully copied to clipboard for WeChat!");
+      alert("已成功复制到剪贴板！");
+
+    } catch (error) {
+      console.error("Failed to copy for WeChat:", error);
+      alert("复制失败，详情请查看控制台");
+    }
+  };
+
+
   // 默认编辑模式
   return (
     <div className="app light">
@@ -162,17 +205,30 @@ if (mode === "preview") {
           console.log('Toggling showWechat from:', showWechat);
           setShowWechat(!showWechat);
         }}>📱 公众号</button>
+       {showWechat && (
+    <button onClick={handleCopyToWechat}>复制到公众号</button>
+  )}
       </div>
 
 
      <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
         <Editor value={content} onChange={setContent} />
-        {/* ✅ 将 filePath 作为 prop 传递给 Preview 组件 */}
-        <Preview value={content} filePath={filePath} />
-        
-          {/* {showWechat ? <WechatExport value={content} filePath={filePath} attachmentFolder={attachmentFolder} /> : null} */}
-          {/* ✅ 3. 将新的刷新触发器作为 prop 传递下去 */}
-        {showWechat && <WechatExport value={content} filePath={filePath} />}
+        {/* ✅ 将 sanitizedHtml 传递给子组件用于显示 */}
+        {/* 注意：我们这里直接传递 HTML，而不是让子组件自己去渲染 */}
+        <div className="preview">
+          <div
+            className="markdown-body"
+            dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          />
+        </div>
+        <div className="wechat-export">
+          <div>
+            <div
+              className="markdown-body"
+              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+            />
+          </div>
+        </div>
     </div>
        {/* 底部状态栏 */}
       <div className="status-bar">

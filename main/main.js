@@ -250,3 +250,57 @@ ipcMain.on("open-preview", () => {
   previewWindow.loadURL("http://localhost:5173?mode=preview");
 });
 
+// ===================================================================
+// ✅ 新增：为公众号复制功能转换 HTML 中的图片
+// ===================================================================
+ipcMain.handle("convert-html-for-clipboard", async (event, htmlContent) => {
+  if (!htmlContent) return "";
+
+  const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+  
+  // 使用 Promise.all 来并行处理所有图片的转换
+  const replacedContent = await Promise.all(
+    [...htmlContent.matchAll(imageTagsRegex)].map(async (match) => {
+      const originalSrc = match[1]; // e.g., "safe-file:///I:/path/to/image.png"
+      const originalTag = match[0]; // e.g., '<img src="...png"'
+
+      try {
+        // 1. 将 URL 转换回本地文件系统路径
+        const standardFileUrl = originalSrc.replace("safe-file:", "file:");
+        const filePath = fileURLToPath(standardFileUrl);
+
+        // 2. 异步读取图片文件
+        const fileBuffer = await fs.promises.readFile(filePath);
+        
+        // 3. 确定图片的 MIME 类型
+        let mimeType;
+        const extension = path.extname(filePath).toLowerCase();
+        if (extension === ".png") mimeType = "image/png";
+        else if (extension === ".jpg" || extension === ".jpeg") mimeType = "image/jpeg";
+        else if (extension === ".gif") mimeType = "image/gif";
+        else if (extension === ".svg") mimeType = "image/svg+xml";
+        else mimeType = "application/octet-stream"; // Fallback
+
+        // 4. 创建 Base64 Data URL
+        const base64String = fileBuffer.toString("base64");
+        const dataUrl = `data:${mimeType};base64,${base64String}`;
+
+        // 5. 返回替换对：[原始标签, 带有 Data URL 的新标签]
+        const newTag = originalTag.replace(originalSrc, dataUrl);
+        return { originalTag, newTag };
+
+      } catch (error) {
+        console.error(`Failed to convert image to Base64: ${originalSrc}`, error);
+        // 如果转换失败，保持原样
+        return { originalTag, newTag: originalTag };
+      }
+    })
+  );
+  // 执行所有替换操作
+  let finalHtml = htmlContent;
+  for (const { originalTag, newTag } of replacedContent) {
+    finalHtml = finalHtml.replace(originalTag, newTag);
+  }
+
+  return finalHtml;
+});

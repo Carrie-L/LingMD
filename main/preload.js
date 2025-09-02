@@ -30,4 +30,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   dirname: (filePath) => {
     return path.dirname(filePath);
   },
+  convertHtmlForClipboard: (html) => ipcRenderer.invoke("convert-html-for-clipboard", html),
 });

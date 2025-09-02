@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
+import Outline from "./Outline.jsx";
+import WechatExport from "./WechatExport.jsx";
+
 
 function App() {
+  // 直接解析 URL 参数
+  const query = new URLSearchParams(window.location.search);
+  const mode = query.get("mode") || "edit"; // edit | preview
+  const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
+  
   const [content, setContent] = useState("");
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState("");
+  const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
   const showToast = (message, duration = 3000) => {
     setToast(message);
@@ -98,34 +107,54 @@ const handleOpenDefaultDir = async () => {
   }
 };
 
-return (
-  <div className="app light">
-    <div className="toolbar">
-      <button onClick={handleNewFile}>🆕 新建</button>
-      <button onClick={handleOpen}>📂 打开</button>
-      <button onClick={handleSave}>💾 保存</button>
-      <button onClick={handleSetDefaultDir}>⚙️ 设置默认文件夹</button>
+
+const handlePreview = () => {
+  window.electronAPI.openPreview();
+};
+
+if (mode === "preview") {
+    return (
+      <div className="app light">
+        <div className="main preview-mode">
+          <Preview value={content} />
+          <Outline value={content} />
+        </div>
+      </div>
+    );
+  }
+
+  // 默认编辑模式
+  return (
+    <div className="app light">
+      <div className="toolbar">
+        <button onClick={handleNewFile}>🆕 新建</button>
+        <button onClick={handleOpen}>📂 打开</button>
+        <button onClick={handleSave}>💾 保存</button>
+        <button onClick={handlePreview}>👁️ 预览</button>
+        <button onClick={() => setShowWechat(!showWechat)}>📱 公众号</button>
+      </div>
+     <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
+  <Editor value={content} onChange={setContent} />
+  <Preview value={content} />
+  {showWechat && <WechatExport value={content} />}
+</div>
+       {/* 底部状态栏 */}
+      <div className="status-bar">
+        <span>{filePath || "未打开文件"}</span>
+        <span>{status}</span>
+        <span>{content.replace(/\s+/g, "").length} 字</span>
+        <span
+          title="点击打开默认文件夹"
+          style={{ cursor: "pointer", textDecoration: "underline" }}
+          onClick={handleOpenDefaultDir}
+        >
+          📂 {defaultDir}
+        </span>
+      </div>
+
+      {toast && <div className="toast">{toast}</div>}
     </div>
-    <div className="main">
-      <Editor value={content} onChange={setContent} />
-      <Preview value={content} />
-    </div>
-    <div className="status-bar">
-      <span>{filePath || "未打开文件"}</span>
-      <span>{status}</span>
-      <span>{wordCount} 字</span>
-      {/* ⚡ 点击默认文件夹路径 → 打开系统资源管理器 */}
-      <span
-        title="点击打开默认文件夹"
-        style={{ cursor: "pointer", textDecoration: "underline" }}
-        onClick={handleOpenDefaultDir}
-      >
-        📂 {defaultDir}
-      </span>
-    </div>
-    {toast && <div className="toast">{toast}</div>}
-  </div>
-);
+  );
 
 
 

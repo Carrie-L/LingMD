@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openDefaultDir: () => ipcRenderer.invoke("open-default-dir"),
   togglePin: () => ipcRenderer.invoke("toggle-pin"),
   setLastFile: (filePath) => ipcRenderer.send("set-last-file", filePath),
+  openPreview: () => ipcRenderer.send("open-preview"),
   onLoadLastFile: (callback) =>
     ipcRenderer.on("load-last-file", (event, filePath) => callback(filePath)),
 });

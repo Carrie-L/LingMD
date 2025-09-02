@@ -137,6 +137,33 @@ if (!app.requestSingleInstanceLock()) {
       }
     }
   });
+
+
+let previewWindow;
+
+ipcMain.on("open-preview", () => {
+  if (previewWindow) {
+    previewWindow.focus();
+    return;
+  }
+
+  previewWindow = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+    },
+  });
+
+  previewWindow.on("closed", () => {
+    previewWindow = null;
+  });
+
+  // 加载同一个 React 页面，但用参数区分
+  previewWindow.loadURL("http://localhost:5173?mode=preview");
+});
+
+
 }
 
 app.whenReady().then(createWindow);

@@ -1,0 +1,112 @@
+@import "github-markdown-css/github-markdown.css";
+
+/* 全局亮色 UI */
+body, html, .app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #ffffff;
+  color: #000000;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* 工具栏：亮色 */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+}
+
+.toolbar button {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ddd;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #eee;
+}
+
+/* 主区域布局：编辑 + 预览 */
+.main {
+  display: flex;
+  height: calc(100% - 40px);
+}
+
+/* 左边编辑器（亮色） */
+.editor {
+  width: 50%;
+  padding: 10px;
+  background: #ffffff;
+  color: #000000;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 14px;
+  border: none;
+  outline: none;
+  resize: none;
+}
+
+/* 右边预览区（白底） */
+.preview {
+  width: 50%;
+  overflow: auto;
+  padding: 10px;
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ⚡ 预览里的代码块：强制暗色高亮 */
+.markdown-body pre code {
+  background: #0d1117 !important;
+  color: #c9d1d9 !important;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 14px;
+  border-radius: 6px;
+  padding: 10px;
+  display: block;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 工具栏在顶部 */
+.toolbar {
+  flex-shrink: 0;
+}
+
+/* 主体（编辑 + 预览）撑满中间 */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  margin-bottom: 24px; /* 预留状态栏高度 */
+}
+
+/* 状态栏固定在底部 */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  background: #f0f0f0;
+  border-top: 1px solid #ddd;
+  color: #333;
+  z-index: 100;
+}
+
+
+

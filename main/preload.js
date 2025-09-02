@@ -17,11 +17,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   convertFileSrc: (filePath) => ipcRenderer.invoke('convert-file-src', filePath),
   onLoadLastFile: (callback) =>
     ipcRenderer.on("load-last-file", (event, filePath) => callback(filePath)),
-  
-  // ✅ 关键修改：不再暴露整个 path 模块
-  // 只暴露我们需要在渲染进程中用到的具体函数
   path: {
     dirname: (p) => path.dirname(p),
     resolve: (...paths) => path.resolve(...paths),
+  },
+  setAttachmentFolder: () => ipcRenderer.invoke("set-attachment-folder"),
+  getAttachmentFolder: () => ipcRenderer.invoke("get-attachment-folder"),
+  resolveImagePath: (args) => {
+    console.log("[Preload] 调用 resolveImagePath:", args);
+    return ipcRenderer.invoke("resolve-image-path", args);
+  },
+  dirname: (filePath) => {
+    return path.dirname(filePath);
   },
 });

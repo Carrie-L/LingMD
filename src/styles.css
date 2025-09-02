@@ -117,7 +117,22 @@ body, html, .app {
   - 调整内边距 (padding)
 */
 .editor,
-.preview,
+.preview{
+overflow: auto;
+  
+  /* ✅ 卡片样式核心 */
+  background: #ffffff; /* 卡片背景为纯白 */
+  border: none; /* 移除旧的边框 */
+  border-radius: 8px; /* 卡片圆角 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 柔和的阴影，营造悬浮感 */
+  transition: box-shadow 0.3s ease; /* 添加过渡效果 */
+
+  /* 增加内边距，让内容离卡片边缘更远 */
+  padding: 30px; 
+  margin: 15px;
+  
+  min-width: 0;
+}
 .wechat-export {
   overflow: auto;
   
@@ -129,7 +144,7 @@ body, html, .app {
   transition: box-shadow 0.3s ease; /* 添加过渡效果 */
 
   /* 增加内边距，让内容离卡片边缘更远 */
-  padding: 30px; 
+  padding: 18px; 
   margin: 15px;
   
   min-width: 0;
@@ -166,20 +181,14 @@ body, html, .app {
   background-color: transparent;
 }
 
-.wechat-export {
-  background: #fafafa;
-  border-left: 1px solid #ddd;
-}
-
 .wechat-export > div {
   width: 100%; 
   min-height: 100%;
-  background: #ffffff;
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  background: none;
+  padding: 0;
+  border: none;
+  box-shadow: none;
 }
-
 
 /* ========================================= */
 /*            代码高亮 & 其他样式            */

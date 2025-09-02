@@ -17,6 +17,32 @@ function App() {
   const [toast, setToast] = useState("");
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
+  const [attachmentFolder, setAttachmentFolder] = useState(null); // ✅ 新增 state
+
+  // ✅ 1. 新增一个刷新触发器 state，它就是一个简单的计数器
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
+  useEffect(() => {
+    window.electronAPI.getAttachmentFolder().then(folder => {
+      if (folder) setAttachmentFolder(folder);
+    });
+  }, []);
+
+  // ✅ 新增：处理设置附件文件夹的点击事件
+  const handleSetAttachmentFolder = async () => {
+    const folder = await window.electronAPI.setAttachmentFolder();
+    if (folder) {
+      setAttachmentFolder(folder);
+      
+      // ✅ 2. 在设置成功后，立即更新触发器
+      // 每次都让它的值变得和上次不一样，就能保证触发刷新
+      setRefreshTrigger(prev => prev + 1); 
+
+      showToast(`🖼️ 附件文件夹已设置为: ${folder}`);
+    }
+  };
+
   const showToast = (message, duration = 3000) => {
     setToast(message);
     setTimeout(() => setToast(""), duration);
@@ -132,7 +158,10 @@ if (mode === "preview") {
         <button onClick={handleOpen}>📂 打开</button>
         <button onClick={handleSave}>💾 保存</button>
         <button onClick={handlePreview}>👁️ 预览</button>
-        <button onClick={() => setShowWechat(!showWechat)}>📱 公众号</button>
+        <button onClick={() => {
+          console.log('Toggling showWechat from:', showWechat);
+          setShowWechat(!showWechat);
+        }}>📱 公众号</button>
       </div>
 
 
@@ -141,7 +170,8 @@ if (mode === "preview") {
         {/* ✅ 将 filePath 作为 prop 传递给 Preview 组件 */}
         <Preview value={content} filePath={filePath} />
         
-        {/* ✅ 将 filePath 作为 prop 传递给 WechatExport 组件 */}
+          {/* {showWechat ? <WechatExport value={content} filePath={filePath} attachmentFolder={attachmentFolder} /> : null} */}
+          {/* ✅ 3. 将新的刷新触发器作为 prop 传递下去 */}
         {showWechat && <WechatExport value={content} filePath={filePath} />}
     </div>
        {/* 底部状态栏 */}
@@ -155,6 +185,14 @@ if (mode === "preview") {
           onClick={handleOpenDefaultDir}
         >
           📂 {defaultDir}
+        </span>
+        {/* ✅ 新增：在状态栏显示和设置附件文件夹 */}
+        <span
+          title="点击设置 Obsidian 附件文件夹"
+          style={{ cursor: "pointer", textDecoration: "underline" }}
+          onClick={handleSetAttachmentFolder}
+        >
+          🖼️ {attachmentFolder || "未设置附件文件夹"}
         </span>
       </div>
 

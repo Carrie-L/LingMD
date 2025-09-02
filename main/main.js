@@ -1,10 +1,11 @@
 // main.js - 完整修复版
 
-const { app, BrowserWindow, ipcMain, dialog, protocol, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, protocol, shell, net } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const Store = require("electron-store").default;
 const store = new Store();
+const { pathToFileURL, fileURLToPath } = require("url"); 
 
 let mainWindow;
 let previewWindow;
@@ -41,12 +42,13 @@ function createWindow() {
       // ✅ 关键修复：允许 preload 脚本使用 Node.js 的 'require'
       contextIsolation: true,
       sandbox: false, 
+      // ✅ 关键修复：同样为预览窗口禁用 webSecurity
+      webSecurity: false,
     },
   });
 
   // 默认打开开发者工具，方便调试
   mainWindow.webContents.openDevTools();
-
   mainWindow.loadURL("http://localhost:5173");
 
   mainWindow.webContents.once("did-finish-load", () => {
@@ -62,15 +64,25 @@ function createWindow() {
 // -------------------------------------------------------------------
 app.whenReady().then(() => {
   // 注册自定义协议，用于安全加载本地图片
-  protocol.registerFileProtocol("safe-file", (request, callback) => {
-    const url = request.url.substring("safe-file://".length);
+ // ✅ 修复后的 safe-file 协议
+// ✅ 2. 使用更健壮的 protocol.handle 实现
+protocol.handle("safe-file", (request) => {
     try {
-      callback({ path: path.normalize(decodeURI(url)) });
-    } catch (error) {
-      console.error("Failed to load file with safe-file protocol:", error);
-      callback({ error: -1 });
+      // Swap our custom protocol for the standard 'file:' protocol
+      const standardFileUrl = request.url.replace("safe-file:", "file:");
+      
+      console.log(`[safe-file] Forwarding to net.fetch with URL: ${standardFileUrl}`);
+      
+      // Let Electron's built-in, powerful fetch handler do the work.
+      // It knows how to correctly handle valid file:// URLs.
+      return net.fetch(standardFileUrl);
+
+    } catch (err) {
+      console.error(`[safe-file] Failed to handle request for ${request.url}:`, err);
+      return new Response("Not Found", { status: 404 });
     }
   });
+
 
   createWindow();
 
@@ -150,7 +162,69 @@ ipcMain.handle("open-default-dir", async () => {
   return dir;
 });
 
-// 状态 & 窗口管理
+// ✅ 新增：设置附件文件夹
+ipcMain.handle("set-attachment-folder", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "选择 Obsidian 附件文件夹",
+    properties: ["openDirectory"],
+  });
+  if (canceled || !filePaths.length) return null;
+  const folderPath = filePaths[0];
+  store.set("attachmentFolder", folderPath); // 保存到 electron-store
+  return folderPath;
+});
+
+// ✅ 新增：获取附件文件夹
+ipcMain.handle("get-attachment-folder", () => {
+  return store.get("attachmentFolder", null); // 读取设置，如果没有则返回 null
+});
+
+
+ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
+  let finalPath = null;
+
+  // 1. Try relative path
+  if (fileDir) {
+    const relativePath = path.resolve(fileDir, src);
+    if (fs.existsSync(relativePath)) {
+      finalPath = relativePath;
+    }
+  }
+
+  console.log("-- 接收： fileDir：",fileDir);
+  console.log("-- 接收： finalPath：",finalPath);
+
+  // 2. If not found, try attachment folder
+  if (!finalPath) {
+    const attachmentFolder = store.get("attachmentFolder");
+    if (attachmentFolder) {
+      const imageName = path.basename(src);
+      const attachmentPath = path.resolve(attachmentFolder, imageName);
+      if (fs.existsSync(attachmentPath)) {
+        finalPath = attachmentPath;
+      }
+    }
+  }
+
+  console.log("-- 接收： finalPath2：",finalPath);
+
+  // ✅ 3. If a path was found, convert it to a standard URL and then swap the protocol
+  if (finalPath) {
+    // pathToFileURL will create a perfectly formatted URL, e.g., 'file:///I:/path/to/image.png'
+    const fileUrl = pathToFileURL(finalPath).href;
+    console.log(`[resolve-image-path] Found file at '${finalPath}', converted to URL: '${fileUrl}'`);
+
+    // Replace 'file:' with 'safe-file:' to use our custom protocol
+    return fileUrl.replace('file:', 'safe-file:');
+  }
+
+  console.log(`[resolve-image-path] Could not find image for src: '${src}'`);
+  return null;
+});
+
+
+
+// === 状态 & 窗口管理 ===
 ipcMain.on("set-last-file", (event, filePath) => store.set("lastFile", filePath));
 
 ipcMain.handle('convert-file-src', (event, filePath) => `safe-file://${path.normalize(filePath)}`);
@@ -167,8 +241,12 @@ ipcMain.on("open-preview", () => {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       sandbox: false,
+      // ✅ 关键修复：允许 http://localhost 加载本地资源
+      // 这对于在开发服务器(vite)环境下显示 safe-file:// 协议的图片至关重要
+      webSecurity: false, 
     },
   });
   previewWindow.on("closed", () => { previewWindow = null; });
   previewWindow.loadURL("http://localhost:5173?mode=preview");
 });
+

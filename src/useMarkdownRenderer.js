@@ -1,9 +1,7 @@
-// useMarkdownRenderer.js --- 最终修复版 v2
-
 import { useEffect, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/core';
 
 // 2. ✅ 显式导入并注册你需要的语言包
 // 你可以根据需要添加更多语言，比如 python, css, html, bash 等
@@ -14,6 +12,8 @@ import xml from 'highlight.js/lib/languages/xml'; // for HTML
 import python from 'highlight.js/lib/languages/python';
 import bash from 'highlight.js/lib/languages/bash';
 import json from 'highlight.js/lib/languages/json';
+import java from 'highlight.js/lib/languages/java';
+import kotlin from 'highlight.js/lib/languages/kotlin';
 
 // 3. ✅ 注册语言
 hljs.registerLanguage('javascript', javascript);
@@ -26,6 +26,8 @@ hljs.registerLanguage('python', python);
 hljs.registerLanguage('py', python); // 别名
 hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('json', json);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('kotlin', kotlin);
 
 // 自定义扩展：支持 Obsidian 的 ![[xxx.png]]
 const obsidianImageExtension = {
@@ -52,14 +54,13 @@ const obsidianImageExtension = {
 };
 marked.use({ extensions: [obsidianImageExtension] });
 
-// ✅ 2. 配置 marked.js 使用 highlight.js
-// 这是官方推荐的配置方式
+// 我们只配置 highlight 函数，让它返回带 class 的 <span>
 marked.setOptions({
   highlight: function(code, lang) {
     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
+    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
   },
-//   langPrefix: 'hljs language-', // 兼容 highlight.js 的 CSS
+  langPrefix: 'hljs language-', // 确保 langPrefix 正确
 });
 
 

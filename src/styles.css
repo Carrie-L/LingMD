@@ -234,6 +234,7 @@ overflow: auto;
 .markdown-body pre code {
   background: none !important;
   padding: 0 !important;
+  margin: 0;
 }
 
 .toast {

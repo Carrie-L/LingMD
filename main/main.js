@@ -385,20 +385,25 @@ ipcMain.handle("convert-html-for-clipboard", async(event, rawHtml) => {
     // `;
 
     // ✅ 终极版 extraCss，目标：强制水平滚动
-const extraCss = `
+// ✅ 借鉴开源库，定义一个适配微信的“主题”
+    const extraCss = `
+    /* 标题适配 */
+      h1 { font-size: 1.5em; font-weight: bold; margin: 0.67em 0; }
+      h2 { font-size: 1.3em; font-weight: bold; margin: 0.83em 0; }
+      h3, h4, h5, h6 { font-size: 1.1em; font-weight: bold; margin: 1em 0; }     
       pre {
-        white-space: pre !important;
-        overflow-x: auto !important;
-        word-wrap: normal !important;
-        word-break: normal !important;
-        margin: 1.2em 0 !important;
+        margin: 1.2em 8px !important;
         padding: 1em !important;
         border-radius: 6px !important;
+        /* 核心滚动样式 */
+        white-space: pre !important;
+        overflow-x: auto !important;
       }
-      pre code {
-        white-space: inherit !important;
+      code {
+        /* 强制 nowrap，配合 pre 的 overflow-x: auto */
+        white-space: nowrap !important; 
+        font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
       }
-      p, h1, h2, h3, h4, h5, h6 { line-height: 1.6; }
     `;
 
     // ✅ 4. 使用 juice 将 CSS 内联到 HTML 中 juice(html, options)
@@ -433,7 +438,12 @@ const extraCss = `
         return match;
     });
 
-    // console.log("////finalHtml",finalHtml);
+    finalHtml = finalHtml.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/g, (match, preContent) => {
+        const processedContent = preContent.replace(/(>[^<]+)|(^[^<]+)/g, (str) => str.replace(/ /g, `&nbsp;`));
+        return match.replace(preContent, processedContent);
+    });
+
+    console.log("////finalHtml",finalHtml);
     
 
     return finalHtml;

@@ -2,36 +2,112 @@ import React, { useState, useEffect } from "react";
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
-import WechatExport from "./WechatExport.jsx"; 
-import { useMarkdownRenderer } from './useMarkdownRenderer'; 
-// import { processClipboardContent } from "./processClipboardContent";
-import 'highlight.js/styles/tokyo-night-dark.css'; 
+import WechatExport from "./WechatExport.jsx";
+import { useMarkdownRenderer } from './useMarkdownRenderer';
+// import 'highlight.js/styles/tokyo-night-dark.css'; 
 import './styles.css';
 
+// ✅ 1. 定义主题元数据
+const THEMES = {
+  'tokyo-night-dark': {
+    name: 'Tokyo Night Dark',
+    container: { background: '#1a1b26', color: '#a9b1d6' },
+    path: '/hljs/tokyo-night-dark.min.css',
+  },
+  'github-dark': {
+    name: 'GitHub Dark',
+    container: { background: '#0d1117', color: '#c9d1d9' },
+    path: '/hljs/github-dark.min.css',
+  },
+  'atom-one-dark': { // 修正了 key
+    name: 'Atom One Dark',
+    container: { background: '#282c34', color: '#abb2bf' }, // 补上了 container
+    path: '/hljs/atom-one-dark.min.css',
+  },
+  'felipec': {
+    name: 'felipec',
+    container: { background: '#1d3a4a', color: '#dbe1e6' }, // 补上了 container
+    path: '/hljs/felipec.min.css',
+  },
+  'monokai': {
+    name: 'monokai',
+    container: { background: '#2a2c2d', color: '#f8f8f2' }, // 补上了 container
+    path: '/hljs/monokai.min.css',
+  },
+  'panda-syntax-dark': {
+    name: 'panda syntax dark',
+    container: { background: '#2a2c32', color: '#e6e6e6' }, // 补上了 container
+    path: '/hljs/panda-syntax-dark.min.css',
+  },
+  'tomorrow-night-blue': {
+    name: 'tomorrow night blue',
+    container: { background: '#002451', color: '#ffffff' }, // 补上了 container
+    path: '/hljs/tomorrow-night-blue.min.css',
+  },
+};
+
+// ✅ 1. 定义一个默认的主题键，确保它一定存在
+const DEFAULT_THEME_KEY = 'tokyo-night-dark';
+
 function App() {
+  // ✅ 2. 创建 state 来管理当前主题的 key
+  const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认主题
+
+  // ✅ 3. 使用 useEffect 来动态加载和卸载 CSS 主题
+// ===================================================================
+  // ✅ 核心修复：使用 <link> 标签来动态加载 public 目录下的 CSS
+  // ===================================================================
+  useEffect(() => {
+    // 1. 创建一个新的 <link> 元素
+    const linkElement = document.createElement('link');
+    
+    // 2. 设置它的属性
+    linkElement.rel = 'stylesheet';
+    linkElement.id = 'dynamic-theme-stylesheet'; // 给它一个ID，方便管理
+    linkElement.href = THEMES[themeKey].path; // e.g., '/hljs/tokyo-night-dark.min.css'
+
+    // 3. 将它添加到 <head> 中，浏览器会自动加载并应用 CSS
+    document.head.appendChild(linkElement);
+
+    // 4. 定义清理函数
+    // 当 themeKey 改变，React 会先运行这个清理函数，然后再运行新的 effect
+    return () => {
+      // 找到我们之前添加的 <link> 元素并移除它
+      const oldLink = document.getElementById('dynamic-theme-stylesheet');
+      if (oldLink) {
+        document.head.removeChild(oldLink);
+      }
+    };
+  }, [themeKey]); // 这个 effect 只在 themeKey 改变时运行
+
   
+
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
   const mode = query.get("mode") || "edit"; // edit | preview
   const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
-  
+
   const [content, setContent] = useState("");
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState("");
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
-  // ✅ 直接在顶层组件调用 Hook，获取渲染结果
-  // 这样，我们只需要渲染一次，所有子组件和复制功能都可以共享结果
-  const { rawHtml, sanitizedHtml } = useMarkdownRenderer(content, filePath);
+
+// ✅ 3. (核心修复) 添加防御性回退逻辑
+  // a. 首先，获取当前选中的主题对象
+  const currentTheme = THEMES[themeKey];
+  // b. 如果由于某种原因（比如 state 更新延迟）找不到主题，就使用默认主题
+  const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
+  
+  const { rawHtml, sanitizedHtml } = useMarkdownRenderer(
+    content, 
+    filePath
+  );
+
+
 
   const [attachmentFolder, setAttachmentFolder] = useState(null); // ✅ 新增 state
-
-  // ✅ 1. 新增一个刷新触发器 state，它就是一个简单的计数器
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // ✅ 2. 新增一个 state 来管理当前选中的主题
-  const [currentTheme, setCurrentTheme] = useState('dark'); // 默认为亮色主题
 
   // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
   useEffect(() => {
@@ -45,10 +121,10 @@ function App() {
     const folder = await window.electronAPI.setAttachmentFolder();
     if (folder) {
       setAttachmentFolder(folder);
-      
+
       // ✅ 2. 在设置成功后，立即更新触发器
       // 每次都让它的值变得和上次不一样，就能保证触发刷新
-      setRefreshTrigger(prev => prev + 1); 
+      setRefreshTrigger(prev => prev + 1);
 
       showToast(`🖼️ 附件文件夹已设置为: ${folder}`);
     }
@@ -60,25 +136,25 @@ function App() {
   };
 
   // 自动保存（停止输入 2 秒后保存）
-useEffect(() => {
-  if (!filePath) return; // 没路径就不保存
-  setStatus("未保存");
-  const timer = setTimeout(async () => {
-    await window.electronAPI.saveFile(content, filePath);
-    setStatus("已自动保存");
-    showToast("💾 自动保存");
-  }, 2000);
-  return () => clearTimeout(timer);
-}, [content, filePath]);
+  useEffect(() => {
+    if (!filePath) return; // 没路径就不保存
+    setStatus("未保存");
+    const timer = setTimeout(async () => {
+      await window.electronAPI.saveFile(content, filePath);
+      setStatus("已自动保存");
+      showToast("💾 自动保存");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [content, filePath]);
 
-// 手动保存
-const handleSave = async () => {
-  if (!filePath) return; // 没路径就不保存
-  await window.electronAPI.saveFile(content, filePath);
-  window.electronAPI.setLastFile(filePath);
-  setStatus("已保存");
-  showToast("💾 文件已保存");
-};
+  // 手动保存
+  const handleSave = async () => {
+    if (!filePath) return; // 没路径就不保存
+    await window.electronAPI.saveFile(content, filePath);
+    window.electronAPI.setLastFile(filePath);
+    setStatus("已保存");
+    showToast("💾 文件已保存");
+  };
 
 
   // 启动时加载上次的文件
@@ -112,44 +188,44 @@ const handleSave = async () => {
   const wordCount = content ? content.replace(/\s+/g, "").length : 0;
 
   const handleNewFile = async () => {
-  const result = await window.electronAPI.newFile();
-  if (result) {
-    setFilePath(result.path);
-    setContent(result.content);
-    window.electronAPI.setLastFile(result.path);
-    setStatus("新建");
-    showToast("🆕 新建文件");
-  }
-};
+    const result = await window.electronAPI.newFile();
+    if (result) {
+      setFilePath(result.path);
+      setContent(result.content);
+      window.electronAPI.setLastFile(result.path);
+      setStatus("新建");
+      showToast("🆕 新建文件");
+    }
+  };
 
-const [defaultDir, setDefaultDir] = useState("");
+  const [defaultDir, setDefaultDir] = useState("");
 
-// 启动时获取默认文件夹
-useEffect(() => {
-  window.electronAPI.getDefaultDir().then(setDefaultDir);
-}, []);
+  // 启动时获取默认文件夹
+  useEffect(() => {
+    window.electronAPI.getDefaultDir().then(setDefaultDir);
+  }, []);
 
-const handleSetDefaultDir = async () => {
-  const dir = await window.electronAPI.setDefaultDir();
-  if (dir) {
-    setDefaultDir(dir);
-    showToast(`📂 默认文件夹已设置为: ${dir}`);
-  }
-};
+  const handleSetDefaultDir = async () => {
+    const dir = await window.electronAPI.setDefaultDir();
+    if (dir) {
+      setDefaultDir(dir);
+      showToast(`📂 默认文件夹已设置为: ${dir}`);
+    }
+  };
 
-const handleOpenDefaultDir = async () => {
-  const dir = await window.electronAPI.openDefaultDir();
-  if (dir) {
-    showToast(`📂 已在系统中打开: ${dir}`);
-  }
-};
+  const handleOpenDefaultDir = async () => {
+    const dir = await window.electronAPI.openDefaultDir();
+    if (dir) {
+      showToast(`📂 已在系统中打开: ${dir}`);
+    }
+  };
 
 
-const handlePreview = () => {
-  window.electronAPI.openPreview();
-};
+  const handlePreview = () => {
+    window.electronAPI.openPreview();
+  };
 
-if (mode === "preview") {
+  if (mode === "preview") {
     return (
       <div className="app">
         <div className="main preview-mode">
@@ -163,7 +239,7 @@ if (mode === "preview") {
 
 
   // ✅ 新增：处理公众号复制的函数
-const handleCopyToWechat = async () => {
+  const handleCopyToWechat = async () => {
     if (!content.trim()) {
       alert("没有内容可复制");
       return;
@@ -175,10 +251,13 @@ const handleCopyToWechat = async () => {
         alert("内容尚未渲染完成，请稍候再试。");
         return;
       }
-      
+
       console.log("Step 1: Sending raw HTML to main process for juicing...");
       // 2. ✅ 关键修复：只传递 rawHtml 字符串，而不是一个对象
-      const finalHtml = await window.electronAPI.convertHtmlForClipboard(rawHtml);
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+        html: rawHtml,
+        theme: themeKey, // 传递主题的 key
+      });
 
       // 3. 检查后端是否返回了有效的 HTML
       if (!finalHtml || finalHtml.trim() === '') {
@@ -186,7 +265,7 @@ const handleCopyToWechat = async () => {
         alert("复制失败：后端处理返回为空。");
         return;
       }
-      
+
       // 4. 使用 Clipboard API 写入剪贴板
       console.log("Step 2: Writing juiced HTML to clipboard...");
       const blobHtml = new Blob([finalHtml], { type: "text/html" });
@@ -197,7 +276,7 @@ const handleCopyToWechat = async () => {
       });
 
       await navigator.clipboard.write([clipboardItem]);
-      
+
       console.log("Successfully copied to clipboard for WeChat!");
       alert("已成功复制到剪贴板！");
 
@@ -211,32 +290,32 @@ const handleCopyToWechat = async () => {
 
 
   // ✅ 1. 在组件外部或内部定义你的代码块主题
-const codeBlockThemes = {
-  light: {
-    backgroundColor: '#f6f8fa',
-    padding: '16px',
-    margin: '1em 0',
-    border: '1px solid #eaeef2',
-    borderRadius: '6px',
-    overflow: 'auto',
-    fontFamily: 'Consolas, "Courier New", monospace',
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: '#24292e', // 深灰色文字
-  },
-  dark: {
-    backgroundColor: '#0d1117', // 暗色背景
-    padding: '16px',
-    margin: '1em 0',
-    border: '1px solid #30363d', // 暗色边框
-    borderRadius: '6px',
-    overflow: 'auto',
-    fontFamily: 'Consolas, "Courier New", monospace',
-    fontSize: '14px',
-    lineHeight: '1.6',
-    color: '#eaeef2', // 亮灰色文字
-  }
-};
+  const codeBlockThemes = {
+    light: {
+      backgroundColor: '#f6f8fa',
+      padding: '16px',
+      margin: '1em 0',
+      border: '1px solid #eaeef2',
+      borderRadius: '6px',
+      overflow: 'auto',
+      fontFamily: 'Consolas, "Courier New", monospace',
+      fontSize: '14px',
+      lineHeight: '1.6',
+      color: '#24292e', // 深灰色文字
+    },
+    dark: {
+      backgroundColor: '#0d1117', // 暗色背景
+      padding: '16px',
+      margin: '1em 0',
+      border: '1px solid #30363d', // 暗色边框
+      borderRadius: '6px',
+      overflow: 'auto',
+      fontFamily: 'Consolas, "Courier New", monospace',
+      fontSize: '14px',
+      lineHeight: '1.6',
+      color: '#eaeef2', // 亮灰色文字
+    }
+  };
 
 
   // 默认编辑模式
@@ -247,22 +326,25 @@ const codeBlockThemes = {
         <button onClick={handleOpen}>📂 打开</button>
         <button onClick={handleSave}>💾 保存</button>
         <button onClick={handlePreview}>👁️ 预览</button>
-        <button onClick={() => {
-          console.log('Toggling showWechat from:', showWechat);
-          setShowWechat(!showWechat);
-        }}>📱 公众号</button>
-        {/* ✅ (可选) 新增一个切换主题的按钮/下拉菜单 */}
-        <select value={currentTheme} onChange={(e) => setCurrentTheme(e.target.value)}>
-          <option value="light">亮色代码</option>
-          <option value="dark">暗色代码</option>
+        {/* ✅ 6. 创建主题选择下拉菜单 */}
+        <select value={themeKey} onChange={(e) => setThemeKey(e.target.value)}>
+          {Object.entries(THEMES).map(([key, theme]) => (
+            <option key={key} value={key}>{theme.name}</option>
+          ))}
         </select>
-       {showWechat && (
-    <button onClick={handleCopyToWechat}>复制到公众号</button>
-  )}
+        <button
+    className={showWechat ? "active" : ""}
+    onClick={() => setShowWechat(!showWechat)}
+  >
+    📱 公众号
+  </button>
+        {showWechat && (
+          <button onClick={handleCopyToWechat}>复制到公众号</button>
+        )}
       </div>
 
 
-     <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
+      <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
         <Editor value={content} onChange={setContent} />
         {/* ✅ 将 sanitizedHtml 传递给子组件用于显示 */}
         {/* 注意：我们这里直接传递 HTML，而不是让子组件自己去渲染 */}
@@ -273,17 +355,17 @@ const codeBlockThemes = {
           />
         </div>
         {showWechat && (
-    <div className="wechat-export">
-      <div>
-        <div
-          className="markdown-body"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-        />
+          <div className="wechat-export">
+            <div>
+              <div
+                className="markdown-body"
+                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  )}
-    </div>
-       {/* 底部状态栏 */}
+      {/* 底部状态栏 */}
       <div className="status-bar">
         <span>{filePath || "未打开文件"}</span>
         <span>{status}</span>

@@ -195,6 +195,12 @@ overflow: auto;
   box-shadow: none;
 }
 
+.toolbar button.active {
+  background: #48eabf;  /* Windows 风格蓝色 */
+  color: #fff;
+  border: 1px solid #9ceed8;
+}
+
 /* ========================================= */
 /*            代码高亮 & 其他样式            */
 /* ========================================= */

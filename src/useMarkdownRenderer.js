@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState,useCallback  } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import hljs from 'highlight.js/lib/core';
@@ -56,7 +56,7 @@ marked.use({ extensions: [obsidianImageExtension] });
 
 // 我们只配置 highlight 函数，让它返回带 class 的 <span>
 marked.setOptions({
-  highlight: function(code, lang) {
+  highlight: function (code, lang) {
     const language = hljs.getLanguage(lang) ? lang : 'plaintext';
     return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
   },
@@ -65,46 +65,59 @@ marked.setOptions({
 
 
 const renderer = new marked.Renderer();
-// renderer.code = ({ text, lang }) => {
-//   const code = text || "";
-//   const language = lang || "plaintext";
-
-//   try {
-//     if (hljs.getLanguage(language)) {
-//       const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
-//       return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
-//     }
-//     const highlighted = hljs.highlightAuto(code).value;
-//     return `<pre><code class="hljs">${highlighted}</code></pre>`;
-//   } catch (e) {
-//     const escaped = code
-//       .replace(/&/g, "&amp;")
-//       .replace(/</g, "&lt;")
-//       .replace(/>/g, "&gt;");
-//     return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
-//   }
-// };
-// ✅ 使用一个干净、健壮的自定义 renderer
-
-renderer.code = ({ text, language }) => {
+// 3. ✅ 使用正确的函数签名 (code, language)
+renderer.code = ({ text, lang }) => {
   const code = text || "";
-  const lang = language || 'plaintext';
+  const language = lang || "plaintext";
+
   try {
-    // 检查语言是否被注册
-    const highlightedCode = hljs.getLanguage(lang)
-      ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
-      : hljs.highlightAuto(code).value;
-      
-    // ✅ 输出标准的、只带 class 的 HTML。样式完全交给 CSS 文件处理。
-    return `<pre><code class="hljs language-${lang}">${highlightedCode}</code></pre>`;
+    if (hljs.getLanguage(language)) {
+      const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+    }
+    const highlighted = hljs.highlightAuto(code).value;
+    return `<pre><code class="hljs">${highlighted}</code></pre>`;
   } catch (e) {
-    console.error("Highlight.js error:", e);
-    // 出错时返回安全的纯文本版本
-    const escapedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    return `<pre><code class="hljs language-plaintext">${escapedCode}</code></pre>`;
+    const escaped = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
   }
 };
-marked.use({ renderer }); // ✅ 启用这个 renderer
+// 5. ✅ 将所有配置应用到全局的 marked 实例
+marked.use({ 
+  extensions: [obsidianImageExtension], 
+  renderer: renderer,
+  gfm: true, // 启用 GitHub Flavored Markdown
+  breaks: true, // 启用换行符
+});
+
+
+
+
+// ✅ 使用一个干净、健壮的自定义 renderer
+
+// 2025/9/4 暂时注释，如果有用，就取消注释 （高亮预览代码）
+// renderer.code = ({ text, language }) => {
+//   const code = text || "";
+//   const lang = language || 'plaintext';
+//   try {
+//     // 检查语言是否被注册
+//     const highlightedCode = hljs.getLanguage(lang)
+//       ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
+//       : hljs.highlightAuto(code).value;
+
+//     // ✅ 输出标准的、只带 class 的 HTML。样式完全交给 CSS 文件处理。
+//     return `<pre><code class="hljs language-${lang}">${highlightedCode}</code></pre>`;
+//   } catch (e) {
+//     console.error("Highlight.js error:", e);
+//     // 出错时返回安全的纯文本版本
+//     const escapedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+//     return `<pre><code class="hljs language-plaintext">${escapedCode}</code></pre>`;
+//   }
+// };
+// marked.use({ renderer }); // ✅ 启用这个 renderer
 
 
 
@@ -121,11 +134,12 @@ async function replaceAsync(html, callback) {
   return html.replace(regex, () => results.shift());
 }
 
-export function useMarkdownRenderer(content, filePath) {
+export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
   const [htmlResult, setHtmlResult] = useState({
     rawHtml: "",
     sanitizedHtml: "",
   });
+
 
   useEffect(() => {
     async function render() {
@@ -163,19 +177,19 @@ export function useMarkdownRenderer(content, filePath) {
       // 这会将 'safe-file' 添加到 DOMPurify 的默认安全协议列表中，而不是覆盖它们。
       // 这是最健壮和推荐的做法。
       const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-  ALLOWED_TAGS: [
-    "p","div","span","br","h1","h2","h3","h4","h5","h6",
-    "strong","b","em","i","u","del","s","code","blockquote","hr",
-    "pre","ul","ol","li","table","thead","tbody","tr","th","td",
-    "a","img"
-  ],
-  ALLOWED_ATTR: [
-    "href", "src", "alt", "title", "colspan", "rowspan", "class"   // ✅ 加上 class
-  ],
-  ALLOWED_URI_REGEXP:
-    /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-  ADD_PROTOCOLS: ['safe-file'],
-});
+        ALLOWED_TAGS: [
+          "p", "div", "span", "br", "h1", "h2", "h3", "h4", "h5", "h6",
+          "strong", "b", "em", "i", "u", "del", "s", "code", "blockquote", "hr",
+          "pre", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td",
+          "a", "img"
+        ],
+        ALLOWED_ATTR: [
+          "href", "src", "alt", "title", "colspan", "rowspan", "class"   // ✅ 加上 class
+        ],
+        ALLOWED_URI_REGEXP:
+          /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        ADD_PROTOCOLS: ['safe-file'],
+      });
 
 
       // (调试日志)
@@ -183,7 +197,7 @@ export function useMarkdownRenderer(content, filePath) {
       console.log("Raw HTML (has class):", rawHtml.substring(0, 300));
       console.log("Sanitized HTML (should also have class):", sanitizedHtml.substring(0, 300));
       if (rawHtml.includes('class=') && !sanitizedHtml.includes('class=')) {
-          console.error("!!! Critical Error: 'class' attribute was STILL removed by DOMPurify!");
+        console.error("!!! Critical Error: 'class' attribute was STILL removed by DOMPurify!");
       }
 
       console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);

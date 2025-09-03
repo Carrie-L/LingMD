@@ -65,27 +65,47 @@ marked.setOptions({
 
 
 const renderer = new marked.Renderer();
-renderer.code = ({ text, lang }) => {
-  const code = text || "";
-  const language = lang || "plaintext";
+// renderer.code = ({ text, lang }) => {
+//   const code = text || "";
+//   const language = lang || "plaintext";
 
+//   try {
+//     if (hljs.getLanguage(language)) {
+//       const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+//       return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+//     }
+//     const highlighted = hljs.highlightAuto(code).value;
+//     return `<pre><code class="hljs">${highlighted}</code></pre>`;
+//   } catch (e) {
+//     const escaped = code
+//       .replace(/&/g, "&amp;")
+//       .replace(/</g, "&lt;")
+//       .replace(/>/g, "&gt;");
+//     return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
+//   }
+// };
+// ✅ 使用一个干净、健壮的自定义 renderer
+
+renderer.code = ({ text, language }) => {
+  const code = text || "";
+  const lang = language || 'plaintext';
   try {
-    if (hljs.getLanguage(language)) {
-      const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
-      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
-    }
-    const highlighted = hljs.highlightAuto(code).value;
-    return `<pre><code class="hljs">${highlighted}</code></pre>`;
+    // 检查语言是否被注册
+    const highlightedCode = hljs.getLanguage(lang)
+      ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
+      : hljs.highlightAuto(code).value;
+      
+    // ✅ 输出标准的、只带 class 的 HTML。样式完全交给 CSS 文件处理。
+    return `<pre><code class="hljs language-${lang}">${highlightedCode}</code></pre>`;
   } catch (e) {
-    const escaped = code
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
+    console.error("Highlight.js error:", e);
+    // 出错时返回安全的纯文本版本
+    const escapedCode = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `<pre><code class="hljs language-plaintext">${escapedCode}</code></pre>`;
   }
 };
+marked.use({ renderer }); // ✅ 启用这个 renderer
 
-marked.use({ renderer });
 
 
 

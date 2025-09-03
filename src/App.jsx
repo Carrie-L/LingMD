@@ -6,6 +6,7 @@ import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer'; 
 // import { processClipboardContent } from "./processClipboardContent";
 import 'highlight.js/styles/tokyo-night-dark.css'; 
+import './styles.css';
 
 function App() {
   

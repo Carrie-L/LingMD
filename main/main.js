@@ -392,9 +392,9 @@ ipcMain.handle("convert-html-for-clipboard", async(event, rawHtml) => {
       h2 { font-size: 1.3em; font-weight: bold; margin: 0.83em 0; }
       h3, h4, h5, h6 { font-size: 1.1em; font-weight: bold; margin: 1em 0; }     
       pre {
-        margin: 1.2em 8px !important;
+        margin: 0 !important;
         padding: 1em !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         /* 核心滚动样式 */
         white-space: pre !important;
         overflow-x: auto !important;
@@ -403,6 +403,10 @@ ipcMain.handle("convert-html-for-clipboard", async(event, rawHtml) => {
         /* 强制 nowrap，配合 pre 的 overflow-x: auto */
         white-space: nowrap !important; 
         font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
+
+        border-radius: 8px;
+        line-height: 1.5;
+        font-size: 90%;
       }
     `;
 

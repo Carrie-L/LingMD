@@ -1,4 +1,4 @@
-@import "github-markdown-css/github-markdown.css";
+/* @import "github-markdown-css/github-markdown.css"; */
 
 
 /* 默认亮色 UI */
@@ -199,7 +199,17 @@ overflow: auto;
 /*            代码高亮 & 其他样式            */
 /* ========================================= */
 
-.markdown-body pre {
+
+
+.markdown-body pre code.hljs {
+  padding: 1em;
+  font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
+  border-radius: 8px;
+  line-height: 1.5;
+  font-size: 90%;
+}
+
+/* .markdown-body pre {
   background-color: #0d1117 !important;
   color: #c9d1d9 !important;
   font-family: Consolas, Monaco, "Courier New", monospace;
@@ -207,7 +217,7 @@ overflow: auto;
   border-radius: 6px;
   padding: 16px;
   overflow-x: auto;
-}
+} */
 
 /* .markdown-body pre code {
   padding: 0 !important;
@@ -218,9 +228,8 @@ overflow: auto;
 /* ✅ 新增：添加一个通用规则来“激活”高亮 */
 /* 这个规则的意思是：任何 class 以 "language-" 开头的 <code> 标签，
    都视同于拥有 .hljs 类。 */
-[class*="language-"] {
-  /* 这行是空的，我们只是用这个选择器来增加我们下面规则的特异性 */
-}
+/* [class*="language-"] {
+} */
 
 /* 之前推荐的 .markdown-body pre 样式可以保留，它负责背景色 */
 /* .markdown-body pre {
@@ -231,11 +240,11 @@ overflow: auto;
 } */
 
 /* 确保 code 标签本身没有奇怪的背景或 padding */
-.markdown-body pre code {
+/* .markdown-body pre code {
   background: none !important;
   padding: 0 !important;
   margin: 0;
-}
+} */
 
 .toast {
   position: fixed;

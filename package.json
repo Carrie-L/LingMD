@@ -44,6 +44,7 @@
     "electron-store": "^10.1.0",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
+    "juice": "^11.0.1",
     "marked": "^16.2.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

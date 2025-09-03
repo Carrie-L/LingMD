@@ -6,6 +6,8 @@ const fs = require("fs");
 const Store = require("electron-store").default;
 const store = new Store();
 const { pathToFileURL, fileURLToPath } = require("url"); 
+const juice = require('juice');
+const { log } = require("console");
 
 let mainWindow;
 let previewWindow;
@@ -255,115 +257,190 @@ ipcMain.on("open-preview", () => {
 // ===================================================================
 // main.js --- 找到 convert-html-for-clipboard 函数并用下面的代码替换它
 
-ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-  // ✅ 1. 从 payload 中解构出 html 和 theme
-  const { html: htmlContent, theme } = payload;
-  
-    if (!htmlContent) return "";
+// ===================================================================
+// ✅ 修正版：为公众号转换 HTML（方案 B）
+// ===================================================================
+// ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
+//   const { html: htmlContent, themeCss } = payload; // 传入 html + CSS
+//   if (!htmlContent) return "";
 
-  let finalHtml = htmlContent;
+//   let finalHtml = htmlContent;
 
-  // --- 步骤 1: 转换图片为 Base64 (这部分不变) ---
-  const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
-  const imageReplacements = await Promise.all(
-    [...finalHtml.matchAll(imageTagsRegex)].map(async (match) => {
-      const originalSrc = match[1];
-      const originalTag = match[0];
+//   // === Step 1: 转换图片为 Base64 ===
+//   const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+//   const imageReplacements = await Promise.all(
+//     [...finalHtml.matchAll(imageTagsRegex)].map(async (match) => {
+//       const originalSrc = match[1];
+//       const originalTag = match[0];
+//       try {
+//         const standardFileUrl = originalSrc.replace("safe-file:", "file:");
+//         const filePath = fileURLToPath(standardFileUrl);
+//         const fileBuffer = await fs.promises.readFile(filePath);
+//         let mimeType;
+//         const ext = path.extname(filePath).toLowerCase();
+//         if (ext === ".png") mimeType = "image/png";
+//         else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+//         else if (ext === ".gif") mimeType = "image/gif";
+//         else if (ext === ".svg") mimeType = "image/svg+xml";
+//         else mimeType = "application/octet-stream";
+//         const base64String = fileBuffer.toString("base64");
+//         const dataUrl = `data:${mimeType};base64,${base64String}`;
+//         const newTag = originalTag.replace(originalSrc, dataUrl);
+//         return { originalTag, newTag };
+//       } catch (error) {
+//         console.error(`Failed to convert image to Base64: ${originalSrc}`, error);
+//         return { originalTag, newTag: originalTag };
+//       }
+//     })
+//   );
+
+//   for (const { originalTag, newTag } of imageReplacements) {
+//     finalHtml = finalHtml.replace(originalTag, newTag);
+//   }
+
+//   // === Step 2: 替换代码块 ===
+//   const preCodeRegex = /<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/g;
+//   finalHtml = finalHtml.replace(preCodeRegex, (match, codeContent) => {
+//     // 换行 → <br>，空格 → &nbsp;
+//     const safeCode = codeContent
+//       .replace(/\n/g, "<br/>")
+//       .replace(/ /g, "&nbsp;");
+
+//     return `<pre class="custom"><code class="hljs">${safeCode}</code></pre>`;
+//   });
+
+//   // === Step 3: 在开头插入主题 CSS ===
+//   const cssBlock = `<style>${themeCss}</style>`;
+//   finalHtml = cssBlock + finalHtml;
+
+//   return finalHtml;
+// });
+
+// ===================================================================
+// ✅ (终极版) 为公众号复制功能转换 HTML
+// ===================================================================
+ipcMain.handle("convert-html-for-clipboard", async(event, rawHtml) => {
+  if (!rawHtml) return "";
+
+  try {
+     // === Step 1: 转换图片为 Base64 ===
+  let htmlWithBase64Images = rawHtml;
+    // 注意：我们现在的 img 标签 src 属性可能被 DOMPurify 绕过后变成了 data-safe-src
+    // 但在你最新的 useMarkdownRenderer.js 中，它被换回来了。我们假设它是 src
+    const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+
+    // 使用一个异步的 replace 方法
+    const replacements = [];
+    htmlWithBase64Images.replace(imageTagsRegex, (match, src) => {
+        replacements.push({ match, src });
+    });
+
+    for (const item of replacements) {
       try {
-        const standardFileUrl = originalSrc.replace("safe-file:", "file:");
+        const standardFileUrl = item.src.replace("safe-file:", "file:");
         const filePath = fileURLToPath(standardFileUrl);
         const fileBuffer = await fs.promises.readFile(filePath);
-        let mimeType;
+        
         const extension = path.extname(filePath).toLowerCase();
-        if (extension === ".png") mimeType = "image/png";
-        else if (extension === ".jpg" || extension === ".jpeg") mimeType = "image/jpeg";
+        let mimeType = "image/png"; // 默认
+        if (extension === ".jpg" || extension === ".jpeg") mimeType = "image/jpeg";
         else if (extension === ".gif") mimeType = "image/gif";
         else if (extension === ".svg") mimeType = "image/svg+xml";
-        else mimeType = "application/octet-stream";
+
         const base64String = fileBuffer.toString("base64");
         const dataUrl = `data:${mimeType};base64,${base64String}`;
-        const newTag = originalTag.replace(originalSrc, dataUrl);
-        return { originalTag, newTag };
-      } catch (error) {
-        console.error(`Failed to convert image to Base64: ${originalSrc}`, error);
-        return { originalTag, newTag: originalTag };
+        
+        htmlWithBase64Images = htmlWithBase64Images.replace(item.src, dataUrl);
+      } catch(e) {
+        console.error(`Failed to convert image to Base64: ${item.src}`, e);
       }
-    })
-  );
+    }
 
-  for (const { originalTag, newTag } of imageReplacements) {
-    finalHtml = finalHtml.replace(originalTag, newTag);
+    // ✅ 2. 读取我们准备好的 CSS 主题文件内容
+    // path.join(__dirname, ...) 确保了路径在任何环境下都正确
+    console.log("__dirname",__dirname);
+    
+    const highlightCss = fs.readFileSync(path.join(__dirname, 'styles', 'tokyo-night-dark.css'), 'utf-8');
+    
+    // ✅ 3. 定义一些额外的、适配微信的 CSS 规则
+    // const extraCss = `
+    //   /* 基础适配 */
+    //   section, p, span, h1, h2, h3, h4, h5, h6 {
+    //     margin: 0;
+    //     padding: 0;
+    //     line-height: 1.6;
+    //   }
+    //   /* 标题适配 */
+    //   h1 { font-size: 1.5em; font-weight: bold; margin: 0.67em 0; }
+    //   h2 { font-size: 1.3em; font-weight: bold; margin: 0.83em 0; }
+    //   h3, h4, h5, h6 { font-size: 1.1em; font-weight: bold; margin: 1em 0; }
+    //   /* 代码块容器适配 */
+    //   pre {
+    //     margin: 1em 0 !important;
+    //     padding: 1em !important;
+    //     border-radius: 6px !important;
+    //     white-space: pre-wrap !important;
+    //     word-wrap: break-word !important;
+    //   }
+    // `;
+
+    // ✅ 终极版 extraCss，目标：强制水平滚动
+const extraCss = `
+      pre {
+        white-space: pre !important;
+        overflow-x: auto !important;
+        word-wrap: normal !important;
+        word-break: normal !important;
+        margin: 1.2em 0 !important;
+        padding: 1em !important;
+        border-radius: 6px !important;
+      }
+      pre code {
+        white-space: inherit !important;
+      }
+      p, h1, h2, h3, h4, h5, h6 { line-height: 1.6; }
+    `;
+
+    // ✅ 4. 使用 juice 将 CSS 内联到 HTML 中 juice(html, options)
+    // const inlinedHtml = juice(htmlWithBase64Images, {
+    //   extraCss: highlightCss + extraCss, // 将主题和我们的附加规则合并
+    //   removeStyleTags: true, // 移除 HTML 中的 <style> 标签
+    //   applyStyleTags: true, // 应用 HTML 中的 <style> 标签
+    // });
+    const inlinedHtml = juice(htmlWithBase64Images, {
+      extraCss: highlightCss + extraCss,
+      removeStyleTags: true,
+    });
+    
+    // ✅ 5. (可选但推荐) 对标题进行最后的降级处理，以获得最佳兼容性
+    let finalHtml = inlinedHtml;
+    
+
+    // ✅ 6. (可选) 图片处理 - 从分析文档中借鉴
+    // 这个正则会找到所有<img>标签，移除 width/height 属性，并转为 style
+    finalHtml = finalHtml.replace(/<img[^>]*>/g, (match) => {
+        if (!match.includes('style=')) {
+            match = match.replace('>', ' style="">');
+        }
+        const width = match.match(/width="([^"]*)"/);
+        const height = match.match(/height="([^"]*)"/);
+        if (width) {
+            match = match.replace(width[0], '').replace(/style="/, `style="width: ${width[1]}px;`);
+        }
+        if (height) {
+            match = match.replace(height[0], '').replace(/style="/, `style="height: ${height[1]}px;`);
+        }
+        return match;
+    });
+
+    // console.log("////finalHtml",finalHtml);
+    
+
+    return finalHtml;
+
+  } catch (error) {
+    console.error("Failed to process HTML for clipboard:", error);
+    // 出错时返回原始 HTML，避免程序崩溃
+    return rawHtml;
   }
-
-  // =================================================================
-  // ✅ 步骤 2: 适配微信编辑器的 HTML 格式 (升级版)
-  // =================================================================
-
-  // ✅ 1. (修复版) 使用更健壮的正则替换 h3, h4, h5, h6
-  // 使用函数替换，更安全地处理内容
-  finalHtml = finalHtml.replace(/<h(\d)[^>]*>(.*?)<\/h\1>/g, (match, level, content) => {
-    const levelNum = parseInt(level, 10);
-    if (levelNum === 1) return `<h1>${content}</h1>`;
-    if (levelNum <= 3) return `<h2>${content}</h2>`;
-    return `<p><strong>${content}</strong></p>`;
-  });
-
-  // ✅ 2. (升级版) 动态生成代码块样式
-//   const preCodeRegex = /<pre><code(?: class="language-[^"]*")?>(.*?)<\/code><\/pre>/gs;
-//   finalHtml = finalHtml.replace(preCodeRegex, (match, codeContent) => {
-//     const escapedCode = codeContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-//     const codeLines = escapedCode.split('\n').map(line => line.trim() === '' ? '<br>' : line).join('<br>');
-
-//     // ✅ 从传递过来的 theme 对象动态构建样式字符串
-//     // Object.entries 将 { key: 'value' } 转为 [['key', 'value']]
-//     // .map 将 ['key', 'value'] 转为 "key: value;"
-//     // .join('') 拼接所有样式
-//     const style = Object.entries(theme)
-//       .map(([key, value]) => {
-//         // 将驼峰命名 (backgroundColor) 转换为 CSS 的 kebab-case (background-color)
-//         const cssKey = key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
-//         return `${cssKey}: ${value};`;
-//       })
-//       .join(' ');
-      
-//     return `<section style="${style}">${codeLines}</section>`;
-//   });
-
-const preRegex = /<pre[^>]*>/g;
-  finalHtml = finalHtml.replace(preRegex, (match) => {
-    const style = [
-      'background-color: #f6f8fa;',
-      'padding: 16px;',
-      'margin: 1em 0;',
-      'border: 1px solid #eaeef2;',
-      'border-radius: 6px;',
-      'font-family: Consolas, "Courier New", monospace;',
-      'font-size: 14px;',
-      'line-height: 1.6;',
-      'color: #ff0000;',
-      'white-space: pre-wrap;', // 确保在微信里能自动换行
-      'word-wrap: break-word;'   // 兼容旧版浏览器
-    ].join(' ');
-    // 在现有的 <pre> 标签上添加 style 属性
-    return `<pre style="${style}">`;
-  });
-  
-//   // (可选) 3. 转换行内代码 `<code>...</code>`
-//   const inlineCodeRegex = /<code>(.*?)<\/code>/g;
-//   finalHtml = finalHtml.replace(inlineCodeRegex, (match, codeContent) => {
-//     if (match.includes('<pre>')) return match; // 避免重复处理代码块里的
-//     const style = [
-//       'font-family: Consolas, "Courier New", monospace;',
-//       'background-color: #f6f8fa;',
-//       'padding: 0.2em 0.4em;',
-//       'border-radius: 3px;',
-//       'font-size: 85%;',
-//     ].join(' ');
-//     return `<span style="${style}">${codeContent}</span>`;
-//   });
-
-    console.log("finalHtml:", finalHtml);
-
-
-  return finalHtml;
 });

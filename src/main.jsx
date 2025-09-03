@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import '../src/styles/tokyo-night-dark.css'
+import '../main/styles/tokyo-night-dark.css'
 import "./styles.css";
 
 

@@ -4,8 +4,11 @@ import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx"; 
 import { useMarkdownRenderer } from './useMarkdownRenderer'; 
+// import { processClipboardContent } from "./processClipboardContent";
+import 'highlight.js/styles/tokyo-night-dark.css'; 
 
 function App() {
+  
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
   const mode = query.get("mode") || "edit"; // edit | preview
@@ -159,36 +162,34 @@ if (mode === "preview") {
 
 
   // ✅ 新增：处理公众号复制的函数
-  const handleCopyToWechat = async () => {
-    // 现在可以直接访问 value 和 rawHtml
+const handleCopyToWechat = async () => {
     if (!content.trim()) {
       alert("没有内容可复制");
       return;
     }
 
     try {
-      console.log("Step 1: Using pre-rendered raw HTML for conversion...");
-      // 1. 直接使用 Hook 生成的 rawHtml，它已经包含了 safe-file:// 路径
-      // 这避免了重新渲染，保证了内容一致性
-      // ✅ 3. 获取当前选中的主题对象
-      const selectedTheme = codeBlockThemes[currentTheme];
+      // 1. 确认我们有待处理的 rawHtml
+      if (!rawHtml) {
+        alert("内容尚未渲染完成，请稍候再试。");
+        return;
+      }
+      
+      console.log("Step 1: Sending raw HTML to main process for juicing...");
+      // 2. ✅ 关键修复：只传递 rawHtml 字符串，而不是一个对象
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard(rawHtml);
 
-      console.log("Step 2: Sending to main process with theme:", selectedTheme);
-      // ✅ 4. 将 HTML 和主题对象一起传递给主进程
-      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
-        html: rawHtml,
-        theme: selectedTheme,
-      });
-
-      // 2. 将此 HTML 发送到主进程进行 Base64 转换
-      console.log("Step 2: Sending to main process for Base64 conversion...");
-    
-      console.log("finalHtml before clipboard:", finalHtml);
-
-      // 3. 写入剪贴板
-      console.log("Step 3: Writing to clipboard...");
+      // 3. 检查后端是否返回了有效的 HTML
+      if (!finalHtml || finalHtml.trim() === '') {
+        console.error("Main process returned empty HTML.");
+        alert("复制失败：后端处理返回为空。");
+        return;
+      }
+      
+      // 4. 使用 Clipboard API 写入剪贴板
+      console.log("Step 2: Writing juiced HTML to clipboard...");
       const blobHtml = new Blob([finalHtml], { type: "text/html" });
-      const blobText = new Blob([content], { type: "text/plain" });
+      const blobText = new Blob([content], { type: "text/plain" }); // 纯文本版本
       const clipboardItem = new ClipboardItem({
         "text/html": blobHtml,
         "text/plain": blobText,
@@ -197,13 +198,16 @@ if (mode === "preview") {
       await navigator.clipboard.write([clipboardItem]);
       
       console.log("Successfully copied to clipboard for WeChat!");
-      showToast("已成功复制到剪贴板！");
+      alert("已成功复制到剪贴板！");
 
     } catch (error) {
       console.error("Failed to copy for WeChat:", error);
-      alert("复制失败，详情请查看控制台");
+      // alert 的内容如果是 error 对象，也会显示 [object Object]
+      // 所以我们只显示 error.message
+      alert(`复制失败: ${error.message}`);
     }
   };
+
 
   // ✅ 1. 在组件外部或内部定义你的代码块主题
 const codeBlockThemes = {

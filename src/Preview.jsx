@@ -6,6 +6,7 @@ import { useMarkdownRenderer } from './useMarkdownRenderer'; // 导入新 Hook
 function Preview({ value, filePath }) {
   // ✅ 直接调用 Hook 获取渲染好的 HTML
   const renderedHtml = useMarkdownRenderer(value, filePath);
+    console.log("✅✅✅renderedHtml:",renderedHtml);
 
   return (
     <div className="preview">

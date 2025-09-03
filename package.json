@@ -19,8 +19,8 @@
       "output": "dist_electron"
     },
     "files": [
-      "dist/**/*",        
-      "main/**/*",               
+      "dist/**/*",
+      "main/**/*",
       "package.json"
     ],
     "extraMetadata": {
@@ -39,7 +39,6 @@
       "icon": "icons"
     }
   },
-
   "dependencies": {
     "dompurify": "^3.2.6",
     "electron-store": "^10.1.0",

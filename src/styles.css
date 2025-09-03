@@ -1,8 +1,5 @@
-/* ========================================= */
-/*               全局样式 & 主题             */
-/* ========================================= */
-
 @import "github-markdown-css/github-markdown.css";
+
 
 /* 默认亮色 UI */
 body, html, .app {
@@ -96,6 +93,10 @@ body, html, .app {
   /* ✅ 新增：为卡片提供一个柔和的背景底座 */
   background-color: #fbfbfb; 
 
+  /* ✅ 新增：限制 Grid 行的高度，防止子元素无限拉伸 */
+  /* 1fr 表示占据所有剩余空间，minmax(0, 1fr) 是一种防止溢出的健壮写法 */
+  grid-auto-rows: minmax(0, 1fr);
+
   /* --- 默认两栏布局 --- */
   grid-template-columns: 1fr 1fr;
 }
@@ -134,19 +135,23 @@ overflow: auto;
   min-width: 0;
 }
 .wechat-export {
-  overflow: auto;
-  
-  /* ✅ 卡片样式核心 */
-  background: #ffffff; /* 卡片背景为纯白 */
-  border: none; /* 移除旧的边框 */
-  border-radius: 8px; /* 卡片圆角 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 柔和的阴影，营造悬浮感 */
-  transition: box-shadow 0.3s ease; /* 添加过渡效果 */
+  /* overflow: auto;  <-- 这个属性保留，非常重要 */
 
-  /* 增加内边距，让内容离卡片边缘更远 */
+  /* ✅ 新增：使用 Flexbox 布局来约束内部内容 */
+  display: flex;
+  flex-direction: column;
+  
+  /* ✅ 新增：确保 flex 子项不会超出容器 */
+  min-height: 0; /*  对于 flex 布局中的滚动容器，这是一个关键的修复 */
+
+  /* 卡片样式核心 */
+  background: #ffffff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
   padding: 18px; 
   margin: 15px;
-  
   min-width: 0;
 }
 
@@ -183,7 +188,7 @@ overflow: auto;
 
 .wechat-export > div {
   width: 100%; 
-  min-height: 100%;
+  overflow-y: auto;
   background: none;
   padding: 0;
   border: none;
@@ -204,10 +209,31 @@ overflow: auto;
   overflow-x: auto;
 }
 
-.markdown-body pre code {
+/* .markdown-body pre code {
   padding: 0 !important;
   background: none !important;
   color: inherit !important;
+} */
+
+/* ✅ 新增：添加一个通用规则来“激活”高亮 */
+/* 这个规则的意思是：任何 class 以 "language-" 开头的 <code> 标签，
+   都视同于拥有 .hljs 类。 */
+[class*="language-"] {
+  /* 这行是空的，我们只是用这个选择器来增加我们下面规则的特异性 */
+}
+
+/* 之前推荐的 .markdown-body pre 样式可以保留，它负责背景色 */
+/* .markdown-body pre {
+  background-color: #f6f8fa; 
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto; 
+} */
+
+/* 确保 code 标签本身没有奇怪的背景或 padding */
+.markdown-body pre code {
+  background: none !important;
+  padding: 0 !important;
 }
 
 .toast {

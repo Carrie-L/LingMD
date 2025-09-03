@@ -3,12 +3,37 @@
 import { useEffect, useState } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import hljs from 'highlight.js';
+
+// 2. ✅ 显式导入并注册你需要的语言包
+// 你可以根据需要添加更多语言，比如 python, css, html, bash 等
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import css from 'highlight.js/lib/languages/css';
+import xml from 'highlight.js/lib/languages/xml'; // for HTML
+import python from 'highlight.js/lib/languages/python';
+import bash from 'highlight.js/lib/languages/bash';
+import json from 'highlight.js/lib/languages/json';
+
+// 3. ✅ 注册语言
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript); // 别名
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('ts', typescript); // 别名
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('html', xml); // HTML 使用 xml 语言包
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('py', python); // 别名
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('json', json);
 
 // 自定义扩展：支持 Obsidian 的 ![[xxx.png]]
 const obsidianImageExtension = {
   name: "obsidian-image",
   level: "inline",
-  start(src) { return src.match(/!\[\[(.*?)\]\]/)?.index; },
+  start(src) {
+    return src.match(/!\[\[(.*?)\]\]/)?.index;
+  },
   tokenizer(src) {
     const rule = /^!\[\[(.+?)\]\]/;
     const match = rule.exec(src);
@@ -27,6 +52,42 @@ const obsidianImageExtension = {
 };
 marked.use({ extensions: [obsidianImageExtension] });
 
+// ✅ 2. 配置 marked.js 使用 highlight.js
+// 这是官方推荐的配置方式
+marked.setOptions({
+  highlight: function(code, lang) {
+    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+    return hljs.highlight(code, { language }).value;
+  },
+//   langPrefix: 'hljs language-', // 兼容 highlight.js 的 CSS
+});
+
+
+const renderer = new marked.Renderer();
+renderer.code = ({ text, lang }) => {
+  const code = text || "";
+  const language = lang || "plaintext";
+
+  try {
+    if (hljs.getLanguage(language)) {
+      const highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+    }
+    const highlighted = hljs.highlightAuto(code).value;
+    return `<pre><code class="hljs">${highlighted}</code></pre>`;
+  } catch (e) {
+    const escaped = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
+  }
+};
+
+marked.use({ renderer });
+
+
+
 // 异步替换函数
 async function replaceAsync(html, callback) {
   const regex = /<img src="(.*?)"(.*?)>/g;
@@ -41,23 +102,26 @@ async function replaceAsync(html, callback) {
 
 export function useMarkdownRenderer(content, filePath) {
   const [htmlResult, setHtmlResult] = useState({
-    rawHtml: '',
-    sanitizedHtml: '',
+    rawHtml: "",
+    sanitizedHtml: "",
   });
 
   useEffect(() => {
     async function render() {
       if (!content) {
-        setHtmlResult({ rawHtml: '', sanitizedHtml: '' });
+        setHtmlResult({ rawHtml: "", sanitizedHtml: "" });
         return;
       }
 
       let rawHtml = marked(content);
+      console.log("✅✅rawHtml:", rawHtml);
 
       rawHtml = await replaceAsync(rawHtml, async (match, src, rest) => {
         try {
           const decodedSrc = decodeURIComponent(src);
-          const fileDir = filePath ? window.electronAPI.path.dirname(filePath) : "";
+          const fileDir = filePath
+            ? window.electronAPI.path.dirname(filePath)
+            : "";
           const resolvedPath = await window.electronAPI.resolveImagePath({
             fileDir,
             src: decodedSrc,
@@ -69,18 +133,39 @@ export function useMarkdownRenderer(content, filePath) {
         } catch (err) {
           console.error("[Renderer] 图片路径解析失败:", src, err);
         }
-        return match; 
+        return match;
       });
+
+      console.log("✅✅✅✅rawHtml:", rawHtml);
 
       // ✅ 关键修复：使用 ADD_PROTOCOLS 而不是 ALLOWED_PROTOCOLS
       // 这会将 'safe-file' 添加到 DOMPurify 的默认安全协议列表中，而不是覆盖它们。
       // 这是最健壮和推荐的做法。
       const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-         ALLOWED_TAGS: ['img', 'a', 'p', 'div', 'span', 'code', 'pre'], 
-        ALLOWED_ATTR: ['src', 'href', 'alt', 'title'],
-        ALLOWED_URI_REGEXP: /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
-        });
+  ALLOWED_TAGS: [
+    "p","div","span","br","h1","h2","h3","h4","h5","h6",
+    "strong","b","em","i","u","del","s","code","blockquote","hr",
+    "pre","ul","ol","li","table","thead","tbody","tr","th","td",
+    "a","img"
+  ],
+  ALLOWED_ATTR: [
+    "href", "src", "alt", "title", "colspan", "rowspan", "class"   // ✅ 加上 class
+  ],
+  ALLOWED_URI_REGEXP:
+    /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  ADD_PROTOCOLS: ['safe-file'],
+});
 
+
+      // (调试日志)
+      console.log("--- HTML Rendering ---");
+      console.log("Raw HTML (has class):", rawHtml.substring(0, 300));
+      console.log("Sanitized HTML (should also have class):", sanitizedHtml.substring(0, 300));
+      if (rawHtml.includes('class=') && !sanitizedHtml.includes('class=')) {
+          console.error("!!! Critical Error: 'class' attribute was STILL removed by DOMPurify!");
+      }
+
+      console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);
 
       setHtmlResult({ rawHtml, sanitizedHtml });
     }

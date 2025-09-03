@@ -26,6 +26,9 @@ function App() {
   // ✅ 1. 新增一个刷新触发器 state，它就是一个简单的计数器
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // ✅ 2. 新增一个 state 来管理当前选中的主题
+  const [currentTheme, setCurrentTheme] = useState('dark'); // 默认为亮色主题
+
   // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
   useEffect(() => {
     window.electronAPI.getAttachmentFolder().then(folder => {
@@ -144,7 +147,7 @@ const handlePreview = () => {
 
 if (mode === "preview") {
     return (
-      <div className="app light">
+      <div className="app">
         <div className="main preview-mode">
           {/* ✅ 同样给新窗口的预览传递 filePath */}
           <Preview value={content} filePath={filePath} />
@@ -167,11 +170,21 @@ if (mode === "preview") {
       console.log("Step 1: Using pre-rendered raw HTML for conversion...");
       // 1. 直接使用 Hook 生成的 rawHtml，它已经包含了 safe-file:// 路径
       // 这避免了重新渲染，保证了内容一致性
+      // ✅ 3. 获取当前选中的主题对象
+      const selectedTheme = codeBlockThemes[currentTheme];
+
+      console.log("Step 2: Sending to main process with theme:", selectedTheme);
+      // ✅ 4. 将 HTML 和主题对象一起传递给主进程
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+        html: rawHtml,
+        theme: selectedTheme,
+      });
 
       // 2. 将此 HTML 发送到主进程进行 Base64 转换
       console.log("Step 2: Sending to main process for Base64 conversion...");
-      const finalHtml = await window.electronAPI.convertHtmlForClipboard(rawHtml);
-      
+    
+      console.log("finalHtml before clipboard:", finalHtml);
+
       // 3. 写入剪贴板
       console.log("Step 3: Writing to clipboard...");
       const blobHtml = new Blob([finalHtml], { type: "text/html" });
@@ -184,13 +197,41 @@ if (mode === "preview") {
       await navigator.clipboard.write([clipboardItem]);
       
       console.log("Successfully copied to clipboard for WeChat!");
-      alert("已成功复制到剪贴板！");
+      showToast("已成功复制到剪贴板！");
 
     } catch (error) {
       console.error("Failed to copy for WeChat:", error);
       alert("复制失败，详情请查看控制台");
     }
   };
+
+  // ✅ 1. 在组件外部或内部定义你的代码块主题
+const codeBlockThemes = {
+  light: {
+    backgroundColor: '#f6f8fa',
+    padding: '16px',
+    margin: '1em 0',
+    border: '1px solid #eaeef2',
+    borderRadius: '6px',
+    overflow: 'auto',
+    fontFamily: 'Consolas, "Courier New", monospace',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#24292e', // 深灰色文字
+  },
+  dark: {
+    backgroundColor: '#0d1117', // 暗色背景
+    padding: '16px',
+    margin: '1em 0',
+    border: '1px solid #30363d', // 暗色边框
+    borderRadius: '6px',
+    overflow: 'auto',
+    fontFamily: 'Consolas, "Courier New", monospace',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#eaeef2', // 亮灰色文字
+  }
+};
 
 
   // 默认编辑模式
@@ -205,6 +246,11 @@ if (mode === "preview") {
           console.log('Toggling showWechat from:', showWechat);
           setShowWechat(!showWechat);
         }}>📱 公众号</button>
+        {/* ✅ (可选) 新增一个切换主题的按钮/下拉菜单 */}
+        <select value={currentTheme} onChange={(e) => setCurrentTheme(e.target.value)}>
+          <option value="light">亮色代码</option>
+          <option value="dark">暗色代码</option>
+        </select>
        {showWechat && (
     <button onClick={handleCopyToWechat}>复制到公众号</button>
   )}

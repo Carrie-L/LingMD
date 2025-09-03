@@ -253,54 +253,117 @@ ipcMain.on("open-preview", () => {
 // ===================================================================
 // ✅ 新增：为公众号复制功能转换 HTML 中的图片
 // ===================================================================
-ipcMain.handle("convert-html-for-clipboard", async (event, htmlContent) => {
-  if (!htmlContent) return "";
+// main.js --- 找到 convert-html-for-clipboard 函数并用下面的代码替换它
 
-  const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
+  // ✅ 1. 从 payload 中解构出 html 和 theme
+  const { html: htmlContent, theme } = payload;
   
-  // 使用 Promise.all 来并行处理所有图片的转换
-  const replacedContent = await Promise.all(
-    [...htmlContent.matchAll(imageTagsRegex)].map(async (match) => {
-      const originalSrc = match[1]; // e.g., "safe-file:///I:/path/to/image.png"
-      const originalTag = match[0]; // e.g., '<img src="...png"'
+    if (!htmlContent) return "";
 
+  let finalHtml = htmlContent;
+
+  // --- 步骤 1: 转换图片为 Base64 (这部分不变) ---
+  const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+  const imageReplacements = await Promise.all(
+    [...finalHtml.matchAll(imageTagsRegex)].map(async (match) => {
+      const originalSrc = match[1];
+      const originalTag = match[0];
       try {
-        // 1. 将 URL 转换回本地文件系统路径
         const standardFileUrl = originalSrc.replace("safe-file:", "file:");
         const filePath = fileURLToPath(standardFileUrl);
-
-        // 2. 异步读取图片文件
         const fileBuffer = await fs.promises.readFile(filePath);
-        
-        // 3. 确定图片的 MIME 类型
         let mimeType;
         const extension = path.extname(filePath).toLowerCase();
         if (extension === ".png") mimeType = "image/png";
         else if (extension === ".jpg" || extension === ".jpeg") mimeType = "image/jpeg";
         else if (extension === ".gif") mimeType = "image/gif";
         else if (extension === ".svg") mimeType = "image/svg+xml";
-        else mimeType = "application/octet-stream"; // Fallback
-
-        // 4. 创建 Base64 Data URL
+        else mimeType = "application/octet-stream";
         const base64String = fileBuffer.toString("base64");
         const dataUrl = `data:${mimeType};base64,${base64String}`;
-
-        // 5. 返回替换对：[原始标签, 带有 Data URL 的新标签]
         const newTag = originalTag.replace(originalSrc, dataUrl);
         return { originalTag, newTag };
-
       } catch (error) {
         console.error(`Failed to convert image to Base64: ${originalSrc}`, error);
-        // 如果转换失败，保持原样
         return { originalTag, newTag: originalTag };
       }
     })
   );
-  // 执行所有替换操作
-  let finalHtml = htmlContent;
-  for (const { originalTag, newTag } of replacedContent) {
+
+  for (const { originalTag, newTag } of imageReplacements) {
     finalHtml = finalHtml.replace(originalTag, newTag);
   }
+
+  // =================================================================
+  // ✅ 步骤 2: 适配微信编辑器的 HTML 格式 (升级版)
+  // =================================================================
+
+  // ✅ 1. (修复版) 使用更健壮的正则替换 h3, h4, h5, h6
+  // 使用函数替换，更安全地处理内容
+  finalHtml = finalHtml.replace(/<h(\d)[^>]*>(.*?)<\/h\1>/g, (match, level, content) => {
+    const levelNum = parseInt(level, 10);
+    if (levelNum === 1) return `<h1>${content}</h1>`;
+    if (levelNum <= 3) return `<h2>${content}</h2>`;
+    return `<p><strong>${content}</strong></p>`;
+  });
+
+  // ✅ 2. (升级版) 动态生成代码块样式
+//   const preCodeRegex = /<pre><code(?: class="language-[^"]*")?>(.*?)<\/code><\/pre>/gs;
+//   finalHtml = finalHtml.replace(preCodeRegex, (match, codeContent) => {
+//     const escapedCode = codeContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+//     const codeLines = escapedCode.split('\n').map(line => line.trim() === '' ? '<br>' : line).join('<br>');
+
+//     // ✅ 从传递过来的 theme 对象动态构建样式字符串
+//     // Object.entries 将 { key: 'value' } 转为 [['key', 'value']]
+//     // .map 将 ['key', 'value'] 转为 "key: value;"
+//     // .join('') 拼接所有样式
+//     const style = Object.entries(theme)
+//       .map(([key, value]) => {
+//         // 将驼峰命名 (backgroundColor) 转换为 CSS 的 kebab-case (background-color)
+//         const cssKey = key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+//         return `${cssKey}: ${value};`;
+//       })
+//       .join(' ');
+      
+//     return `<section style="${style}">${codeLines}</section>`;
+//   });
+
+const preRegex = /<pre[^>]*>/g;
+  finalHtml = finalHtml.replace(preRegex, (match) => {
+    const style = [
+      'background-color: #f6f8fa;',
+      'padding: 16px;',
+      'margin: 1em 0;',
+      'border: 1px solid #eaeef2;',
+      'border-radius: 6px;',
+      'font-family: Consolas, "Courier New", monospace;',
+      'font-size: 14px;',
+      'line-height: 1.6;',
+      'color: #ff0000;',
+      'white-space: pre-wrap;', // 确保在微信里能自动换行
+      'word-wrap: break-word;'   // 兼容旧版浏览器
+    ].join(' ');
+    // 在现有的 <pre> 标签上添加 style 属性
+    return `<pre style="${style}">`;
+  });
+  
+//   // (可选) 3. 转换行内代码 `<code>...</code>`
+//   const inlineCodeRegex = /<code>(.*?)<\/code>/g;
+//   finalHtml = finalHtml.replace(inlineCodeRegex, (match, codeContent) => {
+//     if (match.includes('<pre>')) return match; // 避免重复处理代码块里的
+//     const style = [
+//       'font-family: Consolas, "Courier New", monospace;',
+//       'background-color: #f6f8fa;',
+//       'padding: 0.2em 0.4em;',
+//       'border-radius: 3px;',
+//       'font-size: 85%;',
+//     ].join(' ');
+//     return `<span style="${style}">${codeContent}</span>`;
+//   });
+
+    console.log("finalHtml:", finalHtml);
+
 
   return finalHtml;
 });

@@ -7,8 +7,8 @@
   "license": "MIT",
   "scripts": {
     "start": "concurrently \"npm run start-react\" \"npm run start-electron\"",
-    "start-react": "vite",
-    "start-electron": "wait-on http://localhost:5173 && electron .",
+    "start-react": "vite --host 127.0.0.1",
+    "start-electron": "wait-on http://127.0.0.1:5173 && electron .",
     "build-react": "vite build",
     "dist": "npm run build-react && electron-builder"
   },

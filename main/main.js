@@ -51,7 +51,7 @@ function createWindow() {
 
   // 默认打开开发者工具，方便调试
   mainWindow.webContents.openDevTools();
-  mainWindow.loadURL("http://localhost:5173");
+  mainWindow.loadURL("http://127.0.0.1:5173");
 
   mainWindow.webContents.once("did-finish-load", () => {
     const lastFile = store.get("lastFile");
@@ -249,7 +249,7 @@ ipcMain.on("open-preview", () => {
     },
   });
   previewWindow.on("closed", () => { previewWindow = null; });
-  previewWindow.loadURL("http://localhost:5173?mode=preview");
+  previewWindow.loadURL("http://127.0.0.1:5173?mode=preview");
 });
 
 // ===================================================================

@@ -7,6 +7,67 @@ import { useMarkdownRenderer } from './useMarkdownRenderer';
 // import 'highlight.js/styles/tokyo-night-dark.css'; 
 import './styles.css';
 
+
+// ✅ 1. 新增一个强大的 CSS 提取器工具函数
+// 将这个函数放在 App 组件外部
+function extractCssForWechat(containerElement) {
+  if (!containerElement) return '';
+
+  const selectors = [
+    // 内容主题
+    '.markdown-body', '.markdown-body h1', '.markdown-body h2', '.markdown-body h3',
+    '.markdown-body h4','.markdown-body h5','.markdown-body h6',
+    '.markdown-body p', '.markdown-body a', '.markdown-body blockquote', 
+    '.markdown-body :not(pre) > code', '.markdown-body ul', '.markdown-body li',
+    '.markdown-body hr',
+    
+    // 代码高亮主题
+    '.hljs', '.hljs-keyword', '.hljs-string', '.hljs-comment', '.hljs-number',
+    '.hljs-built_in', '.hljs-literal', '.hljs-params', '.hljs-title',
+    // ... 你可以根据需要添加更多 .hljs-xxx 选择器
+  ];
+
+  const tempDiv = document.createElement('section');
+  document.body.appendChild(tempDiv);
+  tempDiv.style.display = 'none';
+
+  const generatedCssRules = new Set();
+
+  selectors.forEach(selector => {
+    // 尝试在容器内查找元素
+    const element = containerElement.querySelector(selector);
+    
+    // 如果找不到，就在临时 div 里创建一个，以便获取样式
+    const targetElement = element || document.createElement(selector.split(' ').pop().replace(/\./g, ''));
+    if (!element) tempDiv.appendChild(targetElement);
+
+    const style = window.getComputedStyle(targetElement);
+    const properties = [
+      'color', 'background-color', 'font-weight', 'font-style', 'font-size', 'line-height',
+      'border-left', 'padding', 'margin', 'display', 'border-radius', 'font-family',
+    ];
+
+    let rule = `${selector} { `;
+    properties.forEach(prop => {
+      const value = style.getPropertyValue(prop);
+      if (value) {
+        rule += `${prop}: ${value}; `;
+      }
+    });
+    rule += `}`;
+    generatedCssRules.add(rule);
+  });
+
+  document.body.removeChild(tempDiv);
+  
+  // 添加强制滚动条的样式
+  const finalCss = Array.from(generatedCssRules).join('\n') 
+    + `\npre { white-space: pre !important; overflow-x: auto !important; }`
+    + `\nli p { display: inline !important; margin: 0 !important; }`;
+    
+  return finalCss;
+}
+
 // Markdown 主题清单
 const MD_THEMES = {
   light: { name: "Light" },
@@ -14,7 +75,26 @@ const MD_THEMES = {
   sepia: { name: "Sepia" },
   paper: { name: "Paper" },
   midnight: { name: "Midnight" },
+  auroraPurple: { name: "Aurora Purple" },   
+  mintyFresh: { name: "Minty Fresh" },       
+  lazySloth: { name: "Lazy Sloth" },         
+  oceanBreeze: { name: "Ocean Breeze" },     
+  candyDream: { name: "Candy Dream" },       
+  sunsetGlow: { name: "Sunset Glow" },       
+  galaxyNight: { name: "Galaxy Night" },     
+
+  magazine: { name: "Magazine Style" },
+  neonDreams: { name: "Neon Dreams" },
+  sakuraBloom: { name: "Sakura Bloom" },
+  executive: { name: "Executive Suite" },
+  mintBreeze: { name: "Mint Breeze" },
+  digitalWave: { name: "Digital Wave" },
+  sunsetGlow: { name: "Sunset Glow" },
+  lavenderMist: { name: "Lavender Mist" },
+  forestWhisper: { name: "Forest Whisper" },
+  roseGold: { name: "Rose Gold Elegance" },
 };
+
 
 const DEFAULT_MD_THEME = "light";
 
@@ -288,12 +368,36 @@ function App() {
         return;
       }
 
-      console.log("Step 1: Sending raw HTML to main process for juicing...");
-      // 2. ✅ 关键修复：只传递 rawHtml 字符串，而不是一个对象
+      // 1. ✅ 核心增强：读取当前主题下的所有CSS变量值
+      const computedStyles = getComputedStyle(appRef.current);
+      const themeCssValues = {
+        bg: computedStyles.getPropertyValue('--md-bg').trim(),
+        fg: computedStyles.getPropertyValue('--md-fg').trim(),
+        muted: computedStyles.getPropertyValue('--md-muted').trim(),
+        accent: computedStyles.getPropertyValue('--md-accent').trim(),
+        border: computedStyles.getPropertyValue('--md-border').trim(),
+        codeBg: computedStyles.getPropertyValue('--md-code-bg').trim(),
+        codeFg: computedStyles.getPropertyValue('--md-code-fg').trim(),
+        quoteBg: computedStyles.getPropertyValue('--md-quote-bg').trim(),
+        quoteBar: computedStyles.getPropertyValue('--md-quote-bar').trim(),
+        tableStripe: computedStyles.getPropertyValue('--md-table-stripe').trim(),
+      };
+
+      //  const computedCss = extractCssForWechat(wechatPreviewRef.current);
+
+      // console.log("Sending HTML and computed CSS to main process...");
+      // const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+      //   html: rawHtml,
+      //   css: computedCss, // ✅ 发送动态生成的 CSS
+      // });
+
+      console.log("Step 1: Sending raw HTML and theme CSS values to main process...");
+      
+      // 2. ✅ 将读取到的样式值对象 themeCssValues 传递给主进程
       const finalHtml = await window.electronAPI.convertHtmlForClipboard({
         html: rawHtml,
-        theme: themeKey, // 传递主题的 key
-        mdTheme:mdTheme,
+        codeThemeKey: themeKey, // 代码高亮主题的 key
+        themeCssValues: themeCssValues, // 文章主题的颜色值
       });
 
       // 3. 检查后端是否返回了有效的 HTML
@@ -315,7 +419,7 @@ function App() {
       await navigator.clipboard.write([clipboardItem]);
 
       console.log("Successfully copied to clipboard for WeChat!");
-      alert("已成功复制到剪贴板！");
+      showToast("已成功复制到剪贴板！");
 
     } catch (error) {
       console.error("Failed to copy for WeChat:", error);
@@ -325,34 +429,6 @@ function App() {
     }
   };
 
-
-  // ✅ 1. 在组件外部或内部定义你的代码块主题
-  const mdThemes = {
-    light: {
-      backgroundColor: '#f6f8fa',
-      padding: '16px',
-      margin: '1em 0',
-      border: '1px solid #eaeef2',
-      borderRadius: '6px',
-      overflow: 'auto',
-      fontFamily: 'Consolas, "Courier New", monospace',
-      fontSize: '14px',
-      lineHeight: '1.6',
-      color: '#24292e', // 深灰色文字
-    },
-    dark: {
-      backgroundColor: '#0d1117', // 暗色背景
-      padding: '16px',
-      margin: '1em 0',
-      border: '1px solid #30363d', // 暗色边框
-      borderRadius: '6px',
-      overflow: 'auto',
-      fontFamily: 'Consolas, "Courier New", monospace',
-      fontSize: '14px',
-      lineHeight: '1.6',
-      color: '#eaeef2', // 亮灰色文字
-    }
-  };
 
 
   // 默认编辑模式

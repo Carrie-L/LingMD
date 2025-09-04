@@ -171,7 +171,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
         return match;
       });
 
-      // console.log("✅✅✅✅rawHtml:", rawHtml);
+      console.log("✅✅✅✅rawHtml:", rawHtml);
 
       // ✅ 关键修复：使用 ADD_PROTOCOLS 而不是 ALLOWED_PROTOCOLS
       // 这会将 'safe-file' 添加到 DOMPurify 的默认安全协议列表中，而不是覆盖它们。
@@ -181,7 +181,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
           "p", "div", "span", "br", "h1", "h2", "h3", "h4", "h5", "h6",
           "strong", "b", "em", "i", "u", "del", "s", "code", "blockquote", "hr",
           "pre", "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td",
-          "a", "img"
+          "a", "img","body"
         ],
         ALLOWED_ATTR: [
           "href", "src", "alt", "title", "colspan", "rowspan", "class"   // ✅ 加上 class
@@ -200,7 +200,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
         console.error("!!! Critical Error: 'class' attribute was STILL removed by DOMPurify!");
       }
 
-      // console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);
+      console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);
 
       setHtmlResult({ rawHtml, sanitizedHtml });
     }

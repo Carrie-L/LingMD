@@ -271,13 +271,11 @@ ipcMain.on("open-preview", () => {
   previewWindow.loadURL("http://127.0.0.1:5173?mode=preview");
 });
 
-
-
 // ===================================================================
 // ✅ (终极版) 为公众号复制功能转换 HTML
 // ===================================================================
 ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-  const { html: rawHtml, theme: themeKey, mdTheme: mdTheme } = payload;
+  const { html: rawHtml, codeThemeKey, themeCssValues } = payload;
   // 2. 预先检查输入
   if (typeof rawHtml !== "string") {
     console.error(
@@ -287,6 +285,10 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     return ""; // 如果 html 部分不是字符串，返回空
   }
   if (!rawHtml) return "";
+  if (!themeCssValues) {
+    console.error("Theme CSS values are missing!");
+    return ""; // 关键数据缺失，直接返回
+  }
 
   try {
     // === Step 1: 转换图片为 Base64 ===
@@ -323,9 +325,145 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
       }
     }
 
-    // ✅ 2. 根据 themeKey 动态读取对应的 CSS 文件
+    // === Step 2: ✅ 动态生成文章主题的 CSS 字符串 ===
+    const markdownThemeCss0 = `
+      /* 1. 总容器样式 (我们的“画板”) */
+      .markdown-body{
+        background: ${themeCssValues.bg};
+        color: ${themeCssValues.fg};
+        font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 16px;
+        line-height: 1.8;
+        font-weight: 300;
+        padding: 20px;
+      }
+      p{
+        margin: 0.8em 0;
+      }
+      li {
+        margin: 0.8em 0;
+        display: flex;
+        align-items: baseline;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: ${themeCssValues.fg};
+      }
+      h6 {
+        color: ${themeCssValues.muted};
+      }
+      a {
+        color: ${themeCssValues.accent};
+        text-decoration: none;
+      }
+      blockquote {
+        padding: 0.6em 1em;
+        background: ${themeCssValues.quoteBg};
+        border-left: 4px solid ${themeCssValues.quoteBar};
+      }
+      hr {
+        border: 0;
+        height: 1px;
+        background: ${themeCssValues.border};
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        border: 1px solid ${themeCssValues.border};
+      }
+      th, td {
+        border: 1px solid ${themeCssValues.border};
+        padding: .6em .8em;
+      }
+      thead th {
+        background: ${themeCssValues.quoteBg};
+      }
+      tbody tr:nth-child(odd) {
+        background: ${themeCssValues.tableStripe};
+      }
+      code:not(.hljs) {
+        background: ${themeCssValues.codeBg};
+        color: ${themeCssValues.codeFg};
+        border: 1px solid ${themeCssValues.border};
+        padding: .1em .4em;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      pre {
+        background: ${themeCssValues.codeBg};
+        border: 1px solid ${themeCssValues.border};
+      }
+    `;
+
+    const markdownThemeCss = `
+  .markdown-body {
+      background: ${themeCssValues.bg};
+      color: ${themeCssValues.fg};
+      font-size: 16px;
+      line-height: 1.8;
+      font-weight: 300;
+      padding: 0;
+      margin:0;
+      font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, serif;
+  }
+  .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+    font-weight: 600; margin: 1.2em 0 .6em; line-height: 1.7;
+  }
+  .markdown-body h1 { font-size: 1.8rem; }
+.markdown-body h2 { font-size: 1.6rem; }
+.markdown-body h3 { font-size: 1.35rem; }
+.markdown-body h4 { font-size: 1.2rem; line-height: 1.7;}
+.markdown-body h5 { font-size: 1.05rem; }
+.markdown-body h6 { font-size: .95rem; color: ${themeCssValues.muted}; }
+  .markdown-body a { color: ${themeCssValues.accent}; text-decoration: none; }
+  .markdown-body blockquote {
+    margin: 1em 0; padding: .6em 1em; background: ${themeCssValues.quoteBg};
+    border-left: 4px solid ${themeCssValues.quoteBar}; color: ${themeCssValues.fg};
+  }
+  .markdown-body code:not(.hljs) {
+    background: ${themeCssValues.codeBg}; color: ${themeCssValues.codeFg};
+    border: 1px solid ${themeCssValues.border}; padding: .1em .4em;
+    border-radius: 4px; font-size: 0.9em;
+  }
+    .markdown-body p { margin: 0 0; 
+    }
+.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: .8em 0; }
+.markdown-body strong { 
+white-space:nowrap;
+}
+    .markdown-body li { margin: .3em 0; 
+      word-break:break-word;
+}
+.markdown-body hr {
+  border: 0;
+  height: 1px;
+  background: ${themeCssValues.border};
+  margin: 1.5em 0;
+}
+
+/* 表格 */
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  border: 1px solid ${themeCssValues.border};
+  font-size: 0.95em;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid ${themeCssValues.border};
+  padding: .6em .8em;
+  text-align: left;
+}
+.markdown-body thead th {
+  background: ${themeCssValues.quoteBg};
+}
+.markdown-body tbody tr:nth-child(odd) {
+  background: ${themeCssValues.tableStripe};
+}
+    `;
+
+    // ✅ 2. 根据 codeThemeKey 动态读取对应的 CSS 文件
     // 注意：这里需要一个安全检查，防止路径遍历攻击
-    const safeThemeKey = themeKey.replace(/[^a-z0-9-]/g, ""); // 简单的安全过滤
+    const safeThemeKey = codeThemeKey.replace(/[^a-z0-9-]/g, ""); // 简单的安全过滤
     const themeFileName = `${safeThemeKey}.min.css`;
     const codeThemePath = path.join(
       __dirname,
@@ -341,16 +479,11 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
       throw new Error(`Theme file not found: ${themeFileName}`);
     }
 
-    console.log("mdTheme=",mdTheme);
-
     const highlightCss = fs.readFileSync(codeThemePath, "utf-8");
 
     //  借鉴开源库，定义一个适配微信的“主题”
     const extraCss = `
-    /* 标题适配 */
-      h1 { font-size: 1.5em; font-weight: bold; margin: 0.67em 0; }
-      h2 { font-size: 1.3em; font-weight: bold; margin: 0.83em 0; }
-      h3, h4, h5, h6 { font-size: 1.1em; font-weight: bold; margin: 1em 0; }     
+  
       pre {
         margin: 0 !important;
         padding: 1em !important;
@@ -370,16 +503,15 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
       }
     `;
 
-    // ✅ 4. 使用 juice 将 CSS 内联到 HTML 中 juice(html, options)
-    // const inlinedHtml = juice(htmlWithBase64Images, {
-    //   extraCss: highlightCss + extraCss, // 将主题和我们的附加规则合并
-    //   removeStyleTags: true, // 移除 HTML 中的 <style> 标签
-    //   applyStyleTags: true, // 应用 HTML 中的 <style> 标签
-    // });
-    const inlinedHtml = juice(htmlWithBase64Images, {
-      extraCss: highlightCss + extraCss,
-      removeStyleTags: true,
-    });
+    const inlinedHtml = juice(
+      // 必须用 .markdown-body 包裹，让 CSS 规则能正确匹配
+      `<section class="markdown-body">${htmlWithBase64Images}</section>`,
+      {
+        extraCss: markdownThemeCss + highlightCss + extraCss, // ✅ 合并了三种 CSS
+      }
+    );
+
+    console.log("extraCSS:", markdownThemeCss + highlightCss + extraCss);
 
     // ✅ 5. (可选但推荐) 对标题进行最后的降级处理，以获得最佳兼容性
     let finalHtml = inlinedHtml;
@@ -416,7 +548,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
       }
     );
 
-    // console.log("////finalHtml", finalHtml);
+    console.log("////finalHtml", finalHtml);
 
     return finalHtml;
   } catch (error) {

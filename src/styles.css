@@ -3,6 +3,15 @@
 .app {
   --md-bg: #ffffff;
   --md-fg: #000000; /* 默认文字颜色为黑色 */
+  --md-muted: #666666;
+  --md-accent: #0d6efd;
+  --md-border: #e5e7eb;
+  --md-code-bg: #f6f7f9;
+  --md-code-fg: #0f172a;
+  --md-quote-bg: #fafafa;
+  --md-quote-bar: #d1d5db;
+  --md-table-stripe: #fafafa;
+
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -160,6 +169,7 @@ overflow: auto;
   padding: 18px; 
   margin: 15px;
   min-width: 0;
+  
 }
 
 /* (可选) 鼠标悬浮时，卡片阴影加深，提供交互感 */
@@ -272,29 +282,26 @@ overflow: auto;
 /* ========================================= */
 
 .app .markdown-body {
-  --md-bg: #ffffff;
-  --md-fg: #111111;
-  --md-muted: #666666;
-  --md-accent: #0d6efd;
-  --md-border: #e5e7eb;
-  --md-code-bg: #f6f7f9;
-  --md-code-fg: #0f172a;
-  --md-quote-bg: #fafafa;
-  --md-quote-bar: #d1d5db;
-  --md-table-stripe: #fafafa;
-
   background: transparent;
-  line-height: 1.75;
+  line-height: 1.8;
   font-size: 15px;
   word-wrap: break-word;
-  font-family: 'LXGW WenKai';
+  
 }
+/* font-family: 'LXGW WenKai';  在上面加这句会让Preview和公众号区域都显示LXGW字体 */
 
 .app .preview,
-.app .editor,
+.app .editor {
+  background: var(--md-bg) !important;
+  color: var(--md-fg);
+}
+
 .app .wechat-export {
   background: var(--md-bg) !important;
   color: var(--md-fg);
+  font-family: Arial, Helvetica, serif !important;
+  font-weight: 300;
+  font-size: 15px;
 }
 
 /* 标题 */
@@ -318,7 +325,8 @@ overflow: auto;
 /* 段落与列表 */
 .markdown-body p { margin: .8em 0; }
 .markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: .8em 0; }
-.markdown-body li { margin: .3em 0; }
+.markdown-body li { margin: .3em .3em; 
+}
 
 /* 链接 */
 .markdown-body a { color: var(--md-accent); text-decoration: none; }
@@ -362,7 +370,7 @@ overflow: auto;
 }
 
 /* 行内代码 */
-.markdown-body code:not(.hljs) {
+.markdown-body :not(pre) > code {
   background: var(--md-code-bg);
   color: var(--md-code-fg);
   border: 1px solid var(--md-border);
@@ -387,7 +395,7 @@ overflow: auto;
   padding: 1em;
   font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
   border-radius: 8px;
-  line-height: 1.5;
+  line-height: 1.7;
   font-size: 90%;
 }
 
@@ -403,7 +411,7 @@ overflow: auto;
 /* ============ 主题映射（根据 data-mdtheme 切换变量） ============ */
 
 /* Light */
-.app[data-mdtheme="light"]  {
+.app[data-mdtheme="light"] {
   --md-bg: #ffffff;
   --md-fg: #0b1220;
   --md-muted: #667085;
@@ -418,16 +426,16 @@ overflow: auto;
 
 /* Dark */
 .app[data-mdtheme="dark"]  {
-  --md-bg: #0f1115;
-  --md-fg: #e5e7eb;
-  --md-muted: #9ca3af;
-  --md-accent: #93c5fd;
-  --md-border: #20242c;
-  --md-code-bg: #111318;
-  --md-code-fg: #e5e7eb;
-  --md-quote-bg: #12151b;
-  --md-quote-bar: #2a2f3a;
-  --md-table-stripe: #12151b;
+  --md-bg: #fdfaff;
+  --md-fg: #2e2338;
+  --md-muted: #6a5975;
+  --md-accent: #c084fc;
+  --md-border: #ebdef5;
+  --md-code-bg: #f7f0fb;
+  --md-code-fg: #352b41;
+  --md-quote-bg: #faf4ff;
+  --md-quote-bar: #d8b4fe;
+  --md-table-stripe: #fdf7ff;
 }
 
 /* Sepia（阅读风） */
@@ -472,6 +480,102 @@ overflow: auto;
   --md-table-stripe: #0e1726;
 }
 
+/* 9 */
+
+
+.app[data-mdtheme="auroraPurple"] {
+  --md-bg: #f6f7ff;
+  --md-fg: #2a2a40;
+  --md-muted: #6c6c8f;
+  --md-accent: #6d5dfc;
+  --md-border: #e0e3f8;
+  --md-code-bg: #edefff;
+  --md-code-fg: #2b2b4f;
+  --md-quote-bg: #f0f2ff;
+  --md-quote-bar: #a5a9f9;
+  --md-table-stripe: #f8f9ff;
+}
+
+.app[data-mdtheme="mintyFresh"] {
+  --md-bg: #f4fff9;
+  --md-fg: #1e3328;
+  --md-muted: #497d65;
+  --md-accent: #37c77b;
+  --md-border: #d1f0de;
+  --md-code-bg: #e8f9f0;
+  --md-code-fg: #204b37;
+  --md-quote-bg: #f0fff7;
+  --md-quote-bar: #7be6a7;
+  --md-table-stripe: #eafdf4;
+}
+
+.app[data-mdtheme="lazySloth"] {
+  --md-bg: #f8fbf9;
+  --md-fg: #223026;
+  --md-muted: #506a58;
+  --md-accent: #6ccf8e;
+  --md-border: #dce8e1;
+  --md-code-bg: #edf7f1;
+  --md-code-fg: #1e3529;
+  --md-quote-bg: #f3faf5;
+  --md-quote-bar: #9ee2b8;
+  --md-table-stripe: #f2fdf7;
+}
+
+.app[data-mdtheme="oceanBreeze"] {
+  --md-bg: #f7faff;
+  --md-fg: #1f2c3a;
+  --md-muted: #4d637d;
+  --md-accent: #4a90e2;
+  --md-border: #d8e4f5;
+  --md-code-bg: #eef5ff;
+  --md-code-fg: #1c314a;
+  --md-quote-bg: #f0f6ff;
+  --md-quote-bar: #7ab6f0;
+  --md-table-stripe: #f5f9ff;
+}
+
+.app[data-mdtheme="candyDream"] {
+  --md-bg: #fdfaff;
+  --md-fg: #2e2338;
+  --md-muted: #6a5975;
+  --md-accent: #c084fc;
+  --md-border: #ebdef5;
+  --md-code-bg: #f7f0fb;
+  --md-code-fg: #352b41;
+  --md-quote-bg: #faf4ff;
+  --md-quote-bar: #d8b4fe;
+  --md-table-stripe: #fdf7ff;
+}
+
+.app[data-mdtheme="sunsetGlow"] {
+  --md-bg: #fffaf5;
+  --md-fg: #332621;
+  --md-muted: #7a5a4c;
+  --md-accent: #f59e0b;
+  --md-border: #f8e1c6;
+  --md-code-bg: #fff3e6;
+  --md-code-fg: #3b2a24;
+  --md-quote-bg: #fff7ed;
+  --md-quote-bar: #fbbf24;
+  --md-table-stripe: #fff9f0;
+}
+
+.app[data-mdtheme="galaxyNight"] {
+  --md-bg: #0e0e1a;
+  --md-fg: #e8e9f5;
+  --md-muted: #9da3c3;
+  --md-accent: #8b5cf6;
+  --md-border: #2a2a40;
+  --md-code-bg: #1a1a2e;
+  --md-code-fg: #f1f5ff;
+  --md-quote-bg: #181826;
+  --md-quote-bar: #6d28d9;
+  --md-table-stripe: #151525;
+}
+
+
+
 /* 工具栏的 select 小优化（可选） */
 .toolbar select {
   height: 28px;
@@ -481,3 +585,287 @@ overflow: auto;
   padding: 0 8px;
   font-size: 13px;
 }
+
+
+/* 1. 杂志风 - Magazine Style */
+.app[data-mdtheme="magazine"] {
+  --md-bg: #ffffff;
+  --md-fg: #1a1a1a;
+  --md-muted: #666666;
+  --md-accent: #000000;
+  --md-border: #e5e5e5;
+  --md-code-bg: #f8f8f8;
+  --md-code-fg: #333333;
+  --md-quote-bg: #fafafa;
+  --md-quote-bar: #000000;
+  --md-table-stripe: #f9f9f9;
+}
+
+.app[data-mdtheme="magazine"] h1,
+.app[data-mdtheme="magazine"] h2,
+.app[data-mdtheme="magazine"] h3 {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--md-accent);
+  padding-bottom: 8px;
+}
+
+/* 2. City Pop风 - Neon Dreams */
+.app[data-mdtheme="neonDreams"] {
+  --md-bg: #ffffff;
+  --md-fg: #2d1b69;
+  --md-muted: #8b5cf6;
+  --md-accent: #ec4899;
+  --md-border: #f3e8ff;
+  --md-code-bg: #fdf4ff;
+  --md-code-fg: #581c87;
+  --md-quote-bg: #fef7ff;
+  --md-quote-bar: #d946ef;
+  --md-table-stripe: #faf5ff;
+}
+
+.app[data-mdtheme="neonDreams"] h1,
+.app[data-mdtheme="neonDreams"] h2,
+.app[data-mdtheme="neonDreams"] h3 {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  border-left: 4px solid var(--md-accent);
+  padding-left: 16px;
+}
+
+/* 3. 少女粉 - Sakura Bloom */
+.app[data-mdtheme="sakuraBloom"] {
+  --md-bg: #ffffff;
+  --md-fg: #4a2c2a;
+  --md-muted: #94a3b8;
+  --md-accent: #f472b6;
+  --md-border: #fed7e2;
+  --md-code-bg: #fef7f0;
+  --md-code-fg: #7c2d12;
+  --md-quote-bg: #fef2f2;
+  --md-quote-bar: #fb7185;
+  --md-table-stripe: #fef7f0;
+}
+
+.app[data-mdtheme="sakuraBloom"] h1,
+.app[data-mdtheme="sakuraBloom"] h2,
+.app[data-mdtheme="sakuraBloom"] h3 {
+  background: var(--md-accent);
+  color: white;
+  border-radius: 12px;
+  padding: 8px 16px;
+  text-align: center;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+}
+
+/* 4. 商务风 - Executive Suite */
+.app[data-mdtheme="executive"] {
+  --md-bg: #ffffff;
+  --md-fg: #1f2937;
+  --md-muted: #6b7280;
+  --md-accent: #3b82f6;
+  --md-border: #e5e7eb;
+  --md-code-bg: #f9fafb;
+  --md-code-fg: #374151;
+  --md-quote-bg: #f8fafc;
+  --md-quote-bar: #3b82f6;
+  --md-table-stripe: #f1f5f9;
+}
+
+.app[data-mdtheme="executive"] h1,
+.app[data-mdtheme="executive"] h2,
+.app[data-mdtheme="executive"] h3 {
+  border-left: 6px solid var(--md-accent);
+  padding-left: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 5. 清新风 - Mint Breeze */
+.app[data-mdtheme="mintBreeze"] {
+  --md-bg: #ffffff;
+  --md-fg: #064e3b;
+  --md-muted: #6b7280;
+  --md-accent: #10b981;
+  --md-border: #d1fae5;
+  --md-code-bg: #f0fdf4;
+  --md-code-fg: #166534;
+  --md-quote-bg: #ecfdf5;
+  --md-quote-bar: #34d399;
+  --md-table-stripe: #f7fee7;
+}
+
+.app[data-mdtheme="mintBreeze"] h1,
+.app[data-mdtheme="mintBreeze"] h2,
+.app[data-mdtheme="mintBreeze"] h3 {
+  color: var(--md-accent);
+  font-weight: 600;
+  text-align: center;
+  position: relative;
+  padding: 20px 0 10px 0;
+}
+
+.app[data-mdtheme="mintBreeze"] h1::before,
+.app[data-mdtheme="mintBreeze"] h2::before,
+.app[data-mdtheme="mintBreeze"] h3::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: var(--md-accent);
+}
+
+/* 6. 科技蓝 - Digital Wave */
+.app[data-mdtheme="digitalWave"] {
+  --md-bg: #ffffff;
+  --md-fg: #1e293b;
+  --md-muted: #64748b;
+  --md-accent: #0ea5e9;
+  --md-border: #e2e8f0;
+  --md-code-bg: #f1f5f9;
+  --md-code-fg: #334155;
+  --md-quote-bg: #f0f9ff;
+  --md-quote-bar: #38bdf8;
+  --md-table-stripe: #f8fafc;
+}
+
+.app[data-mdtheme="digitalWave"] h1,
+.app[data-mdtheme="digitalWave"] h2,
+.app[data-mdtheme="digitalWave"] h3 {
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 7. 温暖橙 - Sunset Glow */
+.app[data-mdtheme="sunsetGlow"] {
+  --md-bg: #ffffff;
+  --md-fg: #7c2d12;
+  --md-muted: #a3a3a3;
+  --md-accent: #f97316;
+  --md-border: #fed7aa;
+  --md-code-bg: #fff7ed;
+  --md-code-fg: #9a3412;
+  --md-quote-bg: #fef3c7;
+  --md-quote-bar: #f59e0b;
+  --md-table-stripe: #fffbeb;
+}
+
+.app[data-mdtheme="sunsetGlow"] h1,
+.app[data-mdtheme="sunsetGlow"] h2,
+.app[data-mdtheme="sunsetGlow"] h3 {
+  color: var(--md-accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--md-accent);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+  text-align: center;
+}
+
+/* 8. 优雅紫 - Lavender Mist */
+.app[data-mdtheme="lavenderMist"] {
+  --md-bg: #ffffff;
+  --md-fg: #4c1d95;
+  --md-muted: #7c3aed;
+  --md-accent: #8b5cf6;
+  --md-border: #ede9fe;
+  --md-code-bg: #faf5ff;
+  --md-code-fg: #581c87;
+  --md-quote-bg: #f3e8ff;
+  --md-quote-bar: #a855f7;
+  --md-table-stripe: #fdf4ff;
+}
+
+.app[data-mdtheme="lavenderMist"] h1,
+.app[data-mdtheme="lavenderMist"] h2,
+.app[data-mdtheme="lavenderMist"] h3 {
+  border: 2px solid var(--md-accent);
+  border-radius: 16px;
+  padding: 12px 20px;
+  text-align: center;
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--md-accent);
+  font-weight: 600;
+}
+
+/* 9. 自然绿 - Forest Whisper */
+.app[data-mdtheme="forestWhisper"] {
+  --md-bg: #ffffff;
+  --md-fg: #14532d;
+  --md-muted: #4b5563;
+  --md-accent: #059669;
+  --md-border: #d1fae5;
+  --md-code-bg: #f0fdf4;
+  --md-code-fg: #15803d;
+  --md-quote-bg: #ecfdf5;
+  --md-quote-bar: #10b981;
+  --md-table-stripe: #f7fee7;
+}
+
+.app[data-mdtheme="forestWhisper"] h1,
+.app[data-mdtheme="forestWhisper"] h2,
+.app[data-mdtheme="forestWhisper"] h3 {
+  border-left: 8px solid var(--md-accent);
+  border-top: 2px solid var(--md-accent);
+  border-bottom: 2px solid var(--md-accent);
+  padding: 10px 0 10px 20px;
+  background: linear-gradient(90deg, rgba(5, 150, 105, 0.1), transparent);
+  font-weight: 700;
+  color: var(--md-accent);
+}
+
+/* 10. 玫瑰金 - Rose Gold Elegance */
+.app[data-mdtheme="roseGold"] {
+  --md-bg: #ffffff;
+  --md-fg: #881337;
+  --md-muted: #a3a3a3;
+  --md-accent: #e11d48;
+  --md-border: #fecdd3;
+  --md-code-bg: #fff1f2;
+  --md-code-fg: #9f1239;
+  --md-quote-bg: #fdf2f8;
+  --md-quote-bar: #ec4899;
+  --md-table-stripe: #fef7f0;
+}
+
+.app[data-mdtheme="roseGold"] h1,
+.app[data-mdtheme="roseGold"] h2,
+.app[data-mdtheme="roseGold"] h3 {
+  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  text-align: center;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.app[data-mdtheme="roseGold"] h1::after,
+.app[data-mdtheme="roseGold"] h2::after,
+.app[data-mdtheme="roseGold"] h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
+  border-radius: 2px;
+}
+

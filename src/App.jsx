@@ -7,7 +7,18 @@ import { useMarkdownRenderer } from './useMarkdownRenderer';
 // import 'highlight.js/styles/tokyo-night-dark.css'; 
 import './styles.css';
 
-// ✅ 1. 定义主题元数据
+// Markdown 主题清单
+const MD_THEMES = {
+  light: { name: "Light" },
+  dark: { name: "Dark" },
+  sepia: { name: "Sepia" },
+  paper: { name: "Paper" },
+  midnight: { name: "Midnight" },
+};
+
+const DEFAULT_MD_THEME = "light";
+
+// ✅ 1. 定义代码主题元数据
 const THEMES = {
   'tokyo-night-dark': {
     name: 'Tokyo Night Dark',
@@ -46,21 +57,28 @@ const THEMES = {
   },
 };
 
+
+
+
 // ✅ 1. 定义一个默认的主题键，确保它一定存在
 const DEFAULT_THEME_KEY = 'tokyo-night-dark';
 
 function App() {
   // ✅ 2. 创建 state 来管理当前主题的 key
-  const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认主题
+  // 主题状态（Markdown 主题）
+  const [mdTheme, setMdTheme] = useState(
+    localStorage.getItem("mdTheme") || DEFAULT_MD_THEME
+  );
+  const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认CODE主题
 
   // ✅ 3. 使用 useEffect 来动态加载和卸载 CSS 主题
-// ===================================================================
+  // ===================================================================
   // ✅ 核心修复：使用 <link> 标签来动态加载 public 目录下的 CSS
   // ===================================================================
   useEffect(() => {
     // 1. 创建一个新的 <link> 元素
     const linkElement = document.createElement('link');
-    
+
     // 2. 设置它的属性
     linkElement.rel = 'stylesheet';
     linkElement.id = 'dynamic-theme-stylesheet'; // 给它一个ID，方便管理
@@ -80,7 +98,12 @@ function App() {
     };
   }, [themeKey]); // 这个 effect 只在 themeKey 改变时运行
 
-  
+
+  useEffect(() => {
+    localStorage.setItem("mdTheme", mdTheme);
+  }, [mdTheme]);
+
+
 
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
@@ -94,14 +117,14 @@ function App() {
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
 
-// ✅ 3. (核心修复) 添加防御性回退逻辑
+  // ✅ 3. (核心修复) 添加防御性回退逻辑
   // a. 首先，获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
   // b. 如果由于某种原因（比如 state 更新延迟）找不到主题，就使用默认主题
   const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
-  
+
   const { rawHtml, sanitizedHtml } = useMarkdownRenderer(
-    content, 
+    content,
     filePath
   );
 
@@ -320,24 +343,31 @@ function App() {
 
   // 默认编辑模式
   return (
-    <div className="app light">
+    <div className="app" data-mdtheme={mdTheme}>
       <div className="toolbar">
-        <button onClick={handleNewFile}>🆕 新建</button>
+        <button onClick={handleNewFile}>🐙 新建</button>
         <button onClick={handleOpen}>📂 打开</button>
-        <button onClick={handleSave}>💾 保存</button>
-        <button onClick={handlePreview}>👁️ 预览</button>
+        <button onClick={handleSave}>🍁 保存</button>
+        <button onClick={handlePreview}>🐳 预览</button>
+
         {/* ✅ 6. 创建主题选择下拉菜单 */}
+        <select value={mdTheme} onChange={(e) => setMdTheme(e.target.value)} title="Markdown 主题">
+          {Object.entries(MD_THEMES).map(([key, t]) => (
+            <option key={key} value={key}>{t.name}</option>
+          ))}
+        </select>
         <select value={themeKey} onChange={(e) => setThemeKey(e.target.value)}>
           {Object.entries(THEMES).map(([key, theme]) => (
             <option key={key} value={key}>{theme.name}</option>
           ))}
         </select>
+
         <button
-    className={showWechat ? "active" : ""}
-    onClick={() => setShowWechat(!showWechat)}
-  >
-    📱 公众号
-  </button>
+          className={showWechat ? "active" : ""}
+          onClick={() => setShowWechat(!showWechat)}
+        >
+          🌱 公众号
+        </button>
         {showWechat && (
           <button onClick={handleCopyToWechat}>复制到公众号</button>
         )}

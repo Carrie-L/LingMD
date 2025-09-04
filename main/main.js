@@ -394,12 +394,12 @@ const highlightCss = fs.readFileSync(themePath, 'utf-8');
         /* 核心滚动样式 */
         white-space: pre !important;
         overflow-x: auto !important;
+        font-family: 'LXGW WenKai';
       }
       code {
         /* 强制 nowrap，配合 pre 的 overflow-x: auto */
         white-space: nowrap !important; 
-        font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
-
+        font-family:  Menlo, Operator Mono, Consolas, Monaco, monospace;
         border-radius: 8px;
         line-height: 1.5;
         font-size: 90%;

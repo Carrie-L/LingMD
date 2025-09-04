@@ -1,0 +1,21 @@
+/* src/assets/fonts.css */
+
+/* 定义常规体 */
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-weight: 400; /* normal 对应的数字是 400 */
+  src: local('LXGW WenKai'),
+       url('/fonts/LXGWWenKai-Light.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* 定义粗体 */
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-weight: 500; /* bold 对应的数字是 700 */
+  src: local('LXGW WenKai Bold'),
+       url('/fonts/LXGWWenKai-Light.ttf') format('truetype');
+  font-display: swap;
+}

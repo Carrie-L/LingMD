@@ -8,7 +8,7 @@ body, html, .app {
   height: 100%;
   background: #ffffff;
   color: #000000;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* 添加了通用回退 */
+  font-family: 'LXGW WenKai',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,  sans-serif; /* 添加了通用回退 */
   box-sizing: border-box; /* 统一盒模型 */
 }
 
@@ -33,12 +33,12 @@ body, html, .app {
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 70px;
   display: flex;
   gap: 8px;
   align-items: center;
   padding: 0 10px;
-  background: #f0f0f0;
+  background: #ffffff;
   border-bottom: 1px solid #ddd;
   z-index: 100;
 }
@@ -63,14 +63,14 @@ body, html, .app {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 24px;
+  height: 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
   padding: 0 15px;
   font-size: 12px;
-  background: #f0f0f0;
+  background: #fff;
   border-top: 1px solid #ddd;
   color: #333;
   z-index: 100;
@@ -91,7 +91,7 @@ body, html, .app {
   gap: 10px; /* 卡片之间的间距 */
 
   /* ✅ 新增：为卡片提供一个柔和的背景底座 */
-  background-color: #fbfbfb; 
+  background: #fbfbfb; 
 
   /* ✅ 新增：限制 Grid 行的高度，防止子元素无限拉伸 */
   /* 1fr 表示占据所有剩余空间，minmax(0, 1fr) 是一种防止溢出的健壮写法 */
@@ -172,7 +172,7 @@ overflow: auto;
   outline: none;
   resize: none;
   background-color: transparent;
-  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -182,8 +182,8 @@ overflow: auto;
   width: 100%;
   max-width: 650px;
   margin: 0 auto;
-  min-height: 100%;
-  background-color: transparent;
+  font-family: 'LXGW WenKai';
+  
 }
 
 .wechat-export > div {
@@ -200,57 +200,6 @@ overflow: auto;
   color: #fff;
   border: 1px solid #9ceed8;
 }
-
-/* ========================================= */
-/*            代码高亮 & 其他样式            */
-/* ========================================= */
-
-
-
-.markdown-body pre code.hljs {
-  padding: 1em;
-  font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
-  border-radius: 8px;
-  line-height: 1.5;
-  font-size: 90%;
-}
-
-/* .markdown-body pre {
-  background-color: #0d1117 !important;
-  color: #c9d1d9 !important;
-  font-family: Consolas, Monaco, "Courier New", monospace;
-  font-size: 14px;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-} */
-
-/* .markdown-body pre code {
-  padding: 0 !important;
-  background: none !important;
-  color: inherit !important;
-} */
-
-/* ✅ 新增：添加一个通用规则来“激活”高亮 */
-/* 这个规则的意思是：任何 class 以 "language-" 开头的 <code> 标签，
-   都视同于拥有 .hljs 类。 */
-/* [class*="language-"] {
-} */
-
-/* 之前推荐的 .markdown-body pre 样式可以保留，它负责背景色 */
-/* .markdown-body pre {
-  background-color: #f6f8fa; 
-  padding: 16px;
-  border-radius: 6px;
-  overflow-x: auto; 
-} */
-
-/* 确保 code 标签本身没有奇怪的背景或 padding */
-/* .markdown-body pre code {
-  background: none !important;
-  padding: 0 !important;
-  margin: 0;
-} */
 
 .toast {
   position: fixed;
@@ -309,4 +258,222 @@ overflow: auto;
 .outline li:hover {
   color: #0366d6;
   border-left-color: #0366d6;
+}
+
+/* ========================================= */
+/*       Markdown 基础排版（使用 CSS 变量）        */
+/* ========================================= */
+
+.app .markdown-body {
+  --md-bg: #ffffff;
+  --md-fg: #111111;
+  --md-muted: #666666;
+  --md-accent: #0d6efd;
+  --md-border: #e5e7eb;
+  --md-code-bg: #f6f7f9;
+  --md-code-fg: #0f172a;
+  --md-quote-bg: #fafafa;
+  --md-quote-bar: #d1d5db;
+  --md-table-stripe: #fafafa;
+
+  color: var(--md-fg);
+  background: transparent;
+  line-height: 1.75;
+  font-size: 15px;
+  word-wrap: break-word;
+
+  font-family: 'LXGW WenKai';
+}
+
+.app .preview,
+.app .editor,
+.app .wechat-export {
+  background: var(--md-bg) !important;
+  color: var(--md-fg);
+}
+
+/* 标题 */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: var(--md-fg);
+  line-height: 1.5;
+  margin: 1.2em 0 .6em;
+  font-weight: 600;
+}
+.markdown-body h1 { font-size: 1.8rem; }
+.markdown-body h2 { font-size: 1.6rem; }
+.markdown-body h3 { font-size: 1.35rem; }
+.markdown-body h4 { font-size: 1.2rem; }
+.markdown-body h5 { font-size: 1.05rem; }
+.markdown-body h6 { font-size: .95rem; color: var(--md-muted); }
+
+/* 段落与列表 */
+.markdown-body p { margin: .8em 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: .8em 0; }
+.markdown-body li { margin: .3em 0; }
+
+/* 链接 */
+.markdown-body a { color: var(--md-accent); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+
+/* 引用 */
+.markdown-body blockquote {
+  margin: 1em 0;
+  padding: .6em 1em;
+  background: var(--md-quote-bg);
+  border-left: 4px solid var(--md-quote-bar);
+  color: var(--md-fg);
+}
+
+/* 分割线 */
+.markdown-body hr {
+  border: 0;
+  height: 1px;
+  background: var(--md-border);
+  margin: 1.5em 0;
+}
+
+/* 表格 */
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  border: 1px solid var(--md-border);
+  font-size: 0.95em;
+}
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--md-border);
+  padding: .6em .8em;
+  text-align: left;
+}
+.markdown-body thead th {
+  background: var(--md-quote-bg);
+}
+.markdown-body tbody tr:nth-child(odd) {
+  background: var(--md-table-stripe);
+}
+
+/* 行内代码 */
+.markdown-body code:not(.hljs) {
+  background: var(--md-code-bg);
+  color: var(--md-code-fg);
+  border: 1px solid var(--md-border);
+  padding: .1em .4em;
+  border-radius: 4px;
+  font-family: 'LXGW WenKai',Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.9em;
+  margin: 0 0.2em;
+}
+
+/* 代码块（不覆盖 hljs 的配色，主要做容器与滚动） */
+.markdown-body pre {
+  margin: 1em 0;
+  padding: 0; /* 交给 hljs 主题控制内边距也行，你也可以改成 1em */
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--md-code-bg);
+  border: 1px solid var(--md-border);
+}
+
+.markdown-body pre code.hljs {
+  padding: 1em;
+  font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
+  border-radius: 8px;
+  line-height: 1.5;
+  font-size: 90%;
+}
+
+/* 图片 */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: .8em auto;
+  border-radius: 6px;
+}
+
+/* ============ 主题映射（根据 data-mdtheme 切换变量） ============ */
+
+/* Light */
+.app[data-mdtheme="light"] .markdown-body {
+  --md-bg: #ffffff;
+  --md-fg: #0b1220;
+  --md-muted: #667085;
+  --md-accent: #f63b70;
+  --md-border: #e5e7eb;
+  --md-code-bg: #ffffff;
+  --md-code-fg: #f63b70;
+  --md-quote-bg: #fff;
+  --md-quote-bar: #46ddee;
+  --md-table-stripe: #fafafa;
+}
+
+/* Dark */
+.app[data-mdtheme="dark"] .markdown-body {
+  --md-bg: #0f1115;
+  --md-fg: #e5e7eb;
+  --md-muted: #9ca3af;
+  --md-accent: #93c5fd;
+  --md-border: #20242c;
+  --md-code-bg: #111318;
+  --md-code-fg: #e5e7eb;
+  --md-quote-bg: #12151b;
+  --md-quote-bar: #2a2f3a;
+  --md-table-stripe: #12151b;
+}
+
+/* Sepia（阅读风） */
+.app[data-mdtheme="sepia"] .markdown-body {
+  --md-bg: #f6efe5;
+  --md-fg: #473c2f;
+  --md-muted: #7c6f61;
+  --md-accent: #a05a2c;
+  --md-border: #e9dfd1;
+  --md-code-bg: #efe6d8;
+  --md-code-fg: #3d3328;
+  --md-quote-bg: #f3e9db;
+  --md-quote-bar: #dbcbb1;
+  --md-table-stripe: #f3e9db;
+}
+
+/* Paper（纸张质感，略灰） */
+.app[data-mdtheme="paper"]  {
+  --md-bg: #f8fafc;
+  --md-fg: #0f172a;
+  --md-muted: #64748b;
+  --md-accent: #2563eb;
+  --md-border: #e2e8f0;
+  --md-code-bg: #eef2f7;
+  --md-code-fg: #0f172a;
+  --md-quote-bg: #f1f5f9;
+  --md-quote-bar: #cbd5e1;
+  --md-table-stripe: #f1f5f9;
+}
+
+/* Midnight（深蓝夜色） */
+.app[data-mdtheme="midnight"]  {
+  --md-bg: #0b1220;
+  --md-fg: #dbeafe;
+  --md-muted: #94a3b8;
+  --md-accent: #60a5fa;
+  --md-border: #142033;
+  --md-code-bg: #0f172a;
+  --md-code-fg: #e2e8f0;
+  --md-quote-bg: #0e1726;
+  --md-quote-bar: #1e2a44;
+  --md-table-stripe: #0e1726;
+}
+
+/* 工具栏的 select 小优化（可选） */
+.toolbar select {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #fff;
+  background: #eef5f7;
+  padding: 0 8px;
+  font-size: 13px;
 }

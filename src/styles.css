@@ -51,9 +51,9 @@ body, html, .app {
   right: 0;
   height: 70px;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  padding: 0 10px;
+  padding: 10px;
   background: #ffffff;
   border-bottom: 1px solid #ddd;
   z-index: 100;
@@ -190,9 +190,36 @@ overflow: auto;
   resize: none;
   background-color: transparent;
   font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
 }
+
+/* ====== 编辑区 图片 =========== */
+.upload-button {
+  background: #007acc;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.upload-button:hover {
+  background: #005a9e;
+}
+
+.uploading {
+  color: #666;
+  font-size: 14px;
+}
+
+/* 拖拽状态 */
+.editor.drag-over {
+  background: #e3f2fd;
+  border: 2px dashed #2196f3;
+}
+
 
 .preview .markdown-body {
   display: block !important;
@@ -315,12 +342,12 @@ overflow: auto;
   margin: 1.2em 0 .6em;
   font-weight: 600;
 }
-.markdown-body h1 { font-size: 1.8rem; }
-.markdown-body h2 { font-size: 1.6rem; }
-.markdown-body h3 { font-size: 1.35rem; }
-.markdown-body h4 { font-size: 1.2rem; }
-.markdown-body h5 { font-size: 1.05rem; }
-.markdown-body h6 { font-size: .95rem; color: var(--md-muted); }
+.markdown-body h1 { font-size: 28px; }
+.markdown-body h2 { font-size: 25px; }
+.markdown-body h3 { font-size: 20px; }
+.markdown-body h4 { font-size: 18px; }
+.markdown-body h5 { font-size: 16px; }
+.markdown-body h6 { font-size: 16px; color: var(--md-muted); }
 
 /* 段落与列表 */
 .markdown-body p { margin: .8em 0; }
@@ -407,6 +434,9 @@ overflow: auto;
   margin: .8em auto;
   border-radius: 6px;
 }
+
+
+
 
 /* ============ 主题映射（根据 data-mdtheme 切换变量） ============ */
 

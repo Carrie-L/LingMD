@@ -8,65 +8,11 @@ import { useMarkdownRenderer } from './useMarkdownRenderer';
 import './styles.css';
 
 
-// ✅ 1. 新增一个强大的 CSS 提取器工具函数
-// 将这个函数放在 App 组件外部
-function extractCssForWechat(containerElement) {
-  if (!containerElement) return '';
 
-  const selectors = [
-    // 内容主题
-    '.markdown-body', '.markdown-body h1', '.markdown-body h2', '.markdown-body h3',
-    '.markdown-body h4', '.markdown-body h5', '.markdown-body h6',
-    '.markdown-body p', '.markdown-body a', '.markdown-body blockquote',
-    '.markdown-body :not(pre) > code', '.markdown-body ul', '.markdown-body li',
-    '.markdown-body hr',
 
-    // 代码高亮主题
-    '.hljs', '.hljs-keyword', '.hljs-string', '.hljs-comment', '.hljs-number',
-    '.hljs-built_in', '.hljs-literal', '.hljs-params', '.hljs-title',
-    // ... 你可以根据需要添加更多 .hljs-xxx 选择器
-  ];
 
-  const tempDiv = document.createElement('section');
-  document.body.appendChild(tempDiv);
-  tempDiv.style.display = 'none';
-
-  const generatedCssRules = new Set();
-
-  selectors.forEach(selector => {
-    // 尝试在容器内查找元素
-    const element = containerElement.querySelector(selector);
-
-    // 如果找不到，就在临时 div 里创建一个，以便获取样式
-    const targetElement = element || document.createElement(selector.split(' ').pop().replace(/\./g, ''));
-    if (!element) tempDiv.appendChild(targetElement);
-
-    const style = window.getComputedStyle(targetElement);
-    const properties = [
-      'color', 'background-color', 'font-weight', 'font-style', 'font-size', 'line-height',
-      'border-left', 'padding', 'margin', 'display', 'border-radius', 'font-family',
-    ];
-
-    let rule = `${selector} { `;
-    properties.forEach(prop => {
-      const value = style.getPropertyValue(prop);
-      if (value) {
-        rule += `${prop}: ${value}; `;
-      }
-    });
-    rule += `}`;
-    generatedCssRules.add(rule);
-  });
-
-  document.body.removeChild(tempDiv);
-
-  // 添加强制滚动条的样式
-  const finalCss = Array.from(generatedCssRules).join('\n')
-    + `\npre { white-space: pre !important; overflow-x: auto !important; }`
-    + `\nli p { display: inline !important; margin: 0 !important; }`;
-
-  return finalCss;
-}
+// ======== 主题 ==============
+ 
 
 // Markdown 主题清单
 const MD_THEMES = {
@@ -209,16 +155,17 @@ font-size: 16px;
 .markdown-content h5,
 .markdown-content h6 {
   margin-top: 1.5em;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.8em;
   font-weight: 500;
   line-height: 1.25;
 }
 
-  .markdown-body h1 { font-size: 1.6rem; }
-.markdown-body h2 { font-size: 1.4rem; }
-.markdown-body h3 { font-size: 1.25rem; }
-.markdown-body h4 { font-size: 1.1rem; line-height: 1.7;}
-.markdown-body h5 { font-size: 1rem; }
+.markdown-body h1 { font-size: 28px; }
+.markdown-body h2 { font-size: 25px; }
+.markdown-body h3 { font-size: 20px; }
+.markdown-body h4 { font-size: 18px; }
+.markdown-body h5 { font-size: 16px; }
+.markdown-body h6 { font-size: 16px;  }
 
 /* 段落样式 */
 .markdown-content p {
@@ -227,9 +174,8 @@ font-size: 16px;
 
 /* 代码块样式 */
 .markdown-content pre {
-  background-color: ${variables['--md-code-bg'] || '#f6f8fa'};
   border-radius: 6px;
-  padding: 16px;
+  padding: 0;
   overflow: auto;
   margin: 1em 0;
 }
@@ -551,6 +497,8 @@ function App() {
   const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
 
   const [content, setContent] = useState("");
+   const editorRef = useRef(null);
+  const [editorUploading, setEditorUploading] = useState(false);
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState("");
@@ -561,10 +509,8 @@ function App() {
   // a. 首先，获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
   // b. 如果由于某种原因（比如 state 更新延迟）找不到主题，就使用默认主题
-  const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
-  console.log("111currentTheme",currentTheme);
+  // const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
   
-
   const { rawHtml, sanitizedHtml } = useMarkdownRenderer(
     content,
     filePath
@@ -576,9 +522,22 @@ function App() {
 
   // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
   useEffect(() => {
-    window.electronAPI.getAttachmentFolder().then(folder => {
-      if (folder) setAttachmentFolder(folder);
-    });
+(async () => {
+      try {
+        const folder = await window.electronAPI.getAttachmentFolder();
+        console.log("attachmentFolder",folder);
+        
+        if (folder) {
+          setAttachmentFolder(folder);
+          localStorage.setItem('attachmentFolder', folder);
+        }
+      } catch (err) {
+        console.error('读取 attachmentFolder 失败', err);
+        // 尝试从 localStorage 读（降级）
+        const cached = localStorage.getItem('attachmentFolder');
+        if (cached) setAttachmentFolder(cached);
+      }
+    })();
   }, []);
 
   // ✅ 新增：处理设置附件文件夹的点击事件
@@ -586,6 +545,7 @@ function App() {
     const folder = await window.electronAPI.setAttachmentFolder();
     if (folder) {
       setAttachmentFolder(folder);
+      localStorage.setItem('attachmentFolder', res.folder); // 可选本地缓存
 
       // ✅ 2. 在设置成功后，立即更新触发器
       // 每次都让它的值变得和上次不一样，就能保证触发刷新
@@ -702,8 +662,6 @@ function App() {
     );
   }
 
-
-  const [markdownContent, setMarkdownContent] = useState('');
 
 
   // ✅ 新增：处理公众号复制的函数
@@ -828,6 +786,18 @@ console.log("extractedCSS",extractedCSS);
         <button onClick={handleSave}>🍁 保存</button>
         <button onClick={handlePreview}>🐳 预览</button>
 
+        <label className="upload-button">
+    📷 插入图片
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      onChange={(e) => editorRef.current && editorRef.current.handleFileSelect(e)}
+      style={{ display: 'none' }}
+    />
+  </label>
+  {editorUploading && <span className="uploading">上传中...</span>}
+
         {/* ✅ 6. 创建主题选择下拉菜单 */}
         <select value={mdTheme} onChange={(e) => setMdTheme(e.target.value)} title="Markdown 主题">
           {Object.entries(MD_THEMES).map(([key, t]) => (
@@ -851,11 +821,17 @@ console.log("extractedCSS",extractedCSS);
         )}
       </div>
 
-
       <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
-        <Editor value={content} onChange={setContent} />
-        {/* ✅ 将 sanitizedHtml 传递给子组件用于显示 */}
-        {/* 注意：我们这里直接传递 HTML，而不是让子组件自己去渲染 */}
+        {/* 编辑区域 */}
+        {/* <Editor value={content} onChange={setContent} /> */}
+        <Editor
+    ref={editorRef}
+    value={content}
+    onChange={setContent}
+    onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+  />
+
+        {/* 预览区 */}
         <div className="preview">
           <div
             className="markdown-body"
@@ -883,7 +859,7 @@ console.log("extractedCSS",extractedCSS);
           style={{ cursor: "pointer", textDecoration: "underline" }}
           onClick={handleOpenDefaultDir}
         >
-          📂 {defaultDir}
+          📂 默认文档目录： {defaultDir}
         </span>
         {/* ✅ 新增：在状态栏显示和设置附件文件夹 */}
         <span
@@ -891,7 +867,7 @@ console.log("extractedCSS",extractedCSS);
           style={{ cursor: "pointer", textDecoration: "underline" }}
           onClick={handleSetAttachmentFolder}
         >
-          🖼️ {attachmentFolder || "未设置附件文件夹"}
+          ⛳️ 设置默认图片目录： {attachmentFolder || "未设置图片目录，请设置。"}
         </span>
       </div>
 

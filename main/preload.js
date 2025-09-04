@@ -31,4 +31,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return path.dirname(filePath);
   },
   convertHtmlForClipboard: (html) => ipcRenderer.invoke("convert-html-for-clipboard", html),
+
+  // 保存图片
+  saveImage: (data) => ipcRenderer.invoke('save-image', data),
+  // 获取图片目录
+  getImageDir: () => ipcRenderer.invoke('get-image-dir'),
+  // 打开图片目录
+  openImageDir: () => ipcRenderer.invoke('open-image-dir'),
+  // 清理未使用的图片
+  cleanupUnusedImages: (data) => ipcRenderer.invoke('cleanup-unused-images', data),
 });

@@ -16,6 +16,8 @@ const store = new Store();
 const { pathToFileURL, fileURLToPath } = require("url");
 const juice = require("juice");
 const { log } = require("console");
+const os = require('os');
+
 
 let mainWindow;
 let previewWindow;
@@ -38,6 +40,83 @@ if (!gotTheLock) {
     }
   });
 }
+
+// -------------------------------------------------------------------
+// 编辑区粘贴图片，IPC: 保存图片
+// -------------------------------------------------------------------
+// 1) 定义一个计算/返回默认附件目录的函数（可按需修改逻辑）
+function getDefaultImageDir() {
+let folder = store.get('attachmentFolder');
+  if (!folder) {
+    return getDefaultDir();
+  }
+  return folder;
+}
+
+// 2) 把它注册为 ipc handler（preload 已经调用 ipcRenderer.invoke("get-attachment-folder")）
+ipcMain.handle('get-attachment-folder', async () => {
+  return getAttachmentFolder();
+});
+
+
+ipcMain.handle('save-image', async (event, { fileName, buffer, originalName }) => {
+  try {
+    // 确保图片目录存在
+    const imageDir = await getDefaultImageDir();
+    console.log("-imageDir-",imageDir);
+    
+    const fullPath = path.join(imageDir, fileName);
+     console.log("-fullPath-",fullPath);
+    
+    // 将数组转换回Buffer并保存文件
+    const fileBuffer = Buffer.from(buffer);
+await fs.promises.writeFile(fullPath, fileBuffer);
+    
+    // 返回相对路径（用于Markdown）
+    const relativePath = `${fileName}`;
+    console.log("-relativePath-",relativePath);
+    
+    console.log(`图片已保存: ${fullPath}`);
+    
+    return {
+      success: true,
+      fullPath,
+      relativePath,
+      fileName
+    };
+  } catch (error) {
+    console.error('保存图片失败:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+// IPC: 获取图片目录路径
+ipcMain.handle('get-image-dir', async () => {
+  try {
+    const imageDir = await getDefaultImageDir();
+    console.log("imageDir",imageDir);
+    
+    return { success: true, path: imageDir };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC: 打开图片目录
+ipcMain.handle('open-image-dir', async () => {
+  try {
+    const imageDir = await getDefaultImageDir();
+    const { shell } = require('electron');
+    await shell.openPath(imageDir);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 
 // -------------------------------------------------------------------
 // 主窗口创建
@@ -113,6 +192,14 @@ app.on("window-all-closed", () => {
 // -------------------------------------------------------------------
 // IPC (渲染进程 <-> 主进程) 通信处理
 // -------------------------------------------------------------------
+// async function getDefaultImageDir(){
+//   const imageDir = await window.electronAPI.getAttachmentFolder()
+//   console.log("默认图片路径：", imageDir);
+//   if(!imageDir){
+//     return getDefaultDir;
+//   }
+//   return imageDir;
+// }
 
 function getDefaultDir() {
   const customDir = store.get("defaultDir");
@@ -175,23 +262,6 @@ ipcMain.handle("open-default-dir", async () => {
   const dir = getDefaultDir();
   if (fs.existsSync(dir)) await shell.openPath(dir);
   return dir;
-});
-
-// ✅ 新增：设置附件文件夹
-ipcMain.handle("set-attachment-folder", async () => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    title: "选择 Obsidian 附件文件夹",
-    properties: ["openDirectory"],
-  });
-  if (canceled || !filePaths.length) return null;
-  const folderPath = filePaths[0];
-  store.set("attachmentFolder", folderPath); // 保存到 electron-store
-  return folderPath;
-});
-
-// ✅ 新增：获取附件文件夹
-ipcMain.handle("get-attachment-folder", () => {
-  return store.get("attachmentFolder", null); // 读取设置，如果没有则返回 null
 });
 
 ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {

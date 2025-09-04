@@ -7,7 +7,7 @@ const {
   dialog,
   protocol,
   shell,
-  net,
+  net,clipboard
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -275,7 +275,7 @@ ipcMain.on("open-preview", () => {
 // ✅ (终极版) 为公众号复制功能转换 HTML
 // ===================================================================
 ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-  const { html: rawHtml, codeThemeKey, themeCssValues } = payload;
+  const { html: rawHtml, codeThemeKey,css, themeCssValues } = payload;
   // 2. 预先检查输入
   if (typeof rawHtml !== "string") {
     console.error(
@@ -284,6 +284,10 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     );
     return ""; // 如果 html 部分不是字符串，返回空
   }
+  console.error(
+      "convertHtmlForClipboard rawHtml:",
+      rawHtml
+    );
   if (!rawHtml) return "";
   if (!themeCssValues) {
     console.error("Theme CSS values are missing!");
@@ -396,7 +400,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
     const markdownThemeCss = `
   .markdown-body {
-      background: ${themeCssValues.bg};
+      background: #fff;
       color: ${themeCssValues.fg};
       font-size: 16px;
       line-height: 1.8;
@@ -426,39 +430,11 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
   }
     .markdown-body p { margin: 0 0; 
     }
-.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: .8em 0; }
-.markdown-body strong { 
-white-space:nowrap;
-}
+
     .markdown-body li { margin: .3em 0; 
       word-break:break-word;
 }
-.markdown-body hr {
-  border: 0;
-  height: 1px;
-  background: ${themeCssValues.border};
-  margin: 1.5em 0;
-}
 
-/* 表格 */
-.markdown-body table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1em 0;
-  border: 1px solid ${themeCssValues.border};
-  font-size: 0.95em;
-}
-.markdown-body th, .markdown-body td {
-  border: 1px solid ${themeCssValues.border};
-  padding: .6em .8em;
-  text-align: left;
-}
-.markdown-body thead th {
-  background: ${themeCssValues.quoteBg};
-}
-.markdown-body tbody tr:nth-child(odd) {
-  background: ${themeCssValues.tableStripe};
-}
     `;
 
     // ✅ 2. 根据 codeThemeKey 动态读取对应的 CSS 文件
@@ -503,15 +479,28 @@ white-space:nowrap;
       }
     `;
 
+    // 将HTML内容复制到剪贴板
+    // clipboard.writeHTML(rawHtml);
     const inlinedHtml = juice(
-      // 必须用 .markdown-body 包裹，让 CSS 规则能正确匹配
-      `<section class="markdown-body">${htmlWithBase64Images}</section>`,
+     htmlWithBase64Images,
       {
-        extraCss: markdownThemeCss + highlightCss + extraCss, // ✅ 合并了三种 CSS
+        extraCss:  highlightCss + extraCss, 
       }
     );
+    
+    // 可选：保存CSS到文件或进行其他处理
+    // console.log(`复制了主题 ${theme} 的样式内容`);
 
-    console.log("extraCSS:", markdownThemeCss + highlightCss + extraCss);
+
+    // const inlinedHtml = juice(
+    //   // 必须用 .markdown-body 包裹，让 CSS 规则能正确匹配
+    //   `<section class="markdown-body">${htmlWithBase64Images}</section>`,
+    //   {
+    //     extraCss: markdownThemeCss + highlightCss + extraCss, // ✅ 合并了三种 CSS
+    //   }
+    // );
+
+    console.log("extraCSS:",  highlightCss + extraCss);
 
     // ✅ 5. (可选但推荐) 对标题进行最后的降级处理，以获得最佳兼容性
     let finalHtml = inlinedHtml;

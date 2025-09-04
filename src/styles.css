@@ -1,13 +1,20 @@
 /* @import "github-markdown-css/github-markdown.css"; */
-
+/* ✅ 新增：为 CSS 变量提供一套默认值（对应亮色主题） */
+.app {
+  --md-bg: #ffffff;
+  --md-fg: #000000; /* 默认文字颜色为黑色 */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
 
 /* 默认亮色 UI */
 body, html, .app {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #ffffff;
-  color: #000000;
+  background: var(--md-bg);
+  color: var(--md-fg);
   font-family: 'LXGW WenKai',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,  sans-serif; /* 添加了通用回退 */
   box-sizing: border-box; /* 统一盒模型 */
 }
@@ -276,12 +283,10 @@ overflow: auto;
   --md-quote-bar: #d1d5db;
   --md-table-stripe: #fafafa;
 
-  color: var(--md-fg);
   background: transparent;
   line-height: 1.75;
   font-size: 15px;
   word-wrap: break-word;
-
   font-family: 'LXGW WenKai';
 }
 
@@ -299,7 +304,6 @@ overflow: auto;
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  color: var(--md-fg);
   line-height: 1.5;
   margin: 1.2em 0 .6em;
   font-weight: 600;
@@ -399,7 +403,7 @@ overflow: auto;
 /* ============ 主题映射（根据 data-mdtheme 切换变量） ============ */
 
 /* Light */
-.app[data-mdtheme="light"] .markdown-body {
+.app[data-mdtheme="light"]  {
   --md-bg: #ffffff;
   --md-fg: #0b1220;
   --md-muted: #667085;
@@ -413,7 +417,7 @@ overflow: auto;
 }
 
 /* Dark */
-.app[data-mdtheme="dark"] .markdown-body {
+.app[data-mdtheme="dark"]  {
   --md-bg: #0f1115;
   --md-fg: #e5e7eb;
   --md-muted: #9ca3af;
@@ -427,7 +431,7 @@ overflow: auto;
 }
 
 /* Sepia（阅读风） */
-.app[data-mdtheme="sepia"] .markdown-body {
+.app[data-mdtheme="sepia"]  {
   --md-bg: #f6efe5;
   --md-fg: #473c2f;
   --md-muted: #7c6f61;
@@ -464,7 +468,7 @@ overflow: auto;
   --md-code-bg: #0f172a;
   --md-code-fg: #e2e8f0;
   --md-quote-bg: #0e1726;
-  --md-quote-bar: #1e2a44;
+  --md-quote-bar: #46ddee;
   --md-table-stripe: #0e1726;
 }
 

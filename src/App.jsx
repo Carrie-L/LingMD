@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef  } from "react";
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
@@ -98,9 +98,22 @@ function App() {
     };
   }, [themeKey]); // 这个 effect 只在 themeKey 改变时运行
 
-
+// 第一个 useEffect：负责持久化存储
   useEffect(() => {
     localStorage.setItem("mdTheme", mdTheme);
+  }, [mdTheme]);
+
+  // 第二个 useEffect：负责读取样式
+  // 1. 创建一个 ref 来引用我们的主容器 div
+  const appRef = useRef(null);
+  useEffect(() => {
+    if (appRef.current) {
+      const styles = getComputedStyle(appRef.current);
+      console.log(`主题 '${mdTheme}' 的styles是: ${styles}`);
+      console.dir(styles);
+      const backgroundColor = styles.getPropertyValue('--md-bg').trim();
+      console.log(`主题 '${mdTheme}' 的背景色是: ${backgroundColor}`);
+    }
   }, [mdTheme]);
 
 
@@ -280,6 +293,7 @@ function App() {
       const finalHtml = await window.electronAPI.convertHtmlForClipboard({
         html: rawHtml,
         theme: themeKey, // 传递主题的 key
+        mdTheme:mdTheme,
       });
 
       // 3. 检查后端是否返回了有效的 HTML
@@ -313,7 +327,7 @@ function App() {
 
 
   // ✅ 1. 在组件外部或内部定义你的代码块主题
-  const codeBlockThemes = {
+  const mdThemes = {
     light: {
       backgroundColor: '#f6f8fa',
       padding: '16px',
@@ -343,7 +357,7 @@ function App() {
 
   // 默认编辑模式
   return (
-    <div className="app" data-mdtheme={mdTheme}>
+    <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
         <button onClick={handleNewFile}>🐙 新建</button>
         <button onClick={handleOpen}>📂 打开</button>

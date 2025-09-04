@@ -149,7 +149,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
       }
 
       let rawHtml = marked(content);
-      console.log("✅✅rawHtml:", rawHtml);
+      // console.log("✅✅rawHtml:", rawHtml);
 
       rawHtml = await replaceAsync(rawHtml, async (match, src, rest) => {
         try {
@@ -171,7 +171,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
         return match;
       });
 
-      console.log("✅✅✅✅rawHtml:", rawHtml);
+      // console.log("✅✅✅✅rawHtml:", rawHtml);
 
       // ✅ 关键修复：使用 ADD_PROTOCOLS 而不是 ALLOWED_PROTOCOLS
       // 这会将 'safe-file' 添加到 DOMPurify 的默认安全协议列表中，而不是覆盖它们。
@@ -193,14 +193,14 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
 
 
       // (调试日志)
-      console.log("--- HTML Rendering ---");
-      console.log("Raw HTML (has class):", rawHtml.substring(0, 300));
-      console.log("Sanitized HTML (should also have class):", sanitizedHtml.substring(0, 300));
+      // console.log("--- HTML Rendering ---");
+      // console.log("Raw HTML (has class):", rawHtml.substring(0, 300));
+      // console.log("Sanitized HTML (should also have class):", sanitizedHtml.substring(0, 300));
       if (rawHtml.includes('class=') && !sanitizedHtml.includes('class=')) {
         console.error("!!! Critical Error: 'class' attribute was STILL removed by DOMPurify!");
       }
 
-      console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);
+      // console.log("✅✅✅✅✅sanitizedHtml:", sanitizedHtml);
 
       setHtmlResult({ rawHtml, sanitizedHtml });
     }

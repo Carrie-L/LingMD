@@ -1,12 +1,20 @@
 // main.js - 完整修复版
 
-const { app, BrowserWindow, ipcMain, dialog, protocol, shell, net } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  protocol,
+  shell,
+  net,
+} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const Store = require("electron-store").default;
 const store = new Store();
 const { pathToFileURL, fileURLToPath } = require("url");
-const juice = require('juice');
+const juice = require("juice");
 const { log } = require("console");
 
 let mainWindow;
@@ -23,7 +31,7 @@ if (!gotTheLock) {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
-      const fileArg = argv.find(arg => arg.endsWith(".md"));
+      const fileArg = argv.find((arg) => arg.endsWith(".md"));
       if (fileArg && fs.existsSync(fileArg)) {
         mainWindow.webContents.send("load-last-file", fileArg);
       }
@@ -73,18 +81,21 @@ app.whenReady().then(() => {
       // Swap our custom protocol for the standard 'file:' protocol
       const standardFileUrl = request.url.replace("safe-file:", "file:");
 
-      console.log(`[safe-file] Forwarding to net.fetch with URL: ${standardFileUrl}`);
+      console.log(
+        `[safe-file] Forwarding to net.fetch with URL: ${standardFileUrl}`
+      );
 
       // Let Electron's built-in, powerful fetch handler do the work.
       // It knows how to correctly handle valid file:// URLs.
       return net.fetch(standardFileUrl);
-
     } catch (err) {
-      console.error(`[safe-file] Failed to handle request for ${request.url}:`, err);
+      console.error(
+        `[safe-file] Failed to handle request for ${request.url}:`,
+        err
+      );
       return new Response("Not Found", { status: 404 });
     }
   });
-
 
   createWindow();
 
@@ -149,7 +160,9 @@ ipcMain.handle("new-file", async () => {
 });
 
 ipcMain.handle("set-default-dir", async () => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ["openDirectory"] });
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
   if (canceled || !filePaths.length) return null;
   const dir = filePaths[0];
   store.set("defaultDir", dir);
@@ -180,7 +193,6 @@ ipcMain.handle("set-attachment-folder", async () => {
 ipcMain.handle("get-attachment-folder", () => {
   return store.get("attachmentFolder", null); // 读取设置，如果没有则返回 null
 });
-
 
 ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
   let finalPath = null;
@@ -214,22 +226,27 @@ ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
   if (finalPath) {
     // pathToFileURL will create a perfectly formatted URL, e.g., 'file:///I:/path/to/image.png'
     const fileUrl = pathToFileURL(finalPath).href;
-    console.log(`[resolve-image-path] Found file at '${finalPath}', converted to URL: '${fileUrl}'`);
+    console.log(
+      `[resolve-image-path] Found file at '${finalPath}', converted to URL: '${fileUrl}'`
+    );
 
     // Replace 'file:' with 'safe-file:' to use our custom protocol
-    return fileUrl.replace('file:', 'safe-file:');
+    return fileUrl.replace("file:", "safe-file:");
   }
 
   console.log(`[resolve-image-path] Could not find image for src: '${src}'`);
   return null;
 });
 
-
-
 // === 状态 & 窗口管理 ===
-ipcMain.on("set-last-file", (event, filePath) => store.set("lastFile", filePath));
+ipcMain.on("set-last-file", (event, filePath) =>
+  store.set("lastFile", filePath)
+);
 
-ipcMain.handle('convert-file-src', (event, filePath) => `safe-file://${path.normalize(filePath)}`);
+ipcMain.handle(
+  "convert-file-src",
+  (event, filePath) => `safe-file://${path.normalize(filePath)}`
+);
 
 ipcMain.on("open-preview", () => {
   if (previewWindow) {
@@ -248,83 +265,26 @@ ipcMain.on("open-preview", () => {
       webSecurity: false,
     },
   });
-  previewWindow.on("closed", () => { previewWindow = null; });
+  previewWindow.on("closed", () => {
+    previewWindow = null;
+  });
   previewWindow.loadURL("http://127.0.0.1:5173?mode=preview");
 });
 
-// ===================================================================
-// ✅ 新增：为公众号复制功能转换 HTML 中的图片
-// ===================================================================
-// main.js --- 找到 convert-html-for-clipboard 函数并用下面的代码替换它
 
-// ===================================================================
-// ✅ 修正版：为公众号转换 HTML（方案 B）
-// ===================================================================
-// ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-//   const { html: htmlContent, themeCss } = payload; // 传入 html + CSS
-//   if (!htmlContent) return "";
-
-//   let finalHtml = htmlContent;
-
-//   // === Step 1: 转换图片为 Base64 ===
-//   const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
-//   const imageReplacements = await Promise.all(
-//     [...finalHtml.matchAll(imageTagsRegex)].map(async (match) => {
-//       const originalSrc = match[1];
-//       const originalTag = match[0];
-//       try {
-//         const standardFileUrl = originalSrc.replace("safe-file:", "file:");
-//         const filePath = fileURLToPath(standardFileUrl);
-//         const fileBuffer = await fs.promises.readFile(filePath);
-//         let mimeType;
-//         const ext = path.extname(filePath).toLowerCase();
-//         if (ext === ".png") mimeType = "image/png";
-//         else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
-//         else if (ext === ".gif") mimeType = "image/gif";
-//         else if (ext === ".svg") mimeType = "image/svg+xml";
-//         else mimeType = "application/octet-stream";
-//         const base64String = fileBuffer.toString("base64");
-//         const dataUrl = `data:${mimeType};base64,${base64String}`;
-//         const newTag = originalTag.replace(originalSrc, dataUrl);
-//         return { originalTag, newTag };
-//       } catch (error) {
-//         console.error(`Failed to convert image to Base64: ${originalSrc}`, error);
-//         return { originalTag, newTag: originalTag };
-//       }
-//     })
-//   );
-
-//   for (const { originalTag, newTag } of imageReplacements) {
-//     finalHtml = finalHtml.replace(originalTag, newTag);
-//   }
-
-//   // === Step 2: 替换代码块 ===
-//   const preCodeRegex = /<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/g;
-//   finalHtml = finalHtml.replace(preCodeRegex, (match, codeContent) => {
-//     // 换行 → <br>，空格 → &nbsp;
-//     const safeCode = codeContent
-//       .replace(/\n/g, "<br/>")
-//       .replace(/ /g, "&nbsp;");
-
-//     return `<pre class="custom"><code class="hljs">${safeCode}</code></pre>`;
-//   });
-
-//   // === Step 3: 在开头插入主题 CSS ===
-//   const cssBlock = `<style>${themeCss}</style>`;
-//   finalHtml = cssBlock + finalHtml;
-
-//   return finalHtml;
-// });
 
 // ===================================================================
 // ✅ (终极版) 为公众号复制功能转换 HTML
 // ===================================================================
 ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-  const { html:rawHtml, theme: themeKey } = payload;
+  const { html: rawHtml, theme: themeKey, mdTheme: mdTheme } = payload;
   // 2. 预先检查输入
-  if (typeof rawHtml !== 'string') {
-    console.error("convertHtmlForClipboard received non-string html content:", rawHtml);
-    return ''; // 如果 html 部分不是字符串，返回空
+  if (typeof rawHtml !== "string") {
+    console.error(
+      "convertHtmlForClipboard received non-string html content:",
+      rawHtml
+    );
+    return ""; // 如果 html 部分不是字符串，返回空
   }
   if (!rawHtml) return "";
 
@@ -349,7 +309,8 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
         const extension = path.extname(filePath).toLowerCase();
         let mimeType = "image/png"; // 默认
-        if (extension === ".jpg" || extension === ".jpeg") mimeType = "image/jpeg";
+        if (extension === ".jpg" || extension === ".jpeg")
+          mimeType = "image/jpeg";
         else if (extension === ".gif") mimeType = "image/gif";
         else if (extension === ".svg") mimeType = "image/svg+xml";
 
@@ -362,24 +323,27 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
       }
     }
 
-    // ✅ 2. 读取我们准备好的 CSS 主题文件内容
-    // path.join(__dirname, ...) 确保了路径在任何环境下都正确
-    console.log("__dirname", __dirname);
-
-  // ✅ 2. 根据 themeKey 动态读取对应的 CSS 文件
+    // ✅ 2. 根据 themeKey 动态读取对应的 CSS 文件
     // 注意：这里需要一个安全检查，防止路径遍历攻击
-    const safeThemeKey = themeKey.replace(/[^a-z0-9-]/g, ''); // 简单的安全过滤
+    const safeThemeKey = themeKey.replace(/[^a-z0-9-]/g, ""); // 简单的安全过滤
     const themeFileName = `${safeThemeKey}.min.css`;
-    const themePath = path.join(__dirname, '..', 'public', 'hljs', themeFileName);
-console.log("__themePath", themePath);
-console.log("__themeFileName:",themeFileName);
+    const codeThemePath = path.join(
+      __dirname,
+      "..",
+      "public",
+      "hljs",
+      themeFileName
+    );
+    console.log("__themePath", codeThemePath);
+    console.log("__themeFileName:", themeFileName);
 
-    if (!fs.existsSync(themePath)) {
-        throw new Error(`Theme file not found: ${themeFileName}`);
+    if (!fs.existsSync(codeThemePath)) {
+      throw new Error(`Theme file not found: ${themeFileName}`);
     }
 
+    console.log("mdTheme=",mdTheme);
 
-const highlightCss = fs.readFileSync(themePath, 'utf-8');
+    const highlightCss = fs.readFileSync(codeThemePath, "utf-8");
 
     //  借鉴开源库，定义一个适配微信的“主题”
     const extraCss = `
@@ -420,36 +384,43 @@ const highlightCss = fs.readFileSync(themePath, 'utf-8');
     // ✅ 5. (可选但推荐) 对标题进行最后的降级处理，以获得最佳兼容性
     let finalHtml = inlinedHtml;
 
-
     // ✅ 6. (可选) 图片处理 - 从分析文档中借鉴
     // 这个正则会找到所有<img>标签，移除 width/height 属性，并转为 style
     finalHtml = finalHtml.replace(/<img[^>]*>/g, (match) => {
-      if (!match.includes('style=')) {
-        match = match.replace('>', ' style="">');
+      if (!match.includes("style=")) {
+        match = match.replace(">", ' style="">');
       }
       const width = match.match(/width="([^"]*)"/);
       const height = match.match(/height="([^"]*)"/);
       if (width) {
-        match = match.replace(width[0], '').replace(/style="/, `style="width: ${width[1]}px;`);
+        match = match
+          .replace(width[0], "")
+          .replace(/style="/, `style="width: ${width[1]}px;`);
       }
       if (height) {
-        match = match.replace(height[0], '').replace(/style="/, `style="height: ${height[1]}px;`);
+        match = match
+          .replace(height[0], "")
+          .replace(/style="/, `style="height: ${height[1]}px;`);
       }
       return match;
     });
 
-    finalHtml = finalHtml.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/g, (match, preContent) => {
-      const processedContent = preContent.replace(/(>[^<]+)|(^[^<]+)/g, (str) => str.replace(/ /g, `&nbsp;`));
-      return match.replace(preContent, processedContent);
-    });
+    finalHtml = finalHtml.replace(
+      /<pre[^>]*>([\s\S]*?)<\/pre>/g,
+      (match, preContent) => {
+        const processedContent = preContent.replace(
+          /(>[^<]+)|(^[^<]+)/g,
+          (str) => str.replace(/ /g, `&nbsp;`)
+        );
+        return match.replace(preContent, processedContent);
+      }
+    );
 
-    console.log("////finalHtml", finalHtml);
-
+    // console.log("////finalHtml", finalHtml);
 
     return finalHtml;
-
   } catch (error) {
     console.error("Failed to process HTML for clipboard:", error);
-    return '';
+    return "";
   }
 });

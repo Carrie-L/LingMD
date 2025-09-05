@@ -109,10 +109,19 @@ ipcMain.handle('set-attachment-folder', async (event, newFolder) => {
   }
 });
 
-// 2) 把它注册为 ipc handler（preload 已经调用 ipcRenderer.invoke("get-attachment-folder")）
-// ipcMain.handle('get-attachment-folder', async () => {
-//   return getAttachmentFolder();
-// });
+// 返回当前附件目录（store 优先，否则回退到 getDefaultDir）
+ipcMain.handle('get-attachment-folder', async () => {
+  try {
+    // 如果 store 中有用户设置的 attachmentFolder，直接返回
+    const folder = store.get('attachmentFolder') || getDefaultDir();
+    // 确保目录存在
+    try { fs.mkdirSync(folder, { recursive: true }); } catch (e) { /* ignore */ }
+    return folder;
+  } catch (err) {
+    console.error('get-attachment-folder failed:', err);
+    return null;
+  }
+});
 
 
 ipcMain.handle('save-image', async (event, { fileName, buffer, originalName }) => {
@@ -173,6 +182,21 @@ ipcMain.handle('open-image-dir', async () => {
   }
 });
 
+// 退出窗口级别的 fullscreen
+ipcMain.handle('exit-fullscreen', (event) => {
+  try {
+    const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+    if (win) {
+      win.setFullScreen(false);
+      return { success: true };
+    }
+    return { success: false, error: 'no-window' };
+  } catch (err) {
+    console.error('exit-fullscreen error:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+});
+
 
 // -------------------------------------------------------------------
 // 主窗口创建
@@ -191,6 +215,8 @@ function createWindow() {
       webSecurity: false,
     },
   });
+ 
+
 
   // 默认打开开发者工具，方便调试
   mainWindow.webContents.openDevTools();
@@ -202,6 +228,8 @@ function createWindow() {
       mainWindow.webContents.send("load-last-file", lastFile);
     }
   });
+
+  //  mainWindow.webContents.openDevTools({ mode: 'detach' }); // 临时加,用于调试
 }
 
 // -------------------------------------------------------------------
@@ -275,10 +303,51 @@ ipcMain.handle("read-file", (event, filePath) => {
   return null;
 });
 
+// 更稳健的 save-file handler（会处理 filePath 为目录 / 空值 的情况）
 ipcMain.handle("save-file", async (event, content, filePath) => {
-  if (filePath) fs.writeFileSync(filePath, content, "utf-8");
-  return { path: filePath };
+  try {
+    let finalPath = filePath;
+    console.log("save-file: finalPath",finalPath);
+    
+
+    // 1) 如果没有传入 filePath，创建一个新文件（使用 new-file 的逻辑）
+    if (!finalPath) {
+      // 生成一个未命名文件放到默认目录
+      const defaultDir = getDefaultDir();
+      const fileName = `未命名_${Date.now()}.md`;
+      finalPath = path.join(defaultDir, fileName);
+      console.log("save-file: !finalPath",finalPath);
+    } else {
+      // 2) 如果传入的是存在的目录，在目录内创建新文件
+      try {
+        if (fs.existsSync(finalPath) && fs.statSync(finalPath).isDirectory()) {
+          const fileName = `未命名_${Date.now()}.md`;
+          finalPath = path.join(finalPath, fileName);
+          console.log("save-file: 传入目录> finalPath",finalPath);
+        } else {
+          // 确保目标文件所在目录存在
+          fs.mkdirSync(path.dirname(finalPath), { recursive: true });
+        }
+      } catch (err) {
+        console.warn('save-file: 检查 filePath 时出错，将继续尝试写入', err);
+      }
+    }
+
+    // 3) 写入文件（使用 promises 版本）
+    await fs.promises.writeFile(finalPath, content || '', 'utf-8');
+
+    // 可选：将当前保存路径存为 lastFile
+    try {
+      store.set('lastFile', finalPath);
+    } catch (e) { /* ignore */ }
+
+    return { path: finalPath, success: true };
+  } catch (err) {
+    console.error('save-file failed:', err);
+    return { success: false, error: err.message || String(err) };
+  }
 });
+
 
 ipcMain.handle("new-file", async () => {
   const defaultDir = getDefaultDir();
@@ -311,6 +380,64 @@ ipcMain.handle("open-default-dir", async () => {
   if (fs.existsSync(dir)) await shell.openPath(dir);
   return dir;
 });
+
+ipcMain.on('renderer-ready', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  try {
+    let lastFile = store.get('lastFile'); // 从 store 读取上次打开的文件路径
+
+    // 如果 store 有 lastFile 且文件存在且为文件，则直接读取并返回
+    if (lastFile && fs.existsSync(lastFile) && fs.statSync(lastFile).isFile()) {
+      let initialContent = '';
+      try {
+        initialContent = await fs.promises.readFile(lastFile, 'utf8');
+      } catch (err) {
+        console.warn('读取 lastFile 失败，使用空内容：', err);
+        initialContent = '';
+      }
+      win.webContents.send('initial-data', { lastFile, initialContent });
+      return;
+    }
+
+    // 否则：在 **默认目录（getDefaultDir）** 创建一个未命名文件（只在这里创建一次）
+    const dir = getDefaultDir(); // <-- 使用默认目录而不是附件目录
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (err) {
+      console.error('确保默认目录存在失败：', err);
+    }
+
+    const fileName = `未命名_${Date.now()}.md`;
+    const fullPath = path.join(dir, fileName);
+
+    try {
+      // 创建空文件（若需要可以写入模板内容）
+      await fs.promises.writeFile(fullPath, '', 'utf8');
+      // 持久化为 lastFile，保证下次启动直接使用同一文件
+      store.set('lastFile', fullPath);
+    } catch (err) {
+      console.error('在默认目录创建默认文件失败：', err);
+      // 仍然向渲染进程发送空内容，避免卡住
+      win.webContents.send('initial-data', { lastFile: null, initialContent: '' });
+      return;
+    }
+
+    // 读取刚创建的文件内容（通常为空）
+    let initialContent = '';
+    try {
+      initialContent = await fs.promises.readFile(fullPath, 'utf8');
+    } catch (err) {
+      initialContent = '';
+    }
+
+    win.webContents.send('initial-data', { lastFile: fullPath, initialContent });
+  } catch (err) {
+    console.error('renderer-ready handler error:', err);
+    try { win.webContents.send('initial-data', { lastFile: null, initialContent: '' }); } catch (e) {}
+  }
+});
+
+
 
 ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
   let finalPath = null;
@@ -669,6 +796,8 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     return "";
   }
 });
+
+
 
 // 从编辑器拿到的 HTML 字符串
 // function sanitizeForWechat(html) {

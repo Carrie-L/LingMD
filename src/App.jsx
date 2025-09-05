@@ -567,24 +567,27 @@ function App() {
     setTimeout(() => setToast(""), duration);
   };
 
-  // 自动保存（停止输入 2 秒后保存）
-  useEffect(() => {
-    console.log("自动保存：defaultDir", defaultDir);
 
-    if (!filePath) {
-      // setStatus("未保存");
-      // return;
-      setFilePath(defaultDir);
-    }
-    console.log("自动保存：filePath", filePath);
-    // setStatus("未保存");
-    const timer = setTimeout(async () => {
+  // 自动保存
+  useEffect(() => {
+  // 仅在 appReady 后且有 filePath 才允许自动保存
+  // if (!appReady) return;
+  if (!filePath) return;
+
+  setStatus('未保存');
+
+  const timer = setTimeout(async () => {
+    try {
       await window.electronAPI.saveFile(content, filePath);
-      setStatus("已自动保存");
-      // showToast("💾 自动保存在 "+filePath);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [content, filePath]);
+      setStatus('已自动保存');
+    } catch (err) {
+      console.error('auto save failed', err);
+      setStatus('自动保存失败');
+    }
+  }, 3000); // 停止输入 3s 后自动保存
+
+  return () => clearTimeout(timer);
+}, [content, filePath]);
 
   // 手动保存
   const handleSave = async () => {
@@ -618,6 +621,8 @@ function App() {
       window.electronAPI.setLastFile(result.path);
       setStatus("已打开");
       showToast("📂 文件已打开");
+    }else{
+      showToast("❌ 📂文件未打开");
     }
   };
 

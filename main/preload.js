@@ -45,4 +45,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 清理未使用的图片
   cleanupUnusedImages: (data) =>
     ipcRenderer.invoke("cleanup-unused-images", data),
+  exitFullScreen: () => ipcRenderer.invoke('exit-fullscreen'),
 });

@@ -12,7 +12,7 @@ import './styles.css';
 
 
 // ======== 主题 ==============
- 
+
 
 // Markdown 主题清单
 const MD_THEMES = {
@@ -90,10 +90,10 @@ const THEMES = {
 const DEFAULT_THEME_KEY = 'tokyo-night-dark';
 
 const extractPreviewStyles = (mdTheme) => {
-  console.log("333mdTheme",mdTheme);
-  
+  console.log("333mdTheme", mdTheme);
+
   const previewElement = document.querySelector('.wechat-export');
-  console.log("previewElement",previewElement);
+  console.log("previewElement", previewElement);
   if (!previewElement) return '';
 
   // 获取当前主题的CSS变量
@@ -118,13 +118,13 @@ const extractPreviewStyles = (mdTheme) => {
       }
     } catch (e) {
       // 跨域样式表会抛出异常，忽略
-      console.log("cssVariables异常",e);
-      
+      console.log("cssVariables异常", e);
+
     }
   }
 
-  console.log("cssVariables",mdTheme,cssVariables);
-  
+  console.log("cssVariables", mdTheme, cssVariables);
+
 
   // 生成完整的CSS字符串，包含所有必要的样式
   return generateCompleteCSS(cssVariables, mdTheme);
@@ -137,27 +137,35 @@ const generateCompleteCSS = (variables, theme) => {
 /* Markdown Preview Styles - Theme: ${theme} */
 .markdown-content {
   color: ${variables['--md-fg'] || '#212121'};
- background: #fff;
+  background: ${variables['--md-bg'] || '#fff'};
   max-width: 800px;
   margin: 0 0;
   padding: 0;
-font-size: 16px;
-      font-weight: 300;
-      font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, serif;
+  line-height: 2;
+  font-size: 15px;
+  font-weight: 350;
+  word-wrap: break-word !important;
+  font-family: PingFang SC,system-ui,-apple-system,BlinkMacSystemFont,Helvetica Neue,Hiragino Sans GB,Microsoft YaHei UI,Microsoft YaHei,Arial,sans-serif !important;
+}
 
+.markdown-content p {
+  margin: 1.5em 0;
 }
 
 /* 标题样式 */
 .markdown-content h1,
 .markdown-content h2,
-.markdown-content h3,
+.markdown-content h3{
+  line-height: 1.7;
+  margin: 2em 0 0 0;
+  font-weight: 700;
+}
 .markdown-content h4,
 .markdown-content h5,
 .markdown-content h6 {
-  margin-top: 1.5em;
-  margin-bottom: 0.8em;
-  font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.5;
+  margin: 2em 0 0 0;
+  font-weight: 600;
 }
 
 .markdown-body h1 { font-size: 28px; }
@@ -167,10 +175,7 @@ font-size: 16px;
 .markdown-body h5 { font-size: 16px; }
 .markdown-body h6 { font-size: 16px;  }
 
-/* 段落样式 */
-.markdown-content p {
-  margin: 0;
-}
+
 
 /* 代码块样式 */
 .markdown-content pre {
@@ -181,17 +186,14 @@ font-size: 16px;
 }
 
 .markdown-content :not(pre) > code {
-    background-color: ${variables['--md-code-bg'] || '#f6f8fa'};
+    background-color: ${variables['--md-code-bg'] || '#f7f9faff'};
     color: ${variables['--md-code-fg'] || '#e7b0d0'};
     border: 1px solid ${variables['--md-border'] || '#e5e7eb'};
      padding: .1em .4em;
     border-radius: 4px; 
-    font-size: 0.9em;
-margin: 0 0.2em;
+    font-size: 13px;
+    margin: 0 0.1em;
   }
-
-
-
 
 /* 引用样式 */
 .markdown-content blockquote {
@@ -205,12 +207,12 @@ margin: 0 0.2em;
 /* 列表样式 */
 .markdown-content ul,
 .markdown-content ol {
-  padding-left: 2em;
-  margin-bottom: 1em;
+  padding-left: 1.4em;
+  margin: .8em 0;
 }
 
 .markdown-content li {
-  margin-bottom: 0.25em;
+  margin: .8em .3em; 
 }
 
 /* 表格样式 */
@@ -238,7 +240,7 @@ margin: 0 0.2em;
 
 /* 链接样式 */
 .markdown-content a {
-  color: ${variables['--md-accent'] || '#0366d6'};
+  color: ${variables['--md-accent'] || '#48eabf'};
   text-decoration: none;
 }
 
@@ -246,7 +248,6 @@ margin: 0 0.2em;
   text-decoration: underline;
 }
 
-/* 水平分割线 */
 .markdown-content hr {
   border: none;
   border-top: 1px solid ${variables['--md-border'] || '#d0d7de'};
@@ -497,7 +498,7 @@ function App() {
   const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
 
   const [content, setContent] = useState("");
-   const editorRef = useRef(null);
+  const editorRef = useRef(null);
   const [editorUploading, setEditorUploading] = useState(false);
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
@@ -510,7 +511,7 @@ function App() {
   const currentTheme = THEMES[themeKey];
   // b. 如果由于某种原因（比如 state 更新延迟）找不到主题，就使用默认主题
   // const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
-  
+
   const { rawHtml, sanitizedHtml } = useMarkdownRenderer(
     content,
     filePath
@@ -522,11 +523,11 @@ function App() {
 
   // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
   useEffect(() => {
-(async () => {
+    (async () => {
       try {
         const folder = await window.electronAPI.getAttachmentFolder();
-        console.log("attachmentFolder",folder);
-        
+        console.log("attachmentFolder", folder);
+
         if (folder) {
           setAttachmentFolder(folder);
           localStorage.setItem('attachmentFolder', folder);
@@ -542,18 +543,24 @@ function App() {
 
   // ✅ 新增：处理设置附件文件夹的点击事件
   const handleSetAttachmentFolder = async () => {
-    const folder = await window.electronAPI.setAttachmentFolder();
-    if (folder) {
-      setAttachmentFolder(folder);
-      localStorage.setItem('attachmentFolder', res.folder); // 可选本地缓存
-
-      // ✅ 2. 在设置成功后，立即更新触发器
-      // 每次都让它的值变得和上次不一样，就能保证触发刷新
-      setRefreshTrigger(prev => prev + 1);
-
-      showToast(`🖼️ 附件文件夹已设置为: ${folder}`);
+    try {
+      const res = await window.electronAPI.chooseAttachmentFolder();
+      if (!res) return;
+      if (res.canceled) return; // 用户取消选择
+      if (res.error) {
+        showToast('设置失败：' + res.error);
+        return;
+      }
+      // 成功：res.folder 为选择路径
+      setAttachmentFolder(res.folder);
+      localStorage.setItem('attachmentFolder', res.folder);
+      showToast(`🖼️ 附件文件夹已设置为: ${res.folder}`);
+    } catch (err) {
+      console.error('chooseAttachmentFolder 调用失败：', err);
+      showToast('发生错误：' + (err && err.message));
     }
   };
+
 
   const showToast = (message, duration = 3000) => {
     setToast(message);
@@ -562,13 +569,20 @@ function App() {
 
   // 自动保存（停止输入 2 秒后保存）
   useEffect(() => {
-    if (!filePath) return; // 没路径就不保存
-    setStatus("未保存");
+    console.log("自动保存：defaultDir", defaultDir);
+
+    if (!filePath) {
+      // setStatus("未保存");
+      // return;
+      setFilePath(defaultDir);
+    }
+    console.log("自动保存：filePath", filePath);
+    // setStatus("未保存");
     const timer = setTimeout(async () => {
       await window.electronAPI.saveFile(content, filePath);
       setStatus("已自动保存");
-      showToast("💾 自动保存");
-    }, 2000);
+      // showToast("💾 自动保存在 "+filePath);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [content, filePath]);
 
@@ -578,7 +592,7 @@ function App() {
     await window.electronAPI.saveFile(content, filePath);
     window.electronAPI.setLastFile(filePath);
     setStatus("已保存");
-    showToast("💾 文件已保存");
+    showToast("💾 文件已保存在: " + filePath);
   };
 
 
@@ -627,7 +641,14 @@ function App() {
 
   // 启动时获取默认文件夹
   useEffect(() => {
-    window.electronAPI.getDefaultDir().then(setDefaultDir);
+    (async () => {
+      const folder = await window.electronAPI.getDefaultDir();
+      console.log("defaultDir folder", folder);
+      if (folder) {
+        setDefaultDir(folder);
+      }
+    })();
+    // window.electronAPI.getDefaultDir().then(setDefaultDir);
   }, []);
 
   const handleSetDefaultDir = async () => {
@@ -696,16 +717,16 @@ function App() {
       //  const computedCss = extractCssForWechat(wechatPreviewRef.current);
 
 
-      console.log("222mdTheme",mdTheme);
-      
+      console.log("222mdTheme", mdTheme);
+
       // 提取当前主题的CSS样式
       const extractedCSS = extractPreviewStyles(mdTheme);
-console.log("extractedCSS",extractedCSS);
+      console.log("extractedCSS", extractedCSS);
       // 获取渲染后的HTML内容
       const previewElement = document.querySelector('.wechat-export');
       if (!previewElement) return;
-      console.log("previewElement",previewElement);
-      
+      console.log("previewElement", previewElement);
+
 
       // 克隆预览元素并添加类名
       const clonedElement = previewElement.cloneNode(true);
@@ -721,7 +742,7 @@ console.log("extractedCSS",extractedCSS);
         </section>
       `;
 
-       console.log("xxxxxstyledHTML",styledHTML);
+      console.log("xxxxxstyledHTML", styledHTML);
 
       // 通过Electron IPC发送到主进程
 
@@ -730,12 +751,11 @@ console.log("extractedCSS",extractedCSS);
         codeThemeKey: themeKey, // 代码高亮主题的 key
         css: extractedCSS,
         themeCssValues: mdTheme, // 文章主题的颜色值
-        
       });
 
 
-      console.log("xxxxxfinalHtml",finalHtml);
-      
+      console.log("xxxxxfinalHtml", finalHtml);
+
 
       console.log("Step 1: Sending raw HTML and theme CSS values to main process...");
 
@@ -781,30 +801,31 @@ console.log("extractedCSS",extractedCSS);
   return (
     <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
-        <button onClick={handleNewFile}>🐙 新建</button>
-        <button onClick={handleOpen}>📂 打开</button>
-        <button onClick={handleSave}>🍁 保存</button>
-        <button onClick={handlePreview}>🐳 预览</button>
+        <label className="toolbar-button" onClick={handleNewFile}>
+          🐙 新建</label>
+        <label onClick={handleOpen} className="toolbar-button" >📂 打开</label>
+        <label onClick={handleSave} className="toolbar-button">🍁 保存</label>
+        <label onClick={handlePreview} className="toolbar-button">🐳 预览</label>
 
-        <label className="upload-button">
-    📷 插入图片
-    <input
-      type="file"
-      accept="image/*"
-      multiple
-      onChange={(e) => editorRef.current && editorRef.current.handleFileSelect(e)}
-      style={{ display: 'none' }}
-    />
-  </label>
-  {editorUploading && <span className="uploading">上传中...</span>}
+        <label className="toolbar-button">
+          🌼 插入图片
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => editorRef.current && editorRef.current.handleFileSelect(e)}
+            style={{ display: 'none' }}
+          />
+        </label>
+        {editorUploading && <span className="uploading">上传中...</span>}
 
         {/* ✅ 6. 创建主题选择下拉菜单 */}
-        <select value={mdTheme} onChange={(e) => setMdTheme(e.target.value)} title="Markdown 主题">
+        <select value={mdTheme} onChange={(e) => setMdTheme(e.target.value)} title="Markdown 主题" >
           {Object.entries(MD_THEMES).map(([key, t]) => (
             <option key={key} value={key}>{t.name}</option>
           ))}
         </select>
-        <select value={themeKey} onChange={(e) => setThemeKey(e.target.value)}>
+        <select value={themeKey} onChange={(e) => setThemeKey(e.target.value)} title="Code 主题">
           {Object.entries(THEMES).map(([key, theme]) => (
             <option key={key} value={key}>{theme.name}</option>
           ))}
@@ -817,7 +838,7 @@ console.log("extractedCSS",extractedCSS);
           🌱 公众号
         </button>
         {showWechat && (
-          <button onClick={handleCopyToWechat}>复制到公众号</button>
+          <label className="toolbar-button" onClick={handleCopyToWechat}>复制到公众号</label>
         )}
       </div>
 
@@ -825,11 +846,11 @@ console.log("extractedCSS",extractedCSS);
         {/* 编辑区域 */}
         {/* <Editor value={content} onChange={setContent} /> */}
         <Editor
-    ref={editorRef}
-    value={content}
-    onChange={setContent}
-    onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
-  />
+          ref={editorRef}
+          value={content}
+          onChange={setContent}
+          onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+        />
 
         {/* 预览区 */}
         <div className="preview">

@@ -6,7 +6,8 @@ const path = require("path"); // 在 preload 脚本内部引入 path
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("open-file"),
   readFile: (filePath) => ipcRenderer.invoke("read-file", filePath), // 参数名统一为 filePath
-  saveFile: (content, filePath) => ipcRenderer.invoke("save-file", content, filePath), // 参数名统一
+  saveFile: (content, filePath) =>
+    ipcRenderer.invoke("save-file", content, filePath), // 参数名统一
   newFile: () => ipcRenderer.invoke("new-file"),
   setDefaultDir: () => ipcRenderer.invoke("set-default-dir"),
   getDefaultDir: () => ipcRenderer.invoke("get-default-dir"),
@@ -14,15 +15,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // togglePin: () => ipcRenderer.invoke("toggle-pin"), // 你的 main.js 中没有这个，先注释掉
   setLastFile: (filePath) => ipcRenderer.send("set-last-file", filePath),
   openPreview: () => ipcRenderer.send("open-preview"),
-  convertFileSrc: (filePath) => ipcRenderer.invoke('convert-file-src', filePath),
+  convertFileSrc: (filePath) =>
+    ipcRenderer.invoke("convert-file-src", filePath),
   onLoadLastFile: (callback) =>
     ipcRenderer.on("load-last-file", (event, filePath) => callback(filePath)),
   path: {
     dirname: (p) => path.dirname(p),
     resolve: (...paths) => path.resolve(...paths),
   },
-  setAttachmentFolder: () => ipcRenderer.invoke("set-attachment-folder"),
+  setAttachmentFolder: (folderPath) => ipcRenderer.invoke('set-attachment-folder', folderPath),
   getAttachmentFolder: () => ipcRenderer.invoke("get-attachment-folder"),
+  chooseAttachmentFolder: () => ipcRenderer.invoke('choose-attachment-folder'),
   resolveImagePath: (args) => {
     console.log("[Preload] 调用 resolveImagePath:", args);
     return ipcRenderer.invoke("resolve-image-path", args);
@@ -30,14 +33,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   dirname: (filePath) => {
     return path.dirname(filePath);
   },
-  convertHtmlForClipboard: (html) => ipcRenderer.invoke("convert-html-for-clipboard", html),
+  convertHtmlForClipboard: (html) =>
+    ipcRenderer.invoke("convert-html-for-clipboard", html),
 
   // 保存图片
-  saveImage: (data) => ipcRenderer.invoke('save-image', data),
+  saveImage: (data) => ipcRenderer.invoke("save-image", data),
   // 获取图片目录
-  getImageDir: () => ipcRenderer.invoke('get-image-dir'),
+  getImageDir: () => ipcRenderer.invoke("get-image-dir"),
   // 打开图片目录
-  openImageDir: () => ipcRenderer.invoke('open-image-dir'),
+  openImageDir: () => ipcRenderer.invoke("open-image-dir"),
   // 清理未使用的图片
-  cleanupUnusedImages: (data) => ipcRenderer.invoke('cleanup-unused-images', data),
+  cleanupUnusedImages: (data) =>
+    ipcRenderer.invoke("cleanup-unused-images", data),
 });

@@ -53,10 +53,66 @@ let folder = store.get('attachmentFolder');
   return folder;
 }
 
-// 2) 把它注册为 ipc handler（preload 已经调用 ipcRenderer.invoke("get-attachment-folder")）
-ipcMain.handle('get-attachment-folder', async () => {
-  return getAttachmentFolder();
+ipcMain.handle('choose-attachment-folder', async (event) => {
+  try {
+    // 获取调用该 IPC 的窗口（用于将 dialog 置于该窗口之上；如果没有，传 null）
+    const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+
+    // 默认路径优先使用 store 中的值
+    const defaultPath = store.get('attachmentFolder') || getDefaultDir();
+
+    const result = await dialog.showOpenDialog(win, {
+      title: '选择附件保存文件夹',
+      properties: ['openDirectory'],
+      defaultPath
+    });
+
+    if (result.canceled) {
+      return { canceled: true };
+    }
+
+    const chosen = result.filePaths && result.filePaths[0];
+    if (!chosen) {
+      return { canceled: true };
+    }
+
+    // 确保目录存在并持久化到 store
+    try {
+      fs.mkdirSync(chosen, { recursive: true });
+    } catch (err) {
+      // mkdir 失败也不应阻止保存 store（但记录日志）
+      console.error('创建选择目录失败：', err);
+    }
+
+    store.set('attachmentFolder', chosen);
+
+    return { canceled: false, folder: chosen };
+  } catch (err) {
+    console.error('choose-attachment-folder 出错：', err);
+    return { canceled: true, error: err.message || String(err) };
+  }
 });
+
+
+// 设置附件目录（接收一个路径字符串）
+ipcMain.handle('set-attachment-folder', async (event, newFolder) => {
+  try {
+    if (!newFolder) throw new Error('路径为空');
+    // 确保目录存在
+    fs.mkdirSync(newFolder, { recursive: true });
+    // 持久化到 store
+    store.set('attachmentFolder', newFolder);
+    return { success: true, folder: newFolder };
+  } catch (err) {
+    console.error('set-attachment-folder failed:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+});
+
+// 2) 把它注册为 ipc handler（preload 已经调用 ipcRenderer.invoke("get-attachment-folder")）
+// ipcMain.handle('get-attachment-folder', async () => {
+//   return getAttachmentFolder();
+// });
 
 
 ipcMain.handle('save-image', async (event, { fileName, buffer, originalName }) => {
@@ -192,14 +248,6 @@ app.on("window-all-closed", () => {
 // -------------------------------------------------------------------
 // IPC (渲染进程 <-> 主进程) 通信处理
 // -------------------------------------------------------------------
-// async function getDefaultImageDir(){
-//   const imageDir = await window.electronAPI.getAttachmentFolder()
-//   console.log("默认图片路径：", imageDir);
-//   if(!imageDir){
-//     return getDefaultDir;
-//   }
-//   return imageDir;
-// }
 
 function getDefaultDir() {
   const customDir = store.get("defaultDir");
@@ -272,6 +320,8 @@ ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
     const relativePath = path.resolve(fileDir, src);
     if (fs.existsSync(relativePath)) {
       finalPath = relativePath;
+      console.log("resolve-image-path finalPath",finalPath);
+      
     }
   }
 
@@ -366,6 +416,9 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
   try {
     // === Step 1: 转换图片为 Base64 ===
+    // let pHtml = await sanitizeForWechat(rawHtml);
+    // console.log("pHtml",pHtml);
+    
     let htmlWithBase64Images = rawHtml;
     // 注意：我们现在的 img 标签 src 属性可能被 DOMPurify 绕过后变成了 data-safe-src
     // 但在你最新的 useMarkdownRenderer.js 中，它被换回来了。我们假设它是 src
@@ -551,6 +604,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
     // 将HTML内容复制到剪贴板
     // clipboard.writeHTML(rawHtml);
+    
     const inlinedHtml = juice(
      htmlWithBase64Images,
       {
@@ -615,3 +669,35 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     return "";
   }
 });
+
+// 从编辑器拿到的 HTML 字符串
+// function sanitizeForWechat(html) {
+//   // 1. 用 DOMParser 解析成 DOM
+//   const parser = new DOMParser();
+//   const doc = parser.parseFromString(html, 'text/html');
+
+//   // 2. 删除 ProseMirror 特殊类的 <br>
+//   doc.querySelectorAll('br.ProseMirror-trailingBreak').forEach(n => n.remove());
+
+//   // 3. 删除所有带 leaf="" 的 span（或其它编辑器专用 wrapper）
+//   doc.querySelectorAll('span[leaf]').forEach(n => {
+//     // 用子节点替换该 span，避免丢内容
+//     const parent = n.parentNode;
+//     while (n.firstChild) parent.insertBefore(n.firstChild, n);
+//     parent.removeChild(n);
+//   });
+
+//   // 4. 去掉紧跟在某些闭合标签后面的 &nbsp;（比如 </strong>, </b>, </em> 等）
+//   //    这里把所有 &nbsp; 转成普通空格，但对位于行首多余的空格会被去除
+//   let out = doc.body.innerHTML;
+//   // 如果你只想去除在标签后紧跟的 &nbsp;：
+//   out = out.replace(/(<\/(?:strong|b|em|span)>)(\s|&nbsp;)+/gi, '$1');
+//   // 再把其它孤立的 &nbsp; 统一为普通空格（可选）
+//   out = out.replace(/&nbsp;/g, ' ');
+
+//   // 5. 合并多个空格为一个（可选）
+//   out = out.replace(/ {2,}/g, ' ');
+
+//   return out;
+// }
+

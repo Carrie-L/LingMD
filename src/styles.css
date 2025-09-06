@@ -133,34 +133,44 @@ body, html, .app {
   - 添加阴影 (box-shadow)
   - 调整内边距 (padding)
 */
-.editor,
-.preview{
-overflow: auto;
-  
-  /* ✅ 卡片样式核心 */
-  background: #ffffff; /* 卡片背景为纯白 */
-  border: none; /* 移除旧的边框 */
-  border-radius: 8px; /* 卡片圆角 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* 柔和的阴影，营造悬浮感 */
-  transition: box-shadow 0.3s ease; /* 添加过渡效果 */
-
-  /* 增加内边距，让内容离卡片边缘更远 */
-  padding: 30px; 
-  margin: 15px;
-  
-  min-width: 0;
-}
-.wechat-export {
-  /* overflow: auto;  <-- 这个属性保留，非常重要 */
-
-  /* ✅ 新增：使用 Flexbox 布局来约束内部内容 */
+.editor{
+  line-height: 2em;
+  overflow: auto;
   display: flex;
   flex-direction: column;
-  
-  /* ✅ 新增：确保 flex 子项不会超出容器 */
-  min-height: 0; /*  对于 flex 布局中的滚动容器，这是一个关键的修复 */
+  background: #ffffff; 
+  border: none; 
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+  transition: box-shadow 0.3s ease;
+  padding: 30px; 
+  margin: 15px;
+  min-width: 0;
+  font-family: 'LXGW WenKai';
+  font-size: 15px;
+  justify-self:center;
+  margin-left: 30px;
+}
 
-  /* 卡片样式核心 */
+.preview{
+  overflow: auto;
+  background: #ffffff; 
+  border: none; 
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+  transition: box-shadow 0.3s ease;
+  padding: 30px; 
+  margin: 15px;
+  min-width: 0;
+  max-width: 1000px;
+}
+
+.wechat-export {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  /* ✅ 新增：确保 flex 子项不会超出容器 */
+  min-height: 0; 
   background: #ffffff;
   border: none;
   border-radius: 8px;
@@ -169,15 +179,8 @@ overflow: auto;
   padding: 18px; 
   margin: 15px;
   min-width: 0;
-  
 }
 
-/* (可选) 鼠标悬浮时，卡片阴影加深，提供交互感 */
-.editor:hover,
-.preview:hover,
-.wechat-export:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
 
 .editor > textarea {
   display: block;
@@ -192,7 +195,32 @@ overflow: auto;
   font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
   font-size: 18px;
   line-height: 2;
+  margin: 15px auto;
 }
+
+
+
+
+/* 预览区内部主体 */
+.preview .markdown-body {
+  display: block !important;
+  width: 100%;
+  max-width: 800px;
+  margin: 15px auto;
+  font-family: 'LXGW WenKai';
+}
+
+
+
+
+/* (可选) 鼠标悬浮时，卡片阴影加深，提供交互感 */
+.editor:hover,
+.preview:hover,
+.wechat-export:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+
 
 /* ====== 编辑区 图片 =========== */
 .toolbar-button {
@@ -237,14 +265,6 @@ overflow: auto;
 }
 
 
-.preview .markdown-body {
-  display: block !important;
-  width: 100%;
-  max-width: 650px;
-  margin: 0 auto;
-  font-family: 'LXGW WenKai';
-  
-}
 
 .wechat-export > div {
   width: 100%; 
@@ -351,7 +371,7 @@ overflow: auto;
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
-  line-height: 2;
+  line-height: 1.8;
   margin: 2em 0 0 0;
   font-weight: 700;
 }
@@ -381,11 +401,24 @@ overflow: auto;
 /* 引用 */
 .markdown-body blockquote {
   margin: 2em 0;
-  padding: .1em 1em;
+  padding: 1px 1em;
   background: var(--md-quote-bg);
   border-left: 4px solid var(--md-quote-bar);
   color: var(--md-fg);
 }
+
+/* todolist */
+.markdown-body li:has(input[type="checkbox"]) {
+  list-style: none;
+  vertical-align: middle; /* 垂直居中对齐 */
+}
+  
+.markdown-body li input[type="checkbox"] {
+  transform: scale(1.2); /* 只放大复选框，不影响文字 */
+  transform-origin: center;   /* 从中间放大，不会偏移 */
+  
+}
+
 
 /* 分割线 */
 .markdown-body hr {
@@ -399,9 +432,10 @@ overflow: auto;
 .markdown-body table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1em 0;
+  margin: 2em 0;
   border: 1px solid var(--md-border);
   font-size: 0.95em;
+  
 }
 .markdown-body th, .markdown-body td {
   border: 1px solid var(--md-border);
@@ -413,6 +447,15 @@ overflow: auto;
 }
 .markdown-body tbody tr:nth-child(even) {
   background: var(--md-table-stripe);
+}
+
+.markdown-body th[align="center"],
+.markdown-body td[align="center"] {
+  text-align: center;
+}
+.markdown-body th[align="right"],
+.markdown-body td[align="right"] {
+  text-align: right;
 }
 
 /* 行内代码 */

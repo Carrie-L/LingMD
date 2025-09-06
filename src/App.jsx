@@ -6,8 +6,10 @@ import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
 // import 'highlight.js/styles/tokyo-night-dark.css'; 
 import './styles.css';
-
-
+import 'katex/dist/katex.min.css';
+import MarkdownIt from "markdown-it";
+import mdTaskLists from "markdown-it-task-lists";
+import mdKatex from "markdown-it-katex";
 
 
 
@@ -219,7 +221,7 @@ const generateCompleteCSS = (variables, theme) => {
 .markdown-content table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1em 0;
+  margin: 2em 0;
 }
 
 .markdown-content th,
@@ -227,6 +229,15 @@ const generateCompleteCSS = (variables, theme) => {
   border: 1px solid ${variables['--md-border'] || '#d0d7de'};
   padding: 8px 12px;
   text-align: left;
+}
+
+.markdown-content th[align="center"],
+.markdown-content td[align="center"] {
+  text-align: center;
+}
+.markdown-content th[align="right"],
+.markdown-content td[align="right"] {
+  text-align: right;
 }
 
 .markdown-content th {
@@ -437,6 +448,8 @@ const getThemeSpecificStyles = (theme, variables) => {
   return themeStyles[theme] || '';
 };
 
+
+
 function App() {
   // ✅ 2. 创建 state 来管理当前主题的 key
   // 主题状态（Markdown 主题）
@@ -495,9 +508,11 @@ function App() {
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
   const mode = query.get("mode") || "edit"; // edit | preview
+  const [showPreview, setShowPreview] = useState(true); // 控制是否显示预览
   const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
 
   const [content, setContent] = useState("");
+
   const editorRef = useRef(null);
   const [editorUploading, setEditorUploading] = useState(false);
   const [filePath, setFilePath] = useState(null);
@@ -570,24 +585,24 @@ function App() {
 
   // 自动保存
   useEffect(() => {
-  // 仅在 appReady 后且有 filePath 才允许自动保存
-  // if (!appReady) return;
-  if (!filePath) return;
+    // 仅在 appReady 后且有 filePath 才允许自动保存
+    // if (!appReady) return;
+    if (!filePath) return;
 
-  setStatus('未保存');
+    setStatus('未保存');
 
-  const timer = setTimeout(async () => {
-    try {
-      await window.electronAPI.saveFile(content, filePath);
-      setStatus('已自动保存');
-    } catch (err) {
-      console.error('auto save failed', err);
-      setStatus('自动保存失败');
-    }
-  }, 3000); // 停止输入 3s 后自动保存
+    const timer = setTimeout(async () => {
+      try {
+        await window.electronAPI.saveFile(content, filePath);
+        setStatus('已自动保存');
+      } catch (err) {
+        console.error('auto save failed', err);
+        setStatus('自动保存失败');
+      }
+    }, 3000); // 停止输入 3s 后自动保存
 
-  return () => clearTimeout(timer);
-}, [content, filePath]);
+    return () => clearTimeout(timer);
+  }, [content, filePath]);
 
   // 手动保存
   const handleSave = async () => {
@@ -621,7 +636,7 @@ function App() {
       window.electronAPI.setLastFile(result.path);
       setStatus("已打开");
       showToast("📂 文件已打开");
-    }else{
+    } else {
       showToast("❌ 📂文件未打开");
     }
   };
@@ -800,6 +815,16 @@ function App() {
     }
   };
 
+  useEffect(() => {
+  if (window && window.mermaid) {
+    try {
+      window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+    } catch(e) {}
+  } else {
+    // 如果 mermaid 模块是用 import 引入的（上面 useMarkdownRenderer 已 import），
+    // 那里已有初始化的尝试，通常够用了。
+  }
+}, [sanitizedHtml]);
 
 
   // 默认编辑模式
@@ -811,6 +836,15 @@ function App() {
         <label onClick={handleOpen} className="toolbar-button" >📂 打开</label>
         <label onClick={handleSave} className="toolbar-button">🍁 保存</label>
         <label onClick={handlePreview} className="toolbar-button">🐳 预览</label>
+
+
+        <label
+          className={showPreview ? "active" : ""}
+          onClick={() => setShowPreview(!showPreview)}
+        >
+          🐳 预览
+        </label>
+
 
         <label className="toolbar-button">
           🌼 插入图片
@@ -858,12 +892,25 @@ function App() {
         />
 
         {/* 预览区 */}
-        <div className="preview">
+        {/* <div className="preview">
           <div
             className="markdown-body"
             dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
           />
-        </div>
+        </div> */}
+
+        {showPreview && (
+          <div className="preview">
+            <div>
+              <div
+                className="markdown-body"
+                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 公众号区 */}
         {showWechat && (
           <div className="wechat-export">
             <div>

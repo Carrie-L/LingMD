@@ -2,7 +2,8 @@
 /* ✅ 新增：为 CSS 变量提供一套默认值（对应亮色主题） */
 .app {
   --md-bg: #ffffff;
-  --md-fg: #000000; /* 默认文字颜色为黑色 */
+  --md-fg: #000000;
+  /* 默认文字颜色为黑色 */
   --md-muted: #666666;
   --md-accent: #e7b0d0;
   --md-border: #e5e7eb;
@@ -18,25 +19,32 @@
 }
 
 /* 默认亮色 UI */
-body, html, .app {
+body,
+html,
+.app {
   margin: 0;
   padding: 0;
   height: 100%;
   background: var(--md-bg);
   color: var(--md-fg);
-  font-family: 'LXGW WenKai',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,  sans-serif; /* 添加了通用回退 */
-  box-sizing: border-box; /* 统一盒模型 */
+  font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* 添加了通用回退 */
+  box-sizing: border-box;
+  /* 统一盒模型 */
 }
 
 /* 确保所有元素继承盒模型 */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: inherit;
 }
 
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* 使用 vh 单位确保全屏 */
+  height: 100vh;
+  /* 使用 vh 单位确保全屏 */
 }
 
 
@@ -99,15 +107,18 @@ body, html, .app {
 
 .main {
   flex: 1;
-  margin-top: 40px;
-  margin-bottom: 24px;
-  padding: 10px;
-
+  margin-top: 70px;
+  margin-bottom: 30px;
+  padding: 0;
+  height: calc(100vh - 100px);
+  /* 视口高度减去 toolbar/status-bar 等 */
+  box-sizing: border-box;
   display: grid;
-  gap: 10px; /* 卡片之间的间距 */
+  gap: 10px;
+  /* 卡片之间的间距 */
 
   /* ✅ 新增：为卡片提供一个柔和的背景底座 */
-  background: #fbfbfb; 
+  background: #f5f5f5;
 
   /* ✅ 新增：限制 Grid 行的高度，防止子元素无限拉伸 */
   /* 1fr 表示占据所有剩余空间，minmax(0, 1fr) 是一种防止溢出的健壮写法 */
@@ -133,36 +144,76 @@ body, html, .app {
   - 添加阴影 (box-shadow)
   - 调整内边距 (padding)
 */
-.editor{
-  line-height: 2em;
-  overflow: auto;
+.editor {
+  line-height: 1.8em;
+  overflow: hidden;
   display: flex;
+  height: 100%;
   flex-direction: column;
-  background: #ffffff; 
-  border: none; 
+  background: #ffffff;
+  border: none;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
-  padding: 30px; 
-  margin: 15px;
+  padding: 20px;
+  margin: 10px;
   min-width: 0;
-  font-family: 'LXGW WenKai';
+  font-family: 'LXGW WenKai', monospace;
   font-size: 15px;
-  justify-self:center;
-  margin-left: 30px;
 }
 
-.preview{
-  overflow: auto;
-  background: #ffffff; 
-  border: none; 
+/* textarea 不要限制 max-width，也不要自动水平居中（否则在大容器内会显得窄） */
+.editor > textarea,
+.editor .editor-textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  min-height: 100%;
+  height: auto;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: 'LXGW WenKai', Consolas, Monaco, monospace;
+  font-size: 16px;
+  line-height: 1.8;
+  padding: 8px;
+}
+
+
+.preview {
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-  transition: box-shadow 0.3s ease;
-  padding: 30px; 
-  margin: 15px;
-  min-width: 0;
-  max-width: 1000px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 0;       /* 我们把 padding 放到 markdown-body 内，避免影响高度计算 */
+  margin: 10px;
+  min-width: 0;     /* 允许在 grid 中缩小 */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* 外层不滚动，内层滚动 */
+}
+
+/* 内部 wrapper，负责撑满父高度 */
+.preview .preview-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 预览区内部主体 */
+.preview .markdown-body {
+  flex: 1 1 auto;       /* 占满剩余高度 */
+  overflow: auto;       /* 重要：真正的滚动在这里发生 */
+  box-sizing: border-box;
+  padding: 20px;        /* 适中的内边距 */
+  width: 100%;
+  max-width: none;      /* 允许宽度铺满列（不再强制 800px 居中） */
+  margin: 0;            /* 取消居中 margin */
+  font-size: 15px;
+  line-height: 1.8;
 }
 
 .wechat-export {
@@ -170,45 +221,58 @@ body, html, .app {
   display: flex;
   flex-direction: column;
   /* ✅ 新增：确保 flex 子项不会超出容器 */
-  min-height: 0; 
+  min-height: 0;
   background: #ffffff;
   border: none;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
-  padding: 18px; 
-  margin: 15px;
+  padding: 15px;
+  margin: 10px;
   min-width: 0;
-}
-
-
-.editor > textarea {
-  display: block;
-  width: 100%;       
-  max-width: 680px; 
-  margin: 0 auto;
   height: 100%;
-  border: none;
-  outline: none;
-  resize: none;
-  background-color: transparent;
-  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
-  font-size: 18px;
-  line-height: 2;
-  margin: 15px auto;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-weight: 350;
+  font-size: 15px;
+  letter-spacing: 1.2px;
+}
+
+.wechat-export .preview-inner { 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden; 
+}
+.wechat-export .markdown-body { 
+  flex: 1 1 auto; 
+  overflow: auto; 
+  padding: 15px; 
+  box-sizing: border-box; 
+  width: 100%; 
+  margin: 0; 
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.wechat-export ruby {
+  ruby-position: over;
+  /* 确保注音在上面（有些浏览器支持 under） */
+}
+
+.wechat-export rt {
+  font-size: 11px !important;
+  /* 和正文一样大 */
+  letter-spacing: 3px;
+  margin-top: 8px;
+  font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
 }
 
 
 
 
-/* 预览区内部主体 */
-.preview .markdown-body {
-  display: block !important;
-  width: 100%;
-  max-width: 800px;
-  margin: 15px auto;
-  font-family: 'LXGW WenKai';
-}
+
+
 
 
 
@@ -266,8 +330,8 @@ body, html, .app {
 
 
 
-.wechat-export > div {
-  width: 100%; 
+.wechat-export>div {
+  width: 100%;
   overflow-y: auto;
   background: none;
   padding: 0;
@@ -276,7 +340,8 @@ body, html, .app {
 }
 
 .toolbar button.active {
-  background: #48eabf;  /* Windows 风格蓝色 */
+  background: #48eabf;
+  /* Windows 风格蓝色 */
   color: #fff;
   border: 1px solid #9ceed8;
 }
@@ -311,7 +376,7 @@ body, html, .app {
 }
 
 .preview-mode .preview .markdown-body {
-    max-width: 800px;
+  max-width: 800px;
 }
 
 .outline {
@@ -347,9 +412,23 @@ body, html, .app {
 .app .markdown-body {
   background: transparent;
   line-height: 2em;
-  font-size: 15px;
+  font-size: 16px;
   word-wrap: break-word;
 }
+
+.markdown-body ruby {
+  ruby-position: over;
+  /* 确保注音在上面（有些浏览器支持 under） */
+}
+
+.markdown-body rt {
+  font-size: 12px;
+  /* 和正文一样大 */
+  font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
+  letter-spacing: 0.08em;
+  margin-top: 8px;
+}
+
 /* font-family: 'LXGW WenKai';  在上面加这句会让Preview和公众号区域都显示LXGW字体 */
 
 .app .preview,
@@ -362,9 +441,7 @@ body, html, .app {
 .app .wechat-export {
   background: var(--md-bg) !important;
   color: var(--md-fg);
-  font-family: PingFang SC,system-ui,-apple-system,BlinkMacSystemFont,Helvetica Neue,Hiragino Sans GB,Microsoft YaHei UI,Microsoft YaHei,Arial,sans-serif !important;
-  font-weight: 350;
-  font-size: 15px;
+
 }
 
 /* 标题 */
@@ -373,30 +450,89 @@ body, html, .app {
 .markdown-body h3 {
   line-height: 1.8;
   margin: 2em 0 0 0;
-  font-weight: 700;
+  font-weight: 600;
 }
+
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
   line-height: 1.8;
   margin: 2em 0 0 0;
-  font-weight: 600;
+  font-weight: 500;
 }
-.markdown-body h1 { font-size: 28px; }
-.markdown-body h2 { font-size: 24px; }
-.markdown-body h3 { font-size: 20px; }
-.markdown-body h4 { font-size: 18px; }
-.markdown-body h5 { font-size: 16px; }
-.markdown-body h6 { font-size: 16px; color: var(--md-muted); }
+
+.markdown-body h1 {
+  font-size: 28px;
+}
+
+.markdown-body h2 {
+  font-size: 24px;
+}
+
+.markdown-body h3 {
+  font-size: 20px;
+}
+
+.markdown-body h4 {
+  font-size: 18px;
+}
+
+.markdown-body h5 {
+  font-size: 16px;
+}
+
+.markdown-body h6 {
+  font-size: 16px;
+  color: var(--md-muted);
+}
 
 /* 段落与列表 */
-.markdown-body p { margin: 2em 0;  overflow-wrap: break-word !important;}
-.markdown-body ul, .markdown-body ol { padding-left: 1.4em; margin: .8em 0; }
-.markdown-body li { margin: 1em .3em; }
+.markdown-body p {
+  margin: 2em 0;
+  overflow-wrap: break-word !important;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.4em;
+  margin: .8em 0;
+}
+
+.markdown-body li {
+  margin: 1em .3em;
+}
+
+/* todolist */
+.markdown-body li:has(input[type="checkbox"]) {
+  list-style: none;
+  vertical-align: middle;
+  /* 垂直居中对齐 */
+}
+
+.markdown-body li input[type="checkbox"] {
+  transform: scale(1.2);
+  /* 只放大复选框，不影响文字 */
+  transform-origin: center;
+  /* 从中间放大，不会偏移 */
+}
+
+/* .markdown-body li input[type="checkbox"] ~ * {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.5em;
+} */
+/* 仅影响紧跟在 checkbox 之后的常见包裹结构 */
+
 
 /* 链接 */
-.markdown-body a { color: var(--md-accent); text-decoration: none; }
-.markdown-body a:hover { text-decoration: underline; }
+.markdown-body a {
+  color: var(--md-accent);
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
 
 /* 引用 */
 .markdown-body blockquote {
@@ -406,19 +542,6 @@ body, html, .app {
   border-left: 4px solid var(--md-quote-bar);
   color: var(--md-fg);
 }
-
-/* todolist */
-.markdown-body li:has(input[type="checkbox"]) {
-  list-style: none;
-  vertical-align: middle; /* 垂直居中对齐 */
-}
-  
-.markdown-body li input[type="checkbox"] {
-  transform: scale(1.2); /* 只放大复选框，不影响文字 */
-  transform-origin: center;   /* 从中间放大，不会偏移 */
-  
-}
-
 
 /* 分割线 */
 .markdown-body hr {
@@ -435,16 +558,20 @@ body, html, .app {
   margin: 2em 0;
   border: 1px solid var(--md-border);
   font-size: 0.95em;
-  
+
 }
-.markdown-body th, .markdown-body td {
+
+.markdown-body th,
+.markdown-body td {
   border: 1px solid var(--md-border);
   padding: .6em .8em;
   text-align: left;
 }
+
 .markdown-body thead th {
   background: var(--md-quote-bg);
 }
+
 .markdown-body tbody tr:nth-child(even) {
   background: var(--md-table-stripe);
 }
@@ -453,28 +580,30 @@ body, html, .app {
 .markdown-body td[align="center"] {
   text-align: center;
 }
+
 .markdown-body th[align="right"],
 .markdown-body td[align="right"] {
   text-align: right;
 }
 
 /* 行内代码 */
-.markdown-body :not(pre) > code {
+.markdown-body :not(pre)>code {
   background: var(--md-code-bg);
   color: var(--md-code-fg);
   border: 1px solid var(--md-border);
   padding: .02em .4em;
   border-radius: 4px;
-  font-family: 'LXGW WenKai',Menlo, Consolas, "Courier New", monospace;
+  font-family: 'LXGW WenKai', Menlo, Consolas, "Courier New", monospace;
   font-size: 13px;
   margin: 0 0.1em;
-  font-weight:500;
+  font-weight: 500;
 }
 
 /* 代码块（不覆盖 hljs 的配色，主要做容器与滚动） */
 .markdown-body pre {
   margin: 1em 0;
-  padding: 0; /* 交给 hljs 主题控制内边距也行，你也可以改成 1em */
+  padding: 0;
+  /* 交给 hljs 主题控制内边距也行，你也可以改成 1em */
   overflow: auto;
   border-radius: 8px;
   background: var(--md-code-bg);
@@ -489,8 +618,20 @@ body, html, .app {
   font-size: 90%;
 }
 
+/* mermaid */
+.markdown-body .mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* 图片 */
-.markdown-body img {
+.markdown-body img,
+.markdown-body svg {
   max-width: 100%;
   height: auto;
   display: block;
@@ -518,7 +659,7 @@ body, html, .app {
 }
 
 /* Dark */
-.app[data-mdtheme="dark"]  {
+.app[data-mdtheme="dark"] {
   --md-bg: #fdfaff;
   --md-fg: #2e2338;
   --md-muted: #6a5975;
@@ -532,7 +673,7 @@ body, html, .app {
 }
 
 /* Sepia（阅读风） */
-.app[data-mdtheme="sepia"]  {
+.app[data-mdtheme="sepia"] {
   --md-bg: #f6efe5;
   --md-fg: #473c2f;
   --md-muted: #7c6f61;
@@ -546,7 +687,7 @@ body, html, .app {
 }
 
 /* Paper（纸张质感，略灰） */
-.app[data-mdtheme="paper"]  {
+.app[data-mdtheme="paper"] {
   --md-bg: #f8fafc;
   --md-fg: #0f172a;
   --md-muted: #64748b;
@@ -560,7 +701,7 @@ body, html, .app {
 }
 
 /* Midnight（深蓝夜色） */
-.app[data-mdtheme="midnight"]  {
+.app[data-mdtheme="midnight"] {
   --md-bg: #0b1220;
   --md-fg: #dbeafe;
   --md-muted: #94a3b8;
@@ -787,7 +928,7 @@ body, html, .app {
 }
 
 .app[data-mdtheme="mintBreeze"] h1,
-.app[data-mdtheme="mintBreeze"] h2{
+.app[data-mdtheme="mintBreeze"] h2 {
   color: var(--md-accent);
   text-decoration: underline;
   text-decoration-color: var(--md-accent);
@@ -795,6 +936,7 @@ body, html, .app {
   text-underline-offset: 18px;
   text-align: left;
 }
+
 /* .app[data-mdtheme="mintBreeze"] h2{
   color: var(--md-accent);
   font-weight: 600;
@@ -970,4 +1112,3 @@ body, html, .app {
   background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
   border-radius: 2px;
 }
-

@@ -5,6 +5,7 @@ const UNDO_HISTORY_LIMIT = 100; // 设置历史记录上限为 100 步
 
 function EditorComponent({ value, onChange, onUploadingChange }, ref) {
   const textareaRef = useRef(null);
+  const scrollContainerRef = useRef(null); // 真实的滚动容器
   const wrapperRef = useRef(null); // 用于请求 DOM 全屏
   const [isUploading, setIsUploading] = useState(false);
 
@@ -480,24 +481,64 @@ const setValueAndSelect = (newVal, selStart, selEnd) => {
     setValueAndSelect(newVal, newStart, newEnd);
   };
 
+  // useImperativeHandle(ref, () => textareaRef.current);
+   // 如果父组件传入 ref，我们把它指向 scrollContainerRef（这样外部拿到的就是可滚动元素）
+useImperativeHandle(ref, () => scrollContainerRef.current, []);
 
-  // 渲染
-  return (
-    <textarea
-      ref={textareaRef}
-      value={value}
-      onChange={handleLocalChange}
-      onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-      placeholder="在这里输入 Markdown，或者打开文件...
+//   // 渲染
+//   return (
+//     <textarea
+//       ref={textareaRef}
+//       value={value}
+//       onChange={handleLocalChange}
+//       onKeyDown={handleKeyDown}
+//       onPaste={handlePaste}
+//       onDrop={handleDrop}
+//       onDragOver={handleDragOver}
+//       placeholder="在这里输入 Markdown，或者打开文件...
 
-第一次启动时，请设置 <默认文档保存目录> 和 <默认图片保存目录> ..."
-      className="editor"
-      style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}
-    />
+// 第一次启动时，请设置 <默认文档保存目录> 和 <默认图片保存目录> ..."
+//       className="editor"
+//       style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}
+//     />
+//   );
+
+return (
+    <div className="editor" style={{ height: '100%', display: 'flex', flexDirection: 'column' }} ref={wrapperRef}>
+      <div
+        className="editor-scroll"
+        ref={ref} /* ← 使用forwardRef传递的ref，用于滚动同步 */
+        data-scrollable
+        style={{ overflow: 'auto', height: '100%', boxSizing: 'border-box', padding: 0 }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={handleLocalChange}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          placeholder={`在这里输入 Markdown，或者打开文件...
+
+第一次启动时，请设置 <默认文档保存目录> 和 <默认图片保存目录> ...`}
+          className="editor-textarea"
+          style={{
+            width: '100%',
+            minHeight: '100%',
+            boxSizing: 'border-box',
+            border: 'none',
+            outline: 'none',
+            resize: 'none',
+            fontFamily: 'inherit',
+            background: 'transparent',
+            padding: '20px'
+          }}
+        />
+      </div>
+    </div>
   );
+
 }
 
 export default forwardRef(EditorComponent);

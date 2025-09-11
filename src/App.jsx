@@ -1,21 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
+import MarkdownIt from 'markdown-it';
+import mdKatex from 'markdown-it-katex';
+import DOMPurify from 'dompurify';
+import mermaid from 'mermaid';
+
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
-// import 'highlight.js/styles/tokyo-night-dark.css'; 
 import './styles.css';
 import 'katex/dist/katex.min.css';
-import MarkdownIt from "markdown-it";
-import mdTaskLists from "markdown-it-task-lists";
-import mdKatex from "markdown-it-katex";
-
+import { useScrollSync } from './useScrollSync';  // 同步滚动
 
 
 // ======== 主题 ==============
-
-
 // Markdown 主题清单
 const MD_THEMES = {
   light: { name: "Light" },
@@ -42,7 +41,6 @@ const MD_THEMES = {
   forestWhisper: { name: "Forest Whisper" },
   roseGold: { name: "Rose Gold Elegance" },
 };
-
 
 const DEFAULT_MD_THEME = "light";
 
@@ -85,9 +83,6 @@ const THEMES = {
   },
 };
 
-
-
-
 // ✅ 1. 定义一个默认的主题键，确保它一定存在
 const DEFAULT_THEME_KEY = 'tokyo-night-dark';
 
@@ -121,12 +116,10 @@ const extractPreviewStyles = (mdTheme) => {
     } catch (e) {
       // 跨域样式表会抛出异常，忽略
       console.log("cssVariables异常", e);
-
     }
   }
 
   console.log("cssVariables", mdTheme, cssVariables);
-
 
   // 生成完整的CSS字符串，包含所有必要的样式
   return generateCompleteCSS(cssVariables, mdTheme);
@@ -137,7 +130,7 @@ const generateCompleteCSS = (variables, theme) => {
   // 基础样式
   const baseStyles = `
 /* Markdown Preview Styles - Theme: ${theme} */
-.markdown-content {
+.markdown-body {
   color: ${variables['--md-fg'] || '#212121'};
   background: ${variables['--md-bg'] || '#fff'};
   max-width: 800px;
@@ -147,24 +140,27 @@ const generateCompleteCSS = (variables, theme) => {
   font-size: 15px;
   font-weight: 350;
   word-wrap: break-word !important;
-  font-family: PingFang SC,system-ui,-apple-system,BlinkMacSystemFont,Helvetica Neue,Hiragino Sans GB,Microsoft YaHei UI,Microsoft YaHei,Arial,sans-serif !important;
-}
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  
+  letter-spacing: 1.2px;
+  }
 
-.markdown-content p {
+.markdown-body p {
   margin: 1.5em 0;
 }
 
 /* 标题样式 */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3{
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3{
   line-height: 1.7;
   margin: 2em 0 0 0;
   font-weight: 700;
 }
-.markdown-content h4,
-.markdown-content h5,
-.markdown-content h6 {
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
   line-height: 1.5;
   margin: 2em 0 0 0;
   font-weight: 600;
@@ -177,17 +173,25 @@ const generateCompleteCSS = (variables, theme) => {
 .markdown-body h5 { font-size: 16px; }
 .markdown-body h6 { font-size: 16px;  }
 
-
+.markdown-body ruby {
+  ruby-position: over; 
+}
+.markdown-body rt {
+  font-size: 11px !important; 
+  letter-spacing: 2px;
+  margin-top: 8px;
+  font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
+}
 
 /* 代码块样式 */
-.markdown-content pre {
+.markdown-body pre {
   border-radius: 6px;
   padding: 0;
   overflow: auto;
   margin: 1em 0;
 }
 
-.markdown-content :not(pre) > code {
+.markdown-body :not(pre) > code {
     background-color: ${variables['--md-code-bg'] || '#f7f9faff'};
     color: ${variables['--md-code-fg'] || '#e7b0d0'};
     border: 1px solid ${variables['--md-border'] || '#e5e7eb'};
@@ -198,7 +202,7 @@ const generateCompleteCSS = (variables, theme) => {
   }
 
 /* 引用样式 */
-.markdown-content blockquote {
+.markdown-body blockquote {
   background-color: ${variables['--md-quote-bg'] || '#f6f8fa'};
   border-left: 4px solid ${variables['--md-quote-bar'] || '#dfe2e5'};
   margin: 1em 0;
@@ -207,73 +211,93 @@ const generateCompleteCSS = (variables, theme) => {
 }
 
 /* 列表样式 */
-.markdown-content ul,
-.markdown-content ol {
+.markdown-body ul,
+.markdown-body ol {
   padding-left: 1.4em;
   margin: .8em 0;
 }
 
-.markdown-content li {
+.markdown-body li {
   margin: .8em .3em; 
 }
 
+/* todolist 不添加支持了，因为复制到公众号后会导致checkbox和任务换行，且无法修改*/
+.markdown-body li input[type="checkbox"] {
+  display: none !important;        /* 隐藏复选框 */
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+  
 /* 表格样式 */
-.markdown-content table {
+.markdown-body table {
   border-collapse: collapse;
   width: 100%;
   margin: 2em 0;
 }
 
-.markdown-content th,
-.markdown-content td {
+.markdown-body th,
+.markdown-body td {
   border: 1px solid ${variables['--md-border'] || '#d0d7de'};
   padding: 8px 12px;
   text-align: left;
 }
 
-.markdown-content th[align="center"],
-.markdown-content td[align="center"] {
+.markdown-body th[align="center"],
+.markdown-body td[align="center"] {
   text-align: center;
 }
-.markdown-content th[align="right"],
-.markdown-content td[align="right"] {
+.markdown-body th[align="right"],
+.markdown-body td[align="right"] {
   text-align: right;
 }
 
-.markdown-content th {
+.markdown-body th {
   background-color: ${variables['--md-quote-bg'] || '#f6f8fa'};
   font-weight: 600;
 }
 
-.markdown-content tr:nth-child(even) {
+.markdown-body tr:nth-child(even) {
   background-color: ${variables['--md-table-stripe'] || '#f6f8fa'};
 }
 
 /* 链接样式 */
-.markdown-content a {
+.markdown-body a {
   color: ${variables['--md-accent'] || '#48eabf'};
   text-decoration: none;
 }
 
-.markdown-content a:hover {
+.markdown-body a:hover {
   text-decoration: underline;
 }
 
-.markdown-content hr {
+.markdown-body hr {
   border: none;
   border-top: 1px solid ${variables['--md-border'] || '#d0d7de'};
   margin: 2em 0;
 }
 
 /* 图片样式 */
-.markdown-content img {
+.markdown-body img {
   max-width: 100%;
   height: auto;
   border-radius: 4px;
 }
+
+/* Mermaid 样式 */
+.markdown-body .mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
 `;
 
-  // 获取当前主题特定的标题样式
+  // 获取当前主题特定的样式
   const themeSpecificStyles = getThemeSpecificStyles(theme, variables);
 
   return baseStyles + themeSpecificStyles;
@@ -284,9 +308,9 @@ const getThemeSpecificStyles = (theme, variables) => {
   const themeStyles = {
     magazine: `
 /* Magazine Style Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   text-align: center;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -296,9 +320,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     neonDreams: `
 /* Neon Dreams Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   background: linear-gradient(135deg, ${variables['--md-accent'] || '#ec4899'}, #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -310,9 +334,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     sakuraBloom: `
 /* Sakura Bloom Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   background: ${variables['--md-accent'] || '#f472b6'};
   color: white;
   border-radius: 12px;
@@ -324,9 +348,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     executive: `
 /* Executive Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   border-left: 6px solid ${variables['--md-accent'] || '#3b82f6'};
   padding-left: 20px;
   font-weight: 700;
@@ -336,9 +360,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     mintBreeze: `
 /* Mint Breeze Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   color: ${variables['--md-accent'] || '#10b981'};
   font-weight: 600;
   text-align: center;
@@ -346,9 +370,9 @@ const getThemeSpecificStyles = (theme, variables) => {
   padding: 20px 0 10px 0;
 }
 
-.markdown-content h1::before,
-.markdown-content h2::before,
-.markdown-content h3::before {
+.markdown-body h1::before,
+.markdown-body h2::before,
+.markdown-body h3::before {
   content: '';
   position: absolute;
   top: 0;
@@ -361,9 +385,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     digitalWave: `
 /* Digital Wave Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   background: linear-gradient(135deg, #0ea5e9, #3b82f6);
   color: white;
   padding: 12px 24px;
@@ -375,9 +399,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     sunsetGlow: `
 /* Sunset Glow Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   color: ${variables['--md-accent'] || '#f97316'};
   font-weight: 700;
   text-decoration: underline;
@@ -389,9 +413,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     lavenderMist: `
 /* Lavender Mist Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   border: 2px solid ${variables['--md-accent'] || '#8b5cf6'};
   border-radius: 16px;
   padding: 12px 20px;
@@ -403,9 +427,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     forestWhisper: `
 /* Forest Whisper Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   border-left: 8px solid ${variables['--md-accent'] || '#059669'};
   border-top: 2px solid ${variables['--md-accent'] || '#059669'};
   border-bottom: 2px solid ${variables['--md-accent'] || '#059669'};
@@ -417,9 +441,9 @@ const getThemeSpecificStyles = (theme, variables) => {
 
     roseGold: `
 /* Rose Gold Headers */
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -430,9 +454,9 @@ const getThemeSpecificStyles = (theme, variables) => {
   padding-bottom: 12px;
 }
 
-.markdown-content h1::after,
-.markdown-content h2::after,
-.markdown-content h3::after {
+.markdown-body h1::after,
+.markdown-body h2::after,
+.markdown-body h3::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -451,19 +475,30 @@ const getThemeSpecificStyles = (theme, variables) => {
 
 
 function App() {
-  // ✅ 2. 创建 state 来管理当前主题的 key
+  // 全局初始化 mermaid（只在应用启动时初始化一次）
+  useEffect(() => {
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'Arial, sans-serif'
+      });
+      console.log('Mermaid initialized in App component');
+    } catch (e) {
+      console.warn('mermaid initialize failed at app startup', e);
+    }
+  }, []); // 空依赖数组确保只运行一次
+
   // 主题状态（Markdown 主题）
   const [mdTheme, setMdTheme] = useState(
     localStorage.getItem("mdTheme") || DEFAULT_MD_THEME
   );
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认CODE主题
 
-  // ✅ 3. 使用 useEffect 来动态加载和卸载 CSS 主题
-  // ===================================================================
-  // ✅ 核心修复：使用 <link> 标签来动态加载 public 目录下的 CSS
-  // ===================================================================
+  // 动态加载和卸载 CSS 主题
   useEffect(() => {
-    // 1. 创建一个新的 <link> 元素
+    // 1. 创建一个新的 <link> 元素 
     const linkElement = document.createElement('link');
 
     // 2. 设置它的属性
@@ -503,40 +538,171 @@ function App() {
     }
   }, [mdTheme]);
 
-
-
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
   const mode = query.get("mode") || "edit"; // edit | preview
   const [showPreview, setShowPreview] = useState(true); // 控制是否显示预览
-  const [showWechat, setShowWechat] = useState(false); // ✅ 新增：控制是否显示公众号区域
+  const [showWechat, setShowWechat] = useState(false); // 控制是否显示公众号区域
 
   const [content, setContent] = useState("");
 
-  const editorRef = useRef(null);
+  // const editorRef = useRef(null);
   const [editorUploading, setEditorUploading] = useState(false);
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState("");
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
-
-  // ✅ 3. (核心修复) 添加防御性回退逻辑
-  // a. 首先，获取当前选中的主题对象
+  // 获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
-  // b. 如果由于某种原因（比如 state 更新延迟）找不到主题，就使用默认主题
-  // const safeTheme = currentTheme || THEMES[DEFAULT_THEME_KEY];
+
+  // const previewRef = useRef(null); // 这里定义 previewRef
+  // const wechatRef = useRef(null);
+  // 添加滚动同步功能
+  const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } = useScrollSync(content, true);
+  // 合并滚动同步的ref
+  const previewRef = scrollPreviewRef;
+  const wechatRef = scrollWechatRef;
+
+  // 把 editor 的源 markdown 按行扫描，把对应那一行的 - [ ] / - [x] 切换
+  function toggleNthTaskInMarkdown(nth, checked) {
+    // 把内容按行分割，逐行查找任务列表项，遇到第 nth 个时切换 [ ] <-> [x]
+    const lines = content.split(/\r?\n/);
+    const taskRe = /^(\s*[-*]\s\[(?: |x|X)\]\s)(.*)$/; // capture 前缀和剩余文本
+    let found = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(taskRe);
+      if (m) {
+        if (found === nth) {
+          const prefix = m[1];
+          const body = m[2];
+          const newPrefix = prefix.replace(/\[(?: |x|X)\]/, checked ? '[x]' : '[ ]');
+          lines[i] = newPrefix + body;
+          break;
+        }
+        found++;
+      }
+    }
+    const newContent = lines.join('\n');
+    // 这里假设你用的是 setContent 更新 editor
+    setContent(newContent);
+  }
 
   const { rawHtml, sanitizedHtml } = useMarkdownRenderer(
     content,
     filePath
   );
 
+  // 事件委托：preview 与 wechat 两个区域的 checkbox 点击同步回 editor
+  useEffect(() => {
+    const containers = [previewRef.current, wechatRef.current].filter(Boolean);
+    if (containers.length === 0) return;
 
+    const handleClick = (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (target.type !== 'checkbox') return;
 
-  const [attachmentFolder, setAttachmentFolder] = useState(null); // ✅ 新增 state
+      // 在各自容器内查找所有 visible 的 task checkboxes（按渲染顺序）
+      const parent = target.closest('.markdown-body') || target.parentElement;
+      if (!parent) return;
+      const checkboxes = Array.from(parent.querySelectorAll('input[type="checkbox"]'));
+      const idx = checkboxes.indexOf(target);
+      if (idx === -1) return;
 
-  // ✅ 新增：应用启动时，获取已保存的附件文件夹路径
+      // 调用组件内的切换函数（会更新 content）
+      toggleNthTaskInMarkdown(idx, target.checked);
+    };
+
+    containers.forEach((c) => c.addEventListener('click', handleClick));
+    return () => containers.forEach((c) => c.removeEventListener('click', handleClick));
+  }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
+
+  // 🔥 核心修复：Mermaid 渲染逻辑
+  useEffect(() => {
+    // 预览与公众号容器
+    const containers = [previewRef.current, wechatRef.current].filter(Boolean);
+    if (!containers.length) return;
+
+    let cancelled = false;
+
+    // helper: 对单个 root 执行 mermaid.init（带检查和重试）
+    const runMermaidOn = async (rootEl) => {
+      if (!rootEl) return;
+
+      // 查找所有未渲染的 mermaid 节点
+      const mermaidNodes = Array.from(rootEl.querySelectorAll('.mermaid'));
+      if (!mermaidNodes.length) {
+        console.log('No mermaid nodes found in container');
+        return;
+      }
+
+      console.log(`Found ${mermaidNodes.length} mermaid nodes to render`);
+
+      // 等一帧，确保 DOM 布局完成，容器有真实宽度
+      await new Promise((res) => requestAnimationFrame(res));
+      if (cancelled) return;
+
+      // 对每个 mermaid 容器：如果已经被渲染（含 svg），跳过；否则尝试渲染
+      for (const node of mermaidNodes) {
+        if (cancelled) break;
+
+        // 如果已渲染为 svg，跳过（避免二次渲染导致闪烁）
+        if (node.querySelector('svg')) {
+          console.log('Mermaid node already rendered, skipping');
+          continue;
+        }
+
+        try {
+          console.log('Attempting to render mermaid node:', node.textContent.substring(0, 50));
+
+          // 清理节点内容，确保只有纯文本
+          const diagramText = node.textContent.trim();
+          if (!diagramText) {
+            console.log('Empty mermaid diagram, skipping');
+            continue;
+          }
+
+          // 重新设置节点内容为纯文本
+          node.textContent = diagramText;
+
+          // 使用 mermaid.init 渲染
+          await mermaid.init(undefined, node);
+          console.log('Mermaid node rendered successfully');
+
+        } catch (err) {
+          console.warn('mermaid first render failed for a node, will retry once', err);
+
+          // 120ms 后再重试一次（常见问题是字体/样式尚未加载）
+          setTimeout(async () => {
+            try {
+              if (!node.querySelector('svg') && !cancelled) {
+                console.log('Retrying mermaid render...');
+                await mermaid.init(undefined, node);
+                console.log('Mermaid node rendered successfully on retry');
+              }
+            } catch (err2) {
+              console.error('mermaid retry failed for a node', err2);
+            }
+          }, 20);
+        }
+      }
+    };
+
+    // 在所有容器上触发渲染
+    containers.forEach((container) => {
+      console.log('Running mermaid on container:', container);
+      runMermaidOn(container);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sanitizedHtml]); // 只有 sanitizedHtml 变化时才触发
+
+  const [attachmentFolder, setAttachmentFolder] = useState(null);
+
+  // 应用启动时，获取已保存的附件文件夹路径
   useEffect(() => {
     (async () => {
       try {
@@ -556,7 +722,7 @@ function App() {
     })();
   }, []);
 
-  // ✅ 新增：处理设置附件文件夹的点击事件
+  // 处理设置附件文件夹的点击事件
   const handleSetAttachmentFolder = async () => {
     try {
       const res = await window.electronAPI.chooseAttachmentFolder();
@@ -576,17 +742,13 @@ function App() {
     }
   };
 
-
   const showToast = (message, duration = 3000) => {
     setToast(message);
     setTimeout(() => setToast(""), duration);
   };
 
-
   // 自动保存
   useEffect(() => {
-    // 仅在 appReady 后且有 filePath 才允许自动保存
-    // if (!appReady) return;
     if (!filePath) return;
 
     setStatus('未保存');
@@ -613,13 +775,13 @@ function App() {
     showToast("💾 文件已保存在: " + filePath);
   };
 
-
   // 启动时加载上次的文件
   useEffect(() => {
+    // const lastFile = window.electronAPI.onLoadLastFile();
     window.electronAPI.onLoadLastFile(async (fp) => {
       if (fp) {
         setFilePath(fp);
-        const res = await window.electronAPI.readFile(fp); // 👈 用 readFile
+        const res = await window.electronAPI.readFile(fp);
         if (res) {
           setContent(res.content);
           setStatus("已加载");
@@ -640,8 +802,6 @@ function App() {
       showToast("❌ 📂文件未打开");
     }
   };
-
-
 
   // 字数统计
   const wordCount = content ? content.replace(/\s+/g, "").length : 0;
@@ -668,7 +828,6 @@ function App() {
         setDefaultDir(folder);
       }
     })();
-    // window.electronAPI.getDefaultDir().then(setDefaultDir);
   }, []);
 
   const handleSetDefaultDir = async () => {
@@ -686,7 +845,6 @@ function App() {
     }
   };
 
-
   const handlePreview = () => {
     window.electronAPI.openPreview();
   };
@@ -695,7 +853,6 @@ function App() {
     return (
       <div className="app">
         <div className="main preview-mode">
-          {/* ✅ 同样给新窗口的预览传递 filePath */}
           <Preview value={content} filePath={filePath} />
           <Outline value={content} />
         </div>
@@ -703,9 +860,7 @@ function App() {
     );
   }
 
-
-
-  // ✅ 新增：处理公众号复制的函数
+  // 处理公众号复制的函数
   const handleCopyToWechat = async () => {
     if (!content.trim()) {
       alert("没有内容可复制");
@@ -719,7 +874,7 @@ function App() {
         return;
       }
 
-      // 1. ✅ 核心增强：读取当前主题下的所有CSS变量值
+      // 1. 核心增强：读取当前主题下的所有CSS变量值
       const computedStyles = getComputedStyle(appRef.current);
       const themeCssValues = {
         bg: computedStyles.getPropertyValue('--md-bg').trim(),
@@ -734,9 +889,6 @@ function App() {
         tableStripe: computedStyles.getPropertyValue('--md-table-stripe').trim(),
       };
 
-      //  const computedCss = extractCssForWechat(wechatPreviewRef.current);
-
-
       console.log("222mdTheme", mdTheme);
 
       // 提取当前主题的CSS样式
@@ -747,14 +899,13 @@ function App() {
       if (!previewElement) return;
       console.log("previewElement", previewElement);
 
-
       // 克隆预览元素并添加类名
       const clonedElement = previewElement.cloneNode(true);
-      clonedElement.className = 'markdown-content';
+      clonedElement.className = 'markdown-body';
 
       // 创建完整的HTML结构
       const styledHTML = `
-        <section class="markdown-content">
+        <section class="markdown-body">
           <style>
             ${extractedCSS}
           </style>
@@ -765,7 +916,6 @@ function App() {
       console.log("xxxxxstyledHTML", styledHTML);
 
       // 通过Electron IPC发送到主进程
-
       const finalHtml = await window.electronAPI.convertHtmlForClipboard({
         html: styledHTML,
         codeThemeKey: themeKey, // 代码高亮主题的 key
@@ -773,18 +923,8 @@ function App() {
         themeCssValues: mdTheme, // 文章主题的颜色值
       });
 
-
       console.log("xxxxxfinalHtml", finalHtml);
-
-
       console.log("Step 1: Sending raw HTML and theme CSS values to main process...");
-
-      // 2. ✅ 将读取到的样式值对象 themeCssValues 传递给主进程
-      // const finalHtml = await window.electronAPI.convertHtmlForClipboard({
-      //   html: rawHtml,
-      //   codeThemeKey: themeKey, // 代码高亮主题的 key
-      //   themeCssValues: themeCssValues, // 文章主题的颜色值
-      // });
 
       // 3. 检查后端是否返回了有效的 HTML
       if (!finalHtml || finalHtml.trim() === '') {
@@ -809,42 +949,26 @@ function App() {
 
     } catch (error) {
       console.error("Failed to copy for WeChat:", error);
-      // alert 的内容如果是 error 对象，也会显示 [object Object]
-      // 所以我们只显示 error.message
       alert(`复制失败: ${error.message}`);
     }
   };
-
-  useEffect(() => {
-  if (window && window.mermaid) {
-    try {
-      window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-    } catch(e) {}
-  } else {
-    // 如果 mermaid 模块是用 import 引入的（上面 useMarkdownRenderer 已 import），
-    // 那里已有初始化的尝试，通常够用了。
-  }
-}, [sanitizedHtml]);
-
 
   // 默认编辑模式
   return (
     <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
         <label className="toolbar-button" onClick={handleNewFile}>
-          🐙 新建</label>
+          🙂 新建</label>
         <label onClick={handleOpen} className="toolbar-button" >📂 打开</label>
-        <label onClick={handleSave} className="toolbar-button">🍁 保存</label>
-        <label onClick={handlePreview} className="toolbar-button">🐳 预览</label>
-
+        <label onClick={handleSave} className="toolbar-button">💾 保存</label>
+        <label onClick={handlePreview} className="toolbar-button">🏳 预览</label>
 
         <label
           className={showPreview ? "active" : ""}
           onClick={() => setShowPreview(!showPreview)}
         >
-          🐳 预览
+          🏳 预览
         </label>
-
 
         <label className="toolbar-button">
           🌼 插入图片
@@ -858,7 +982,7 @@ function App() {
         </label>
         {editorUploading && <span className="uploading">上传中...</span>}
 
-        {/* ✅ 6. 创建主题选择下拉菜单 */}
+        {/* 6. 创建主题选择下拉菜单 */}
         <select value={mdTheme} onChange={(e) => setMdTheme(e.target.value)} title="Markdown 主题" >
           {Object.entries(MD_THEMES).map(([key, t]) => (
             <option key={key} value={key}>{t.name}</option>
@@ -883,39 +1007,40 @@ function App() {
 
       <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
         {/* 编辑区域 */}
-        {/* <Editor value={content} onChange={setContent} /> */}
-        <Editor
+        {/* <Editor
           ref={editorRef}
+          value={content}
+          onChange={setContent}
+          onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+        /> */}
+
+        <Editor
+          ref={scrollEditorRef}
           value={content}
           onChange={setContent}
           onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
         />
 
-        {/* 预览区 */}
-        {/* <div className="preview">
-          <div
-            className="markdown-body"
-            dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-          />
-        </div> */}
 
-        {showPreview && (
-          <div className="preview">
-            <div>
-              <div
-                className="markdown-body"
-                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-              />
-            </div>
+
+        {/* 预览区 */}
+        <div className="preview">
+          <div className="preview-inner">
+            <div
+              className="markdown-body"
+              ref={previewRef}   // <- 把 ref 绑定到真实滚动元素
+              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+            />
           </div>
-        )}
+        </div>
 
         {/* 公众号区 */}
         {showWechat && (
           <div className="wechat-export">
-            <div>
+            <div className="preview-inner">
               <div
                 className="markdown-body"
+                ref={wechatRef}    // <- 同上
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
             </div>
@@ -934,7 +1059,7 @@ function App() {
         >
           📂 默认文档目录： {defaultDir}
         </span>
-        {/* ✅ 新增：在状态栏显示和设置附件文件夹 */}
+        {/* 新增：在状态栏显示和设置附件文件夹 */}
         <span
           title="点击设置 Obsidian 附件文件夹"
           style={{ cursor: "pointer", textDecoration: "underline" }}
@@ -947,12 +1072,6 @@ function App() {
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
-
-
-
-
-
-
 }
 
 export default App;

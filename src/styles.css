@@ -19,18 +19,21 @@
 }
 
 /* 默认亮色 UI */
-body,
-html,
-.app {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.app {
+  height: 100vh;
   background: var(--md-bg);
   color: var(--md-fg);
   font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* 添加了通用回退 */
   box-sizing: border-box;
-  /* 统一盒模型 */
+  overflow: hidden;
 }
 
 /* 确保所有元素继承盒模型 */
@@ -145,7 +148,7 @@ html,
   - 调整内边距 (padding)
 */
 .editor {
-  line-height: 1.8em;
+  line-height: 2em;
   overflow: hidden;
   display: flex;
   height: 100%;
@@ -155,31 +158,41 @@ html,
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
-  padding: 20px;
+  padding: 0;
   margin: 10px;
   min-width: 0;
   font-family: 'LXGW WenKai', monospace;
   font-size: 15px;
 }
 
-/* textarea 不要限制 max-width，也不要自动水平居中（否则在大容器内会显得窄） */
+/* textarea 样式 */
 .editor > textarea,
 .editor .editor-textarea {
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 !important;
+  height: 100% !important;
   min-height: 100%;
-  height: auto;
   box-sizing: border-box;
   border: none;
   outline: none;
   resize: none;
   background: transparent;
   font-family: 'LXGW WenKai', Consolas, Monaco, monospace;
-  font-size: 16px;
-  line-height: 1.8;
-  padding: 8px;
+  font-size: 15px;
+  line-height: 2.5 !important;
+  padding: 20px;
+  overflow: auto !important;
+  
 }
+
+/* .editor-textarea {
+  font-size: 16px;
+  line-height: 18; 
+  white-space: pre-wrap;
+  padding: 20px;
+} */
+
 
 
 .preview {

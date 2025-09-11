@@ -11,7 +11,10 @@ import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
 import './styles.css';
 import 'katex/dist/katex.min.css';
-import { useScrollSync } from './useScrollSync';  // 同步滚动
+// import { useSimpleDoocsScrollSync } from './useSimpleDoocsScrollSync';
+// import { useMarkdownScrollSync } from './useMarkdownScrollSync';
+// import { useSimpleContentScrollSync } from './useSimpleContentScrollSync';
+import { useBasicScrollSync } from './useBasicScrollSync';
 
 
 // ======== 主题 ==============
@@ -556,14 +559,6 @@ function App() {
   // 获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
 
-  // const previewRef = useRef(null); // 这里定义 previewRef
-  // const wechatRef = useRef(null);
-  // 添加滚动同步功能
-  const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } = useScrollSync(content, true);
-  // 合并滚动同步的ref
-  const previewRef = scrollPreviewRef;
-  const wechatRef = scrollWechatRef;
-
   // 把 editor 的源 markdown 按行扫描，把对应那一行的 - [ ] / - [x] 切换
   function toggleNthTaskInMarkdown(nth, checked) {
     // 把内容按行分割，逐行查找任务列表项，遇到第 nth 个时切换 [ ] <-> [x]
@@ -592,6 +587,17 @@ function App() {
     content,
     filePath
   );
+
+  //使用简化版doocs/md风格的滚动同步
+  // const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } 
+  // = useSimpleDoocsScrollSync(true);
+  // 使用基础的滚动同步
+const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } =
+  useBasicScrollSync(true);
+  
+  // 合并滚动同步的ref
+  const previewRef = scrollPreviewRef;
+  const wechatRef = scrollWechatRef;
 
   // 事件委托：preview 与 wechat 两个区域的 checkbox 点击同步回 editor
   useEffect(() => {
@@ -1028,7 +1034,7 @@ function App() {
           <div className="preview-inner">
             <div
               className="markdown-body"
-              ref={previewRef}   // <- 把 ref 绑定到真实滚动元素
+              ref={scrollPreviewRef}   // <- 把 ref 绑定到真实滚动元素
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           </div>
@@ -1040,7 +1046,7 @@ function App() {
             <div className="preview-inner">
               <div
                 className="markdown-body"
-                ref={wechatRef}    // <- 同上
+                ref={scrollWechatRef}    // <- 同上
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
             </div>

@@ -485,9 +485,27 @@ function App() {
         startOnLoad: false,
         theme: 'default',
         securityLevel: 'loose',
-        fontFamily: 'Arial, sans-serif'
+        fontFamily: 'Arial, sans-serif',
+        themeVariables: {
+          fontSize: '16px',
+          fontFamily: 'Arial, sans-serif',
+          primaryColor: '#ECECFF',
+          primaryTextColor: '#000',
+          primaryBorderColor: '#525F7F',
+          lineColor: '#333',
+          secondaryColor: '#fff',
+          tertiaryColor: '#fff'
+        },
+        flowchart: {
+          useMaxWidth: false,
+          htmlLabels: true,
+          curve: 'basis',
+          diagramPadding: 20,
+          wrappingWidth: 200,
+          defaultRenderer: 'dagre'
+        }
       });
-      console.log('Mermaid initialized in App component');
+      console.log('Mermaid initialized in App component with enhanced config');
     } catch (e) {
       console.warn('mermaid initialize failed at app startup', e);
     }
@@ -624,87 +642,62 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
     return () => containers.forEach((c) => c.removeEventListener('click', handleClick));
   }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
 
-  // 🔥 核心修复：Mermaid 渲染逻辑
+  // 🔥 预览区 Mermaid 渲染逻辑
   useEffect(() => {
-    // 预览与公众号容器
-    const containers = [previewRef.current, wechatRef.current].filter(Boolean);
-    if (!containers.length) return;
+    // 只在预览区渲染 mermaid
+    const previewContainer = previewRef.current;
+    if (!previewContainer) return;
 
-    let cancelled = false;
-
-    // helper: 对单个 root 执行 mermaid.init（带检查和重试）
-    const runMermaidOn = async (rootEl) => {
-      if (!rootEl) return;
-
+    const renderMermaid = async () => {
       // 查找所有未渲染的 mermaid 节点
-      const mermaidNodes = Array.from(rootEl.querySelectorAll('.mermaid'));
-      if (!mermaidNodes.length) {
-        console.log('No mermaid nodes found in container');
-        return;
-      }
+      const mermaidNodes = Array.from(previewContainer.querySelectorAll('.mermaid'));
+      if (!mermaidNodes.length) return;
 
-      console.log(`Found ${mermaidNodes.length} mermaid nodes to render`);
+      console.log(`Found ${mermaidNodes.length} mermaid nodes to render in preview`);
 
-      // 等一帧，确保 DOM 布局完成，容器有真实宽度
-      await new Promise((res) => requestAnimationFrame(res));
-      if (cancelled) return;
+      // 等待 DOM 布局完成
+      await new Promise((res) => setTimeout(res, 100));
 
-      // 对每个 mermaid 容器：如果已经被渲染（含 svg），跳过；否则尝试渲染
       for (const node of mermaidNodes) {
-        if (cancelled) break;
-
-        // 如果已渲染为 svg，跳过（避免二次渲染导致闪烁）
-        if (node.querySelector('svg')) {
-          console.log('Mermaid node already rendered, skipping');
-          continue;
-        }
+        // 如果已渲染为 svg，跳过
+        if (node.querySelector('svg')) continue;
 
         try {
-          console.log('Attempting to render mermaid node:', node.textContent.substring(0, 50));
-
-          // 清理节点内容，确保只有纯文本
           const diagramText = node.textContent.trim();
-          if (!diagramText) {
-            console.log('Empty mermaid diagram, skipping');
-            continue;
-          }
+          if (!diagramText) continue;
+
+          // 检查节点是否还在 DOM 中
+          if (!node.parentElement) continue;
 
           // 重新设置节点内容为纯文本
           node.textContent = diagramText;
 
+          // 设置简单的样式
+          node.style.minHeight = '300px';
+          node.style.margin = '20px 0';
+          node.style.padding = '15px';
+          node.style.border = '1px solid #e0e0e0';
+          node.style.borderRadius = '8px';
+          node.style.backgroundColor = '#fafafa';
+
           // 使用 mermaid.init 渲染
           await mermaid.init(undefined, node);
-          console.log('Mermaid node rendered successfully');
+          console.log('Preview mermaid rendered successfully');
 
         } catch (err) {
-          console.warn('mermaid first render failed for a node, will retry once', err);
-
-          // 120ms 后再重试一次（常见问题是字体/样式尚未加载）
-          setTimeout(async () => {
-            try {
-              if (!node.querySelector('svg') && !cancelled) {
-                console.log('Retrying mermaid render...');
-                await mermaid.init(undefined, node);
-                console.log('Mermaid node rendered successfully on retry');
-              }
-            } catch (err2) {
-              console.error('mermaid retry failed for a node', err2);
-            }
-          }, 20);
+          console.warn('mermaid render failed:', err);
+          // 如果渲染失败，显示原始文本
+          node.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 6px;">
+              <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; margin: 0;">${diagramText}</pre>
+            </div>
+          `;
         }
       }
     };
 
-    // 在所有容器上触发渲染
-    containers.forEach((container) => {
-      console.log('Running mermaid on container:', container);
-      runMermaidOn(container);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sanitizedHtml]); // 只有 sanitizedHtml 变化时才触发
+    renderMermaid();
+  }, [sanitizedHtml]);
 
   const [attachmentFolder, setAttachmentFolder] = useState(null);
 

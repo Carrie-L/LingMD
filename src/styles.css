@@ -244,12 +244,22 @@ html, body {
   margin: 10px;
   min-width: 0;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
-    "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        font-family: 
+               "PingFang SC", "Microsoft YaHei",
+               "Kaiti SC", "KaiTi",
+               "Songti SC", "SimSun", 
+               "Heiti SC", "SimHei", 
+               -apple-system, BlinkMacSystemFont,
+                "Hiragino Sans GB", "Noto Sans SC",
+               sans-serif;
   font-weight: 350;
   font-size: 15px;
   letter-spacing: 1.2px;
 }
+
+  /* font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", */
+    /* "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; */
+
 
 .wechat-export .preview-inner { 
   height: 100%; 
@@ -635,6 +645,10 @@ html, body {
 .markdown-body .mermaid {
   text-align: center;
   margin: 1.5em 0;
+  display: block;
+  width: 100% !important;
+  min-width: 600px;   
+  overflow-x: auto; 
 }
 
 .markdown-body .mermaid svg {

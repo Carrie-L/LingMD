@@ -645,15 +645,22 @@ html, body {
 .markdown-body .mermaid {
   text-align: center;
   margin: 1.5em 0;
-  display: block;
-  width: 100% !important;
+  display: flex;
+  width: 800px !important;
   min-width: 600px;   
   overflow-x: auto; 
+  box-sizing: border-box;
+  max-width: 100%;
+  justify-content: center;
+  align-items: center;
 }
+
 
 .markdown-body .mermaid svg {
   max-width: 100%;
   height: auto;
+  width: 800px;
+  text-align: center;
 }
 
 /* 图片 */
@@ -664,6 +671,8 @@ html, body {
   display: block;
   margin: .8em auto;
   border-radius: 6px;
+  width: 800px;
+  text-align: center;
 }
 
 

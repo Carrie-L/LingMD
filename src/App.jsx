@@ -16,6 +16,31 @@ import 'katex/dist/katex.min.css';
 // import { useSimpleContentScrollSync } from './useSimpleContentScrollSync';
 import { useBasicScrollSync } from './useBasicScrollSync';
 
+// 这段代码会替换掉你组件内的初始化 useEffect
+const mermaidInitialized = new Promise(resolve => {
+  try {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: 'Arial, sans-serif',
+      // ...保留你所有的详细配置...
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'basis',
+        diagramPadding: 20,
+        wrappingWidth: 200,
+        defaultRenderer: 'dagre'
+      }
+    });
+    console.log('✅ Mermaid 已在应用加载时全局初始化');
+    resolve(); // 初始化成功，Promise 完成
+  } catch (e) {
+    console.error('❌ Mermaid 全局初始化失败:', e);
+    resolve(); // 即使失败也 resolve，以防阻塞后续渲染
+  }
+});
 
 // ======== 主题 ==============
 // Markdown 主题清单
@@ -479,37 +504,39 @@ const getThemeSpecificStyles = (theme, variables) => {
 
 function App() {
   // 全局初始化 mermaid（只在应用启动时初始化一次）
-  useEffect(() => {
-    try {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose',
-        fontFamily: 'Arial, sans-serif',
-        themeVariables: {
-          fontSize: '16px',
-          fontFamily: 'Arial, sans-serif',
-          primaryColor: '#ECECFF',
-          primaryTextColor: '#000',
-          primaryBorderColor: '#525F7F',
-          lineColor: '#333',
-          secondaryColor: '#fff',
-          tertiaryColor: '#fff'
-        },
-        flowchart: {
-          useMaxWidth: false,
-          htmlLabels: true,
-          curve: 'basis',
-          diagramPadding: 20,
-          wrappingWidth: 200,
-          defaultRenderer: 'dagre'
-        }
-      });
-      console.log('Mermaid initialized in App component with enhanced config');
-    } catch (e) {
-      console.warn('mermaid initialize failed at app startup', e);
-    }
-  }, []); // 空依赖数组确保只运行一次
+  // useEffect(() => {
+  //   try {
+  //     mermaid.initialize({
+  //       startOnLoad: false,
+  //       theme: 'default',
+  //       securityLevel: 'loose',
+  //       fontFamily: 'Arial, sans-serif',
+  //       themeVariables: {
+  //         fontSize: '16px',
+  //         fontFamily: 'Arial, sans-serif',
+  //         primaryColor: '#ECECFF',
+  //         primaryTextColor: '#000',
+  //         primaryBorderColor: '#525F7F',
+  //         lineColor: '#333',
+  //         secondaryColor: '#fff',
+  //         tertiaryColor: '#fff'
+  //       },
+  //       flowchart: {
+  //         useMaxWidth: false,
+  //         htmlLabels: true,
+  //         curve: 'basis',
+  //         diagramPadding: 20,
+  //         wrappingWidth: 200,
+  //         defaultRenderer: 'dagre'
+  //       }
+  //     });
+  //     console.log('Mermaid initialized in App component with enhanced config');
+  //   } catch (e) {
+  //     console.warn('mermaid initialize failed at app startup', e);
+  //   }
+  // }, []); // 空依赖数组确保只运行一次
+
+
 
   // 主题状态（Markdown 主题）
   const [mdTheme, setMdTheme] = useState(
@@ -642,62 +669,22 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
     return () => containers.forEach((c) => c.removeEventListener('click', handleClick));
   }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
 
-  // 🔥 预览区 Mermaid 渲染逻辑
-  useEffect(() => {
-    // 只在预览区渲染 mermaid
-    const previewContainer = previewRef.current;
-    if (!previewContainer) return;
-
-    const renderMermaid = async () => {
-      // 查找所有未渲染的 mermaid 节点
-      const mermaidNodes = Array.from(previewContainer.querySelectorAll('.mermaid'));
-      if (!mermaidNodes.length) return;
-
-      console.log(`Found ${mermaidNodes.length} mermaid nodes to render in preview`);
-
-      // 等待 DOM 布局完成
-      await new Promise((res) => setTimeout(res, 100));
-
-      for (const node of mermaidNodes) {
-        // 如果已渲染为 svg，跳过
-        if (node.querySelector('svg')) continue;
-
-        try {
-          const diagramText = node.textContent.trim();
-          if (!diagramText) continue;
-
-          // 检查节点是否还在 DOM 中
-          if (!node.parentElement) continue;
-
-          // 重新设置节点内容为纯文本
-          node.textContent = diagramText;
-
-          // 设置简单的样式
-          node.style.minHeight = '300px';
-          node.style.margin = '20px 0';
-          node.style.padding = '15px';
-          node.style.border = '1px solid #e0e0e0';
-          node.style.borderRadius = '8px';
-          node.style.backgroundColor = '#fafafa';
-
-          // 使用 mermaid.init 渲染
-          await mermaid.init(undefined, node);
-          console.log('Preview mermaid rendered successfully');
-
-        } catch (err) {
-          console.warn('mermaid render failed:', err);
-          // 如果渲染失败，显示原始文本
-          node.innerHTML = `
-            <div style="padding: 20px; text-align: center; color: #666; border: 1px dashed #ccc; border-radius: 6px;">
-              <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; margin: 0;">${diagramText}</pre>
-            </div>
-          `;
-        }
+// 🔥 预览区 Mermaid 渲染逻辑 (替换为以下内容)
+   useEffect(() => {
+    mermaidInitialized.then(() => {
+      // 检查 previewRef.current 是否存在
+      if (!previewRef.current) return;
+      
+      try {
+        mermaid.run({
+          nodes: previewRef.current.querySelectorAll('.mermaid'),
+        });
+        console.log("Mermaid diagrams rendered successfully via mermaid.run()");
+      } catch (err) {
+        console.error("Mermaid.run() failed:", err);
       }
-    };
-
-    renderMermaid();
-  }, [sanitizedHtml]);
+    });
+  }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
 
   const [attachmentFolder, setAttachmentFolder] = useState(null);
 

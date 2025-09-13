@@ -536,6 +536,9 @@ function App() {
   //   }
   // }, []); // 空依赖数组确保只运行一次
 
+  // ====== 新增：布局模式状态 ======
+  // 'split'（默认两栏），'editor'（只编辑），'preview'（只预览），'unified'（编辑+预览在同一列）
+  const [layoutMode, setLayoutMode] = useState("split");
 
 
   // 主题状态（Markdown 主题）
@@ -670,21 +673,63 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
   }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
 
 // 🔥 预览区 Mermaid 渲染逻辑 (替换为以下内容)
-   useEffect(() => {
-    mermaidInitialized.then(() => {
-      // 检查 previewRef.current 是否存在
-      if (!previewRef.current) return;
+  //  useEffect(() => {
+  //   mermaidInitialized.then(() => {
+  //     // 检查 previewRef.current 是否存在
+  //     if (!previewRef.current) return;
       
+  //     try {
+  //       mermaid.run({
+  //         nodes: previewRef.current.querySelectorAll('.mermaid'),
+  //       });
+  //       console.log("Mermaid diagrams rendered successfully via mermaid.run()");
+  //     } catch (err) {
+  //       console.error("Mermaid.run() failed:", err);
+  //     }
+  //   });
+  // }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
+
+  // 替换原来依赖 sanitizedHtml 的 useEffect
+useEffect(() => {
+  mermaidInitialized.then(() => {
+    if (!previewRef.current) return;
+
+    // 找到所有 mermaid 容器
+    const nodes = previewRef.current.querySelectorAll('.mermaid');
+    if (!nodes || nodes.length === 0) {
+      // 没有 mermaid 节点就不做事
+      return;
+    }
+
+    // 在下一帧再调用 mermaid，确保浏览器已经把 innerHTML 挂载并 layout 完成
+    const rafId = requestAnimationFrame(() => {
       try {
-        mermaid.run({
-          nodes: previewRef.current.querySelectorAll('.mermaid'),
-        });
-        console.log("Mermaid diagrams rendered successfully via mermaid.run()");
+        // 使用 init 对节点做渲染（更常用且在新版 mermaid 中稳定）
+        // 第一个参数可以传配置或 undefined
+        mermaid.init(undefined, nodes);
+        console.log("Mermaid rendered via mermaid.init() on next frame");
       } catch (err) {
-        console.error("Mermaid.run() failed:", err);
+        console.error("mermaid.init() failed on RAF:", err);
       }
     });
-  }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
+
+    // 作为保险：如果上面在某些环境仍然失败，再延迟一小会儿重试一次
+    const retryTimer = setTimeout(() => {
+      try {
+        mermaid.init(undefined, nodes);
+        console.log("Mermaid rendered via mermaid.init() on timeout retry");
+      } catch (err) {
+        console.error("mermaid.init() retry failed:", err);
+      }
+    }, 80); // 80ms 是经验值，足够让浏览器完成渲染
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(retryTimer);
+    };
+  });
+}, [sanitizedHtml]);
+
 
   const [attachmentFolder, setAttachmentFolder] = useState(null);
 
@@ -949,12 +994,39 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
         <label onClick={handleSave} className="toolbar-button">💾 保存</label>
         <label onClick={handlePreview} className="toolbar-button">🏳 预览</label>
 
-        <label
+
+ {/* --------------- 新增：布局切换按钮 --------------- */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 8 }}>
+          <button
+            className={layoutMode === 'split' ? 'toolbar-button active' : 'toolbar-button'}
+            onClick={() => setLayoutMode('split')}
+            title="双栏（编辑 + 预览）"
+          >
+            分栏
+          </button>
+          <button
+            className={layoutMode === 'editor' ? 'toolbar-button active' : 'toolbar-button'}
+            onClick={() => setLayoutMode('editor')}
+            title="仅显示编辑器"
+          >
+            仅编辑
+          </button>
+          <button
+            className={layoutMode === 'preview' ? 'toolbar-button active' : 'toolbar-button'}
+            onClick={() => setLayoutMode('preview')}
+            title="仅显示预览"
+          >
+            仅预览
+          </button>
+        </div>
+
+
+        {/* <label
           className={showPreview ? "active" : ""}
           onClick={() => setShowPreview(!showPreview)}
         >
           🏳 预览
-        </label>
+        </label> */}
 
         <label className="toolbar-button">
           🌼 插入图片
@@ -991,25 +1063,16 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
         )}
       </div>
 
-      <div className={`main ${showWechat ? "wechat-visible" : ""}`}>
-        {/* 编辑区域 */}
-        {/* <Editor
-          ref={editorRef}
-          value={content}
-          onChange={setContent}
-          onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
-        /> */}
+      {/* <div className={`main ${showWechat ? "wechat-visible" : ""}`}> */}
+         {/* main 容器：基于 layoutMode 组合 class */}
+      <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode}`}>
 
-        <Editor
+        {/* <Editor
           ref={scrollEditorRef}
           value={content}
           onChange={setContent}
           onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
         />
-
-
-
-        {/* 预览区 */}
         <div className="preview">
           <div className="preview-inner">
             <div
@@ -1018,7 +1081,39 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           </div>
-        </div>
+        </div> */}
+
+          {/* ---------- 编辑 + 预览 的渲染策略 ---------- */}
+
+        {/* 1) split（分栏）模式：左 Editor 右 Preview（默认） */}
+        {/* 2) editor（仅编辑）: 只渲染编辑器，并居中（CSS 控制） */}
+        {/* 3) preview（仅预览）: 只渲染预览，并居中 */}
+        {/* 4) unified（合并）: 在同一列内纵向显示 编辑器（上） + 预览（下），类似 Obsidian 的“编辑区 + 实时预览” */}
+        
+        {(layoutMode === "split" || layoutMode === "editor" || layoutMode === "unified") && (
+          <div className="editor-wrapper">
+            <Editor
+              ref={scrollEditorRef}
+              value={content}
+              onChange={setContent}
+              onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+            />
+          </div>
+        )}
+
+        {(layoutMode === "split" || layoutMode === "preview" || layoutMode === "unified") && (
+          <div className="preview-wrapper">
+            <div className="preview">
+              <div className="preview-inner">
+                <div
+                  className="markdown-body"
+                  ref={scrollPreviewRef}
+                  dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 公众号区 */}
         {showWechat && (

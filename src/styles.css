@@ -135,6 +135,90 @@ html, body {
   grid-template-columns: 1fr 1fr 375px;
 }
 
+/* ===========================
+   布局模式样式（layout modes）
+   =========================== */
+
+/* editor-wrapper 和 preview-wrapper 都是 grid 的子项，确保在不同模式下行为可控 */
+.editor-wrapper,
+.preview-wrapper {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== 默认：split（两栏） ========== */
+/* 已由 .main 的 grid-template-columns: 1fr 1fr 支持 */
+
+/* ========== 仅编辑（居中） ========== */
+.layout-editor {
+  grid-template-columns: 1fr;
+}
+
+/* 仅编辑时让编辑器在水平上居中并限制宽度 */
+.layout-editor .editor-wrapper {
+  display: flex;
+  justify-content: center; /* 横向居中 */
+  align-items: stretch;
+}
+.layout-editor .editor {
+  width: 80%;
+  max-width: 1100px;
+  margin: 10px auto; /* 垂直仍保留 margin */
+  height: calc(100% - 20px);
+}
+
+/* ========== 仅预览（居中） ========== */
+.layout-preview {
+  grid-template-columns: 1fr;
+}
+
+/* 仅预览时让 preview 在中间 */
+.layout-preview .preview-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+.layout-preview .preview {
+  width: 80%;
+  max-width: 1100px;
+  margin: 10px auto;
+  height: calc(100% - 20px);
+}
+
+
+/* ========== 微信栏与模式组合 ========== */
+/* 如果同时显示 wechat（.wechat-visible），并且在 editor/preview/unified 模式下，
+   保持 wechat 的列宽为 375px（你已有 .main.wechat-visible 的定义）。
+   但当模式为 only-editor/only-preview 时也要确保 wechat 在右侧正常显示。
+*/
+.main.wechat-visible.layout-split {
+  grid-template-columns: 1fr 1fr 375px !important;
+}
+.main.wechat-visible.layout-editor {
+  /* 只有编辑 + 右侧 wechat */
+  grid-template-columns: 1fr 375px !important;
+}
+.main.wechat-visible.layout-preview {
+  /* 只有预览 + 右侧 wechat */
+  grid-template-columns: 1fr 375px !important;
+}
+
+/* ========== 小屏 / 响应调整 ========== */
+@media (max-width: 900px) {
+  /* 手机或窄屏时，始终采用单列（编辑或预览垂直堆叠） */
+  .main,
+  .main.layout-split {
+    grid-template-columns: 1fr !important;
+  }
+  .layout-editor .editor,
+  .layout-preview .preview {
+    width: 96%;
+  }
+}
+
+
 
 /* ========================================= */
 /*        各功能区域 (编辑器, 预览等)         */
@@ -199,7 +283,7 @@ html, body {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 0;       /* 我们把 padding 放到 markdown-body 内，避免影响高度计算 */
+  padding: 0 ;       /* 我们把 padding 放到 markdown-body 内，避免影响高度计算 */
   margin: 10px;
   min-width: 0;     /* 允许在 grid 中缩小 */
   display: flex;
@@ -221,7 +305,7 @@ html, body {
   flex: 1 1 auto;       /* 占满剩余高度 */
   overflow: auto;       /* 重要：真正的滚动在这里发生 */
   box-sizing: border-box;
-  padding: 20px;        /* 适中的内边距 */
+  padding: 0px 32px;        /* 适中的内边距 */
   width: 100%;
   max-width: none;      /* 允许宽度铺满列（不再强制 800px 居中） */
   margin: 0;            /* 取消居中 margin */
@@ -230,19 +314,14 @@ html, body {
 }
 
 .wechat-export {
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  /* ✅ 新增：确保 flex 子项不会超出容器 */
-  min-height: 0;
-  background: #ffffff;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
-  padding: 15px;
-  margin: 10px;
-  min-width: 0;
+  width: 375px;            /* 固定宽度（和你主意一致） */
+  flex: none;              /* 不让 flex/grid 拉伸或收缩 */
+  min-width: 375px;
+  max-width: 375px;
+  box-sizing: border-box;
+  overflow-x: hidden;      /* 禁止水平滚动 */
+  overflow-y: auto;        /* 纵向滚动由内部处理 */
+  height: 100%;            /* 占满父容器高度（父容器负责高度计算） */
   height: 100%;
         font-family: 
                "PingFang SC", "Microsoft YaHei",
@@ -255,10 +334,36 @@ html, body {
   font-weight: 350;
   font-size: 15px;
   letter-spacing: 1.2px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
 }
 
   /* font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", */
     /* "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; */
+
+  /* background: #ffffff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+  padding: 0 15px;
+  margin: 10px;
+
+  height: 100%;
+        font-family: 
+               "PingFang SC", "Microsoft YaHei",
+               "Kaiti SC", "KaiTi",
+               "Songti SC", "SimSun", 
+               "Heiti SC", "SimHei", 
+               -apple-system, BlinkMacSystemFont,
+                "Hiragino Sans GB", "Noto Sans SC",
+               sans-serif;
+  font-weight: 350;
+  font-size: 15px;
+  letter-spacing: 1.2px; */
 
 
 .wechat-export .preview-inner { 

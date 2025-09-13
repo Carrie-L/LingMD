@@ -187,7 +187,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
       const md = createMarkdownIt();
       let rawHtml = md.render(withObsidianImages);
 
-      console.log("Raw HTML after markdown-it:", rawHtml.substring(0, 300));
+      console.log("Raw HTML after markdown-it:", rawHtml.substring(0));
 
       // 3. 处理图片路径
       rawHtml = await replaceAsync(rawHtml, async (match, src, rest) => {

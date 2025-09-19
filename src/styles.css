@@ -3,6 +3,7 @@
 .app {
   --md-bg: #ffffff;
   --md-fg: #000000;
+  --md-text: #212121
   /* 默认文字颜色为黑色 */
   --md-muted: #666666;
   --md-accent: #e7b0d0;
@@ -77,8 +78,9 @@ html, body {
   padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background-color 0.2s ease;
+  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
 }
 
 .toolbar button:hover {
@@ -216,7 +218,67 @@ html, body {
   .layout-preview .preview {
     width: 96%;
   }
+
+/* 小屏适配：窄屏强制隐藏 outline（或变为 overlay） */
+  .main.outline-visible.layout-split,
+  .main.outline-visible.layout-preview {
+    grid-template-columns: 1fr; /* 隐藏 outline，或者你可以把它变成 overlay 弹窗 */
+  }
+  .outline-wrapper { display: none; }
 }
+
+
+
+/* Outline 面板宽度控制：
+   - 最小宽度 200px，最大宽度 360px
+   - 在 split 模式下我们把 grid 列改成：editor | outline | preview
+*/
+.main.outline-visible.layout-split {
+  /* editor | outline | preview */
+  grid-template-columns: 1fr minmax(200px, 300px) 1.2fr;
+}
+
+/* 当 wechat 也显示时（右侧第三列），保留 wechat 宽度 */
+.main.wechat-visible.outline-visible.layout-split {
+  grid-template-columns: 1fr minmax(200px, 300px) 1fr 375px;
+}
+
+/* 如果是仅预览模式（layout-preview），我们把 outline 放到左侧与 preview 同列（或隐藏） */
+/* 你可以根据需要调整这些组合 */
+.main.outline-visible.layout-preview {
+  grid-template-columns: minmax(200px, 300px) 1fr;
+}
+
+/* Outline wrapper（外层）——让它具备滚动和视觉分隔 */
+.outline-wrapper {
+  margin: 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 360px;
+}
+
+/* 实际导航区域 */
+.outline {
+  padding: 12px;
+  height: calc(100vh - 120px); /* 顶部 toolbar + 底部 status-bar 预留（与你 project 保持一致）*/
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* 项目样式 */
+.outline ul { list-style: none; margin: 0; padding: 0; }
+.outline li { margin: 6px 0; }
+.outline a {
+  color: #333;
+  text-decoration: none;
+  display: inline-block;
+  width: 100%;
+}
+.outline a:hover { color: #0366d6; text-decoration: underline; }
+
 
 
 
@@ -323,17 +385,17 @@ html, body {
   overflow-y: auto;        /* 纵向滚动由内部处理 */
   height: 100%;            /* 占满父容器高度（父容器负责高度计算） */
   height: 100%;
-        font-family: 
-               "PingFang SC", "Microsoft YaHei",
-               "Kaiti SC", "KaiTi",
-               "Songti SC", "SimSun", 
-               "Heiti SC", "SimHei", 
-               -apple-system, BlinkMacSystemFont,
-                "Hiragino Sans GB", "Noto Sans SC",
-               sans-serif;
+  font-family: 
+          "PingFang SC", "Microsoft YaHei",
+          "Kaiti SC", "KaiTi",
+          "Songti SC", "SimSun", 
+           "Heiti SC", "SimHei",
+          -apple-system, BlinkMacSystemFont,
+          "Hiragino Sans GB", "Noto Sans SC",
+          sans-serif;
   font-weight: 350;
   font-size: 15px;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.9px;
   margin-right: 10px;
   border: none;
   border-radius: 8px;
@@ -383,19 +445,35 @@ html, body {
   line-height: 1.8;
 }
 
+.wechat-export .markdown-body h2{ 
+  flex: 1 1 auto; 
+  overflow: auto; 
+  padding: 15px; 
+  box-sizing: border-box; 
+  width: 100%; 
+  margin: 0; 
+  font-size: 21px;
+  line-height: 1.8;
+}
+
+.wechat-export .markdown-body table{ 
+  font-size: 12px;
+}
+
+
 .wechat-export ruby {
   ruby-position: over;
   /* 确保注音在上面（有些浏览器支持 under） */
+  margin-top: 15dp;
+
 }
 
 .wechat-export rt {
-  font-size: 11px !important;
-  /* 和正文一样大 */
-  letter-spacing: 3px;
-  margin-top: 8px;
+  font-size: 10px !important;
   font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
 }
-
+/* letter-spacing: 3px; */
+  /* margin-top: 8px; */
 
 
 
@@ -421,10 +499,11 @@ html, body {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background 0.2s;
   border: 2px solid #def5ee;
   height: 32px;
+  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
 }
 
 .toolbar-button:hover {
@@ -492,20 +571,6 @@ html, body {
 /*       预览模式 (新窗口) - 独立布局        */
 /* ========================================= */
 
-.preview-mode {
-  display: grid;
-  grid-template-columns: 2fr 0.8fr;
-  height: 100%;
-}
-
-.preview-mode .preview {
-  grid-column: 1 / 2;
-  /* `justify-content: center` 在这里可能无效，因为父元素不是flex/grid的行轴 */
-}
-
-.preview-mode .preview .markdown-body {
-  max-width: 800px;
-}
 
 .outline {
   grid-column: 2 / 3;
@@ -542,6 +607,7 @@ html, body {
   line-height: 2em;
   font-size: 16px;
   word-wrap: break-word;
+  color: var(--md-text);
 }
 
 .markdown-body ruby {
@@ -603,6 +669,7 @@ html, body {
 
 .markdown-body h4 {
   font-size: 18px;
+  color: var(--md-accent);
 }
 
 .markdown-body h5 {
@@ -613,6 +680,8 @@ html, body {
   font-size: 16px;
   color: var(--md-muted);
 }
+
+
 
 /* 段落与列表 */
 .markdown-body p {
@@ -669,6 +738,7 @@ html, body {
   background: var(--md-quote-bg);
   border-left: 4px solid var(--md-quote-bar);
   color: var(--md-fg);
+  font-size: 14px;
 }
 
 /* 分割线 */
@@ -685,7 +755,7 @@ html, body {
   width: 100%;
   margin: 2em 0;
   border: 1px solid var(--md-border);
-  font-size: 0.95em;
+  
 
 }
 
@@ -1057,7 +1127,8 @@ html, body {
 /* 5. 清新风 - Mint Breeze */
 .app[data-mdtheme="mintBreeze"] {
   --md-bg: #ffffff;
-  --md-fg: #064e3b;
+  --md-fg: #07654c;
+  --md-text: #212121;
   --md-muted: #6b7280;
   --md-accent: #10b981;
   --md-border: #d1fae5;
@@ -1066,16 +1137,18 @@ html, body {
   --md-quote-bg: #ecfdf5;
   --md-quote-bar: #34d399;
   --md-table-stripe: #f7fee7;
+  --md-strong:#fe829d;
 }
 
 .app[data-mdtheme="mintBreeze"] h1,
 .app[data-mdtheme="mintBreeze"] h2 {
   color: var(--md-accent);
-  text-decoration: underline;
+  /* text-decoration: underline;
   text-decoration-color: var(--md-accent);
   text-decoration-thickness: 3px;
-  text-underline-offset: 18px;
+  text-underline-offset: 10px; */
   text-align: left;
+  line-height: 2em;
 }
 
 /* .app[data-mdtheme="mintBreeze"] h2{
@@ -1093,6 +1166,23 @@ html, body {
   position: left;
   padding: 0 0 10px 0;
   border-bottom: 2px solid var(--md-accent);
+}
+
+.app[data-mdtheme="mintBreeze"] h4 {
+  color: var(--md-accent);
+  font-weight: 600;
+  text-align: left;
+  position: left;
+  padding: 0 0 7px 0;
+  border-bottom: 2px solid var(--md-accent);
+}
+
+.app[data-mdtheme="mintBreeze"] p>strong{
+  color: var(--md-strong);
+}
+
+.app[data-mdtheme="mintBreeze"] li>p>strong{
+  color: var(--md-text);
 }
 
 /* 标题上方一杠 */

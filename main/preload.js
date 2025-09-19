@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveFile: (content, filePath) =>
     ipcRenderer.invoke("save-file", content, filePath), // 参数名统一
   newFile: () => ipcRenderer.invoke("new-file"),
+  showSaveDialog: (opts) => ipcRenderer.invoke('show-save-dialog', opts || {}),
   setDefaultDir: () => ipcRenderer.invoke("set-default-dir"),
   getDefaultDir: () => ipcRenderer.invoke("get-default-dir"),
   openDefaultDir: () => ipcRenderer.invoke("open-default-dir"),

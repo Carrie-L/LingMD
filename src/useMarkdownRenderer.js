@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { marked } from "marked";
+// import { marked } from "marked";
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import mdTaskLists from "markdown-it-task-lists";
@@ -36,6 +36,7 @@ hljs.registerLanguage("java", java);
 hljs.registerLanguage("kotlin", kotlin);
 
 // Mermaid 初始化将在 App.jsx 中统一处理
+
 
 // 自定义扩展：支持 Obsidian 的 ![[xxx.png]]
 const obsidianImageExtension = {
@@ -120,36 +121,36 @@ function createMarkdownIt() {
 }
 
 // marked 渲染器设置
-const renderer = new marked.Renderer();
-renderer.code = ({ text, lang }) => {
-  const code = text || "";
-  const language = lang || "plaintext";
+// const renderer = new marked.Renderer();
+// renderer.code = ({ text, lang }) => {
+//   const code = text || "";
+//   const language = lang || "plaintext";
 
-  try {
-    if (hljs.getLanguage(language)) {
-      const highlighted = hljs.highlight(code, {
-        language,
-        ignoreIllegals: true,
-      }).value;
-      return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
-    }
-    const highlighted = hljs.highlightAuto(code).value;
-    return `<pre><code class="hljs">${highlighted}</code></pre>`;
-  } catch (e) {
-    const escaped = code
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
-  }
-};
+//   try {
+//     if (hljs.getLanguage(language)) {
+//       const highlighted = hljs.highlight(code, {
+//         language,
+//         ignoreIllegals: true,
+//       }).value;
+//       return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
+//     }
+//     const highlighted = hljs.highlightAuto(code).value;
+//     return `<pre><code class="hljs">${highlighted}</code></pre>`;
+//   } catch (e) {
+//     const escaped = code
+//       .replace(/&/g, "&amp;")
+//       .replace(/</g, "&lt;")
+//       .replace(/>/g, "&gt;");
+//     return `<pre><code class="hljs language-plaintext">${escaped}</code></pre>`;
+//   }
+// };
 
-marked.use({
-  extensions: [obsidianImageExtension],
-  renderer: renderer,
-  gfm: true,
-  breaks: true,
-});
+// marked.use({
+//   extensions: [obsidianImageExtension],
+//   renderer: renderer,
+//   gfm: true,
+//   breaks: true,
+// });
 
 // 异步替换函数
 async function replaceAsync(html, callback) {
@@ -163,6 +164,88 @@ async function replaceAsync(html, callback) {
   return html.replace(regex, () => results.shift());
 }
 
+// ====== 新增的 helper：把 mermaid div 替换为 SVG ======
+// 输入：rawHtml 包含 `<div class="mermaid">...code...</div>`
+// 输出：rawHtml 中相应 div 被替换为返回的 SVG 字符串（内联 svg）
+// 若渲染失败或 mermaid API 不可用，则回退为原始 div（不破坏原有内容）
+async function renderMermaidBlocksToSvg(rawHtml) {
+  if (!rawHtml || rawHtml.indexOf('class="mermaid"') === -1) return rawHtml;
+
+  // 正则匹配所有 mermaid div（非贪婪）
+  const mermaidRegex =
+    /<div\s+class=(?:"|')mermaid(?:"|')\s*>([\s\S]*?)<\/div>/gi;
+
+  const tasks = [];
+  const matches = [];
+  rawHtml.replace(mermaidRegex, (match, code) => {
+    matches.push({ match, code });
+    return match;
+  });
+
+  if (!matches.length) return rawHtml;
+
+  for (let i = 0; i < matches.length; i++) {
+    const original = matches[i].match;
+    // code 里可能还包含 HTML 实体（如果你的 markdown 渲染步骤曾经 escape 过），
+    // 但在你的项目里 markdown-it 直接放入了原始文本，所以这里通常是原始 mermaid 源。
+    const code = matches[i].code || "";
+    let svg = null;
+
+    try {
+      if (typeof document !== 'undefined' && mermaid && mermaid.render) {
+        svg = await new Promise((resolve, reject) => {
+          const id = `mermaid-${Date.now()}-${i}-${Math.round(
+            Math.random() * 10000
+          )}`;
+
+          // 必要的防护：只有在浏览器环境且 document 存在时创建临时容器
+          if (typeof document === "undefined") {
+            // 没有 DOM 环境，无法渲染内联 SVG，回退
+            return resolve(null);
+          }
+
+          try {
+            // 创建一个临时容器元素并传入 render，避免 d3 select 时 selection.node() 为 undefined
+            const tempContainer = document.createElement("div");
+            // (可选) 将 tempContainer 暂时挂到 document 中，某些浏览器/环境在 detached nodes 上可能有差异：
+            // document.body.appendChild(tempContainer);
+
+            mermaid.parse.render(
+              id,
+              code,
+              (svgCode) => {
+                // 如果之前 append 到 document.body 了，可以移除 tempContainer 以清理
+                // if (tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
+                resolve(svgCode);
+              },
+              tempContainer
+            );
+          } catch (e) {
+            reject(e);
+          }
+        });
+      } else {
+        svg = null;
+      }
+    } catch (e) {
+      console.warn("[Renderer] mermaid.mermaidAPI.render failed for block:", e);
+      svg = null;
+    }
+
+    if (svg && typeof svg === "string" && svg.trim().length > 0) {
+      // Replace the original div (mermaid source) with returned SVG string
+      rawHtml = rawHtml.replace(original, svg);
+    } else {
+      // 回退：保留原始 mermaid div（这样 mermaid.init 在 preview 渲染时仍可作为后备）
+      // 不改变 rawHtml
+      // 但我们可以把原始保持（no-op）
+    }
+  }
+
+  return rawHtml;
+}
+
+// 主 hook
 export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
   const [htmlResult, setHtmlResult] = useState({
     rawHtml: "",
@@ -187,7 +270,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
       const md = createMarkdownIt();
       let rawHtml = md.render(withObsidianImages);
 
-      console.log("Raw HTML after markdown-it:", rawHtml.substring(0));
+      console.log("Raw HTML after markdown-it:", rawHtml);
 
       // 3. 处理图片路径
       rawHtml = await replaceAsync(rawHtml, async (match, src, rest) => {
@@ -214,6 +297,15 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
         "Raw HTML after image processing:",
         rawHtml.substring(0, 300)
       );
+
+      // ====== 新增步骤：把 mermaid div 预渲染为内联 SVG（方案 B） ======
+      try {
+        rawHtml = await renderMermaidBlocksToSvg(rawHtml);
+        console.log("[Renderer] mermaid blocks rendered to SVG where possible");
+      } catch (e) {
+        console.warn("[Renderer] renderMermaidBlocksToSvg failed:", e);
+        // 失败时回退到不做替换的 rawHtml（后续仍会走 sanitize）
+      }
 
       // 4. 清理 HTML，确保 mermaid 相关的标签和属性不被移除
       const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
@@ -330,7 +422,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
 
       if (!mounted) return;
 
-      console.log("Final sanitized HTML:", sanitizedHtml.substring(0, 300));
+      console.log("Final sanitized HTML:", sanitizedHtml);
       setHtmlResult({ rawHtml, sanitizedHtml });
     }
 

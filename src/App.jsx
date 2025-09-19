@@ -3,7 +3,6 @@ import MarkdownIt from 'markdown-it';
 import mdKatex from 'markdown-it-katex';
 import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
-
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
@@ -11,10 +10,9 @@ import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
 import './styles.css';
 import 'katex/dist/katex.min.css';
-// import { useSimpleDoocsScrollSync } from './useSimpleDoocsScrollSync';
-// import { useMarkdownScrollSync } from './useMarkdownScrollSync';
-// import { useSimpleContentScrollSync } from './useSimpleContentScrollSync';
 import { useBasicScrollSync } from './useBasicScrollSync';
+
+
 
 // 这段代码会替换掉你组件内的初始化 useEffect
 const mermaidInitialized = new Promise(resolve => {
@@ -77,37 +75,37 @@ const THEMES = {
   'tokyo-night-dark': {
     name: 'Tokyo Night Dark',
     container: { background: '#1a1b26', color: '#a9b1d6' },
-    path: '/hljs/tokyo-night-dark.min.css',
+    path: 'hljs/tokyo-night-dark.min.css',
   },
   'github-dark': {
     name: 'GitHub Dark',
     container: { background: '#0d1117', color: '#c9d1d9' },
-    path: '/hljs/github-dark.min.css',
+    path: 'hljs/github-dark.min.css',
   },
   'atom-one-dark': { // 修正了 key
     name: 'Atom One Dark',
     container: { background: '#282c34', color: '#abb2bf' }, // 补上了 container
-    path: '/hljs/atom-one-dark.min.css',
+    path: 'hljs/atom-one-dark.min.css',
   },
   'felipec': {
     name: 'felipec',
     container: { background: '#1d3a4a', color: '#dbe1e6' }, // 补上了 container
-    path: '/hljs/felipec.min.css',
+    path: 'hljs/felipec.min.css',
   },
   'monokai': {
     name: 'monokai',
     container: { background: '#2a2c2d', color: '#f8f8f2' }, // 补上了 container
-    path: '/hljs/monokai.min.css',
+    path: 'hljs/monokai.min.css',
   },
   'panda-syntax-dark': {
     name: 'panda syntax dark',
     container: { background: '#2a2c32', color: '#e6e6e6' }, // 补上了 container
-    path: '/hljs/panda-syntax-dark.min.css',
+    path: 'hljs/panda-syntax-dark.min.css',
   },
   'tomorrow-night-blue': {
     name: 'tomorrow night blue',
     container: { background: '#002451', color: '#ffffff' }, // 补上了 container
-    path: '/hljs/tomorrow-night-blue.min.css',
+    path: 'hljs/tomorrow-night-blue.min.css',
   },
 };
 
@@ -115,6 +113,45 @@ const THEMES = {
 const DEFAULT_THEME_KEY = 'tokyo-night-dark';
 
 const extractPreviewStyles = (mdTheme) => {
+  console.log("333mdTheme", mdTheme);
+
+  const previewElement = document.querySelector('.preview');
+  console.log(".preview", previewElement);
+  if (!previewElement) return '';
+
+  // 获取当前主题的CSS变量
+  const computedStyle = getComputedStyle(previewElement);
+  const cssVariables = {};
+
+  // 提取所有--md-开头的CSS变量
+  for (let i = 0; i < document.styleSheets.length; i++) {
+    try {
+      const styleSheet = document.styleSheets[i];
+      for (let j = 0; j < styleSheet.cssRules.length; j++) {
+        const rule = styleSheet.cssRules[j];
+        if (rule.selectorText && rule.selectorText.includes(`data-mdtheme="${mdTheme}"`)) {
+          const style = rule.style;
+          for (let k = 0; k < style.length; k++) {
+            const property = style[k];
+            if (property.startsWith('--md-')) {
+              cssVariables[property] = style.getPropertyValue(property);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // 跨域样式表会抛出异常，忽略
+      console.log("cssVariables异常", e);
+    }
+  }
+
+  console.log("cssVariables", mdTheme, cssVariables);
+
+  // 生成完整的CSS字符串，包含所有必要的样式
+  return generateCompleteCSS(cssVariables, mdTheme);
+};
+
+const extractWechatPreviewStyles = (mdTheme) => {
   console.log("333mdTheme", mdTheme);
 
   const previewElement = document.querySelector('.wechat-export');
@@ -159,23 +196,30 @@ const generateCompleteCSS = (variables, theme) => {
   const baseStyles = `
 /* Markdown Preview Styles - Theme: ${theme} */
 .markdown-body {
-  color: ${variables['--md-fg'] || '#212121'};
+  color: #3e3e3e;
   background: ${variables['--md-bg'] || '#fff'};
-  max-width: 800px;
   margin: 0 0;
   padding: 0;
   line-height: 2;
   font-size: 15px;
-  font-weight: 350;
+  font-weight: 400;
+  letter-spacing:0px;
   word-wrap: break-word !important;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
-    "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  
-  letter-spacing: 1.2px;
+font-family: 
+          PingFang SC, system-ui, -apple-system, BlinkMacSystemFont, Helvetica Neue, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif;
   }
 
 .markdown-body p {
   margin: 1.5em 0;
+  line-height: 3;
+}
+
+.markdown-body p>strong{
+  color: ${variables['--md-strong'] || '#212121'};
+}
+
+.markdown-body li>p>strong{
+  color: ${variables['--md-text'] || '#212121'};
 }
 
 /* 标题样式 */
@@ -194,24 +238,38 @@ const generateCompleteCSS = (variables, theme) => {
   font-weight: 600;
 }
 
-.markdown-body h1 { font-size: 28px; }
-.markdown-body h2 { font-size: 25px; }
-.markdown-body h3 { font-size: 20px; }
-.markdown-body h4 { font-size: 18px; }
+.markdown-body h1 { font-size: 25px; }
+.markdown-body h2 { font-size: 23px; }
+.markdown-body h3 { font-size: 20px; 
+  color: ${variables['--md-accent'] || '#212121'};
+  font-weight: 600;
+  text-align: left;
+  position: left;
+  padding: 0 0 10px 0;
+  border-bottom: 2px solid ${variables['--md-accent'] || '#212121'};}
+.markdown-body h4 { font-size: 18px; 
+  color: ${variables['--md-accent'] || '#212121'};
+  font-weight: 600;
+  text-align: left;
+  position: left;
+  padding: 0 0 7px 0;
+  border-bottom: 2px solid ${variables['--md-accent'] || '#212121'};
+}
 .markdown-body h5 { font-size: 16px; }
 .markdown-body h6 { font-size: 16px;  }
 
-.markdown-body ruby {
+.markdown-body ruby{
   ruby-position: over; 
+  line-height: 3;
 }
-.markdown-body rt {
-  font-size: 11px !important; 
-  letter-spacing: 2px;
-  margin-top: 8px;
+.markdown-body rt{
+  font-size: 10px !important; 
+  letter-spacing: 0px;
   font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
 }
+  
 
-/* 代码块样式 */
+/* 代码块样式 margin-top: 8px; */
 .markdown-body pre {
   border-radius: 6px;
   padding: 0;
@@ -236,6 +294,7 @@ const generateCompleteCSS = (variables, theme) => {
   margin: 1em 0;
   padding: .6em 1em;
   color: ${variables['--md-fg'] || '#333'};
+  line-height:1.2;
 }
 
 /* 列表样式 */
@@ -263,6 +322,7 @@ const generateCompleteCSS = (variables, theme) => {
   border-collapse: collapse;
   width: 100%;
   margin: 2em 0;
+  font-size: 12px;
 }
 
 .markdown-body th,
@@ -539,7 +599,10 @@ function App() {
   // ====== 新增：布局模式状态 ======
   // 'split'（默认两栏），'editor'（只编辑），'preview'（只预览），'unified'（编辑+预览在同一列）
   const [layoutMode, setLayoutMode] = useState("split");
-
+  const [showOutline, setShowOutline] = useState(false);
+  const [headings, setHeadings] = useState([]); // Outline 要的数据 
+  const [defaultDir, setDefaultDir] = useState("");
+  const [lastSaveDir, setLastSaveDir] = useState(null);
 
   // 主题状态（Markdown 主题）
   const [mdTheme, setMdTheme] = useState(
@@ -555,7 +618,7 @@ function App() {
     // 2. 设置它的属性
     linkElement.rel = 'stylesheet';
     linkElement.id = 'dynamic-theme-stylesheet'; // 给它一个ID，方便管理
-    linkElement.href = THEMES[themeKey].path; // e.g., '/hljs/tokyo-night-dark.min.css'
+    linkElement.href = THEMES[themeKey].path; // e.g., 'hljs/tokyo-night-dark.min.css'
 
     // 3. 将它添加到 <head> 中，浏览器会自动加载并应用 CSS
     document.head.appendChild(linkElement);
@@ -640,9 +703,9 @@ function App() {
   // const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } 
   // = useSimpleDoocsScrollSync(true);
   // 使用基础的滚动同步
-const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } =
-  useBasicScrollSync(true);
-  
+  const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } =
+    useBasicScrollSync(true, { lockMs: 150, syncOnInput: false });
+
   // 合并滚动同步的ref
   const previewRef = scrollPreviewRef;
   const wechatRef = scrollWechatRef;
@@ -672,12 +735,12 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
     return () => containers.forEach((c) => c.removeEventListener('click', handleClick));
   }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
 
-// 🔥 预览区 Mermaid 渲染逻辑 (替换为以下内容)
+  // 🔥 预览区 Mermaid 渲染逻辑 (替换为以下内容)
   //  useEffect(() => {
   //   mermaidInitialized.then(() => {
   //     // 检查 previewRef.current 是否存在
   //     if (!previewRef.current) return;
-      
+
   //     try {
   //       mermaid.run({
   //         nodes: previewRef.current.querySelectorAll('.mermaid'),
@@ -690,46 +753,232 @@ const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scr
   // }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
 
   // 替换原来依赖 sanitizedHtml 的 useEffect
-useEffect(() => {
-  mermaidInitialized.then(() => {
-    if (!previewRef.current) return;
+  useEffect(() => {
+    mermaidInitialized.then(() => {
+      const container = previewRef.current;
+      if (!container) return;
 
-    // 找到所有 mermaid 容器
-    const nodes = previewRef.current.querySelectorAll('.mermaid');
-    if (!nodes || nodes.length === 0) {
-      // 没有 mermaid 节点就不做事
-      return;
-    }
+      const nodes = Array.from(container.querySelectorAll('.mermaid'));
+      if (!nodes.length) return;
 
-    // 在下一帧再调用 mermaid，确保浏览器已经把 innerHTML 挂载并 layout 完成
-    const rafId = requestAnimationFrame(() => {
-      try {
-        // 使用 init 对节点做渲染（更常用且在新版 mermaid 中稳定）
-        // 第一个参数可以传配置或 undefined
-        mermaid.init(undefined, nodes);
-        console.log("Mermaid rendered via mermaid.init() on next frame");
-      } catch (err) {
-        console.error("mermaid.init() failed on RAF:", err);
-      }
+      let cancelled = false;
+
+      // helper: 等待节点变为可见（有宽度）或超时
+      const waitVisible = (el, timeout = 1000) => new Promise((resolve) => {
+        if (el.clientWidth > 0 && el.offsetHeight > 0) return resolve(true);
+        let waited = 0;
+        const interval = 50;
+        const id = setInterval(() => {
+          if (cancelled) { clearInterval(id); return resolve(false); }
+          waited += interval;
+          if (el.clientWidth > 0 && el.offsetHeight > 0) {
+            clearInterval(id);
+            return resolve(true);
+          }
+          if (waited >= timeout) {
+            clearInterval(id);
+            return resolve(false);
+          }
+        }, interval);
+      });
+
+      // 按节点逐个渲染（更稳）
+      const renderAll = async () => {
+        for (let i = 0; i < nodes.length; i++) {
+          if (cancelled) break;
+          const node = nodes[i];
+          const code = node.textContent || node.innerText || '';
+          if (!code.trim()) continue;
+
+          const visible = await waitVisible(node, 800); // 如果节点不可见可延长超时
+          if (!visible) {
+            // 如果不可见，跳过或稍后再重试（防止 render 结果为 0）
+            // 这里我们做一次短延迟再试一次
+            await new Promise(r => setTimeout(r, 120));
+          }
+
+          // 尝试用 mermaid.mermaidAPI.render（按节点渲染），回退使用 mermaid.init
+          try {
+            const id = `mermaid-${Date.now()}-${i}`;
+            // mermaid.parse.render 需要 mermaid 已初始化
+            if (mermaid.render && mermaid.mermaidAPI.render) {
+              // callback 将返回 SVG 字符串
+              mermaid.mermaidAPI.render(id, code, (svgCode) => {
+                // 将容器替换为渲染好的 svg
+                node.innerHTML = svgCode;
+              }, node);
+            } else {
+              // fallback to init on the single node
+              mermaid.init(undefined, node);
+            }
+          } catch (err) {
+            console.warn('Mermaid render failed for node, fallback to init:', err);
+            try { mermaid.init(undefined, node); } catch (e) { console.error('mermaid.init fallback failed', e); }
+          }
+        }
+      };
+
+      // schedule on next frame (并做一个短退避重试)
+      const rafId = requestAnimationFrame(() => {
+        renderAll().catch(e => console.error('renderAll error', e));
+      });
+
+      // 保险重试：在小延迟后再次运行（某些环境下 innerHTML 还没最终 layout）
+      const retryTimer = setTimeout(() => {
+        if (cancelled) return;
+        try {
+          // 再次调用 init 整体节点（防止个别失败）
+          mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+        } catch (e) {
+          console.error('mermaid.init retry failed', e);
+        }
+      }, 120);
+
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(rafId);
+        clearTimeout(retryTimer);
+      };
     });
+  }, [sanitizedHtml]);
 
-    // 作为保险：如果上面在某些环境仍然失败，再延迟一小会儿重试一次
-    const retryTimer = setTimeout(() => {
-      try {
-        mermaid.init(undefined, nodes);
-        console.log("Mermaid rendered via mermaid.init() on timeout retry");
-      } catch (err) {
-        console.error("mermaid.init() retry failed:", err);
+
+
+  // 目录 Outline
+  // previewRef 已经在你文件里（useBasicScrollSync 返回），我们用它来扫描 headings
+  // ======= Collect headings (稳定、无循环) =======
+  useEffect(() => {
+    // 只在 sanitizedHtml 或 previewRef 初次就绪时采集一次，避免 MutationObserver 引发循环
+    const collect = () => {
+      const container = previewRef.current;
+      if (!container) {
+        // 若 preview 不存在，则清空 headings（避免残留）
+        if (headings.length) setHeadings([]);
+        return;
       }
-    }, 80); // 80ms 是经验值，足够让浏览器完成渲染
+
+      const nodes = Array.from(container.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+      const list = nodes.map((node, i) => {
+        const text = node.textContent || `heading-${i}`;
+        const slug = text
+          .trim()
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .slice(0, 80);
+
+        if (!node.id) {
+          let candidate = slug || `heading-${i}`;
+          let uniq = candidate;
+          let suffix = 1;
+          // 只在当前 container 内检查，减少跨文档冲突：prefix 用 preview 的 id（若存在）
+          const prefix = container.id || 'preview';
+          uniq = `${prefix}-${candidate}`;
+          while (document.getElementById(uniq)) {
+            uniq = `${prefix}-${candidate}-${suffix++}`;
+          }
+          node.id = uniq;
+        }
+
+        return {
+          id: node.id,
+          text,
+          level: parseInt(node.tagName.slice(1), 10),
+        };
+      });
+
+      // 仅在内容确实改变时才 setHeadings，避免无意义更新导致重渲染循环
+      const same =
+        list.length === headings.length &&
+        list.every((it, idx) => headings[idx] && headings[idx].id === it.id && headings[idx].text === it.text && headings[idx].level === it.level);
+
+      if (!same) setHeadings(list);
+    };
+
+    // 初次收集（当 sanitizedHtml 变动时）
+    collect();
+
+    // 也在窗口 resize 时重新收集（因为可能有懒加载或渲染差异）
+    const onResize = () => {
+      // 用 requestAnimationFrame 防抖
+      window.requestAnimationFrame(collect);
+    };
+    window.addEventListener('resize', onResize);
 
     return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(retryTimer);
+      window.removeEventListener('resize', onResize);
     };
-  });
-}, [sanitizedHtml]);
+    // 仅依赖 sanitizedHtml（当预览内容改变）和 previewRef.current 的存在
+  }, [sanitizedHtml]); // 不要把 headings 或 previewRef 放到依赖里以免循环
 
+
+  // 启动时获取默认文件夹
+  useEffect(() => {
+    (async () => {
+      // const folder = await window.electronAPI.getDefaultDir();
+      // console.log("defaultDir folder", folder);
+      // if (folder) {
+      //   setDefaultDir(folder);
+      // }
+      try {
+        if (window.electronAPI && typeof window.electronAPI.getDefaultDir === 'function') {
+          const folder = await window.electronAPI.getDefaultDir();
+          console.log('defaultDir folder (from electronAPI):', folder);
+          if (folder) {
+            setDefaultDir(folder);
+            localStorage.setItem('defaultDir', folder);
+            return;
+          }
+        } else {
+          console.warn('electronAPI.getDefaultDir not available - likely running in browser. Falling back to localStorage or documents default.');
+        }
+        // 降级：先看 localStorage，再构造默认路径（在浏览器环境里只能展示但不能创建）
+        const cached = localStorage.getItem('defaultDir');
+        if (cached) {
+          setDefaultDir(cached);
+        } else {
+          // 在非 Electron 环境我们也能显示用户预期的默认字符串（但不实际创建）
+          const docsFallback = (() => {
+            try {
+              // 若在 electron 环境，window.process?.platform 可能存在，但这里主要是 UX 提示
+              return 'Documents/LingMD';
+            } catch (e) { return 'Documents/LingMD'; }
+          })();
+          setDefaultDir(docsFallback);
+        }
+      } catch (err) {
+        console.error('读取 defaultDir 失败（降级）', err);
+        const cached = localStorage.getItem('defaultDir');
+        if (cached) setDefaultDir(cached);
+      }
+    })();
+  }, []);
+
+  const handleSetDefaultDir = async () => {
+    try {
+      if (!window.electronAPI || typeof window.electronAPI.setDefaultDir !== 'function') {
+        alert('当前无法配置默认文件夹（仅桌面应用支持）。');
+        return;
+      }
+      const dir = await window.electronAPI.setDefaultDir();
+      if (dir) {
+        setDefaultDir(dir);
+        localStorage.setItem('defaultDir', dir);
+        showToast(`📂 默认文件夹已设置为: ${dir}`);
+      }
+    } catch (e) {
+      console.error('设置默认文件夹失败', e);
+      showToast('设置失败，请重试');
+    }
+  };
+
+
+  const handleOpenDefaultDir = async () => {
+    const dir = await window.electronAPI.openDefaultDir();
+    if (dir) {
+      showToast(`📂 已在系统中打开: ${dir}`);
+    }
+  };
 
   const [attachmentFolder, setAttachmentFolder] = useState(null);
 
@@ -737,18 +986,27 @@ useEffect(() => {
   useEffect(() => {
     (async () => {
       try {
-        const folder = await window.electronAPI.getAttachmentFolder();
-        console.log("attachmentFolder", folder);
-
-        if (folder) {
-          setAttachmentFolder(folder);
-          localStorage.setItem('attachmentFolder', folder);
+        // 如果 electronAPI 可用，就调用；否则退到 localStorage
+        if (window.electronAPI && typeof window.electronAPI.getAttachmentFolder === 'function') {
+          const folder = await window.electronAPI.getAttachmentFolder();
+          // 可能返回 undefined/null/'' -> 视为未设置
+          if (folder) {
+            setAttachmentFolder(folder);
+            localStorage.setItem('attachmentFolder', folder);
+          } else {
+            // 未设置：尝试从 localStorage 读取（兼容旧版本）
+            const cached = localStorage.getItem('attachmentFolder') || '';
+            setAttachmentFolder(cached);
+          }
+        } else {
+          // 无 electronAPI（比如在 web 模式），从 localStorage 读取或置空
+          const cached = localStorage.getItem('attachmentFolder') || '';
+          setAttachmentFolder(cached);
         }
       } catch (err) {
-        console.error('读取 attachmentFolder 失败', err);
-        // 尝试从 localStorage 读（降级）
-        const cached = localStorage.getItem('attachmentFolder');
-        if (cached) setAttachmentFolder(cached);
+        console.log('读取 attachmentFolder 失败（降级）：', err);
+        const cached = localStorage.getItem('attachmentFolder') || '';
+        setAttachmentFolder(cached);
       }
     })();
   }, []);
@@ -798,27 +1056,148 @@ useEffect(() => {
   }, [content, filePath]);
 
   // 手动保存
-  const handleSave = async () => {
-    if (!filePath) return; // 没路径就不保存
-    await window.electronAPI.saveFile(content, filePath);
-    window.electronAPI.setLastFile(filePath);
-    setStatus("已保存");
-    showToast("💾 文件已保存在: " + filePath);
+  // ---- App.jsx 中的 handleSave（替换原有） ----
+  // 更宽松且安全的 sanitizeFileName：保留空格和点，但去掉危险字符，合并多空格，去首尾空格/点
+  const sanitizeFileName = (s) => {
+    if (!s) return 'untitled';
+    // 取第一行并去首尾空白
+    let name = s.split(/\r?\n/)[0].trim();
+    if (!name) return 'untitled';
+
+    // 删除文件名中会引起问题的字符（Windows/Unix 都不推荐使用）
+    // 允许: 字母数字、中文、空格、点、下划线、短横、括号等常用字符
+    name = name.replace(/[\/\\:\*\?"<>\|#%&{}\^~\[\]`]+/g, ''); // 移除一批危险符号
+
+    // 合并连续空格为一个空格
+    name = name.replace(/\s+/g, ' ').trim();
+
+    // Windows 不允许文件名以空格或点结尾，也不建议以点开头
+    name = name.replace(/^[. ]+/, ''); // 去掉开头的点或空格
+    name = name.replace(/[. ]+$/, ''); // 去掉结尾的点或空格
+
+    // 限制长度（保留扩展名前的长度）
+    const MAX_LEN = 120;
+    if (name.length > MAX_LEN) name = name.slice(0, MAX_LEN).trim();
+
+    if (!name) name = 'untitled';
+    return name;
   };
+
+
+
+  const handleSave = async (opts = { forceDialog: false }) => {
+    try {
+      // 如果已经有路径且不是强制打开对话，直接保存
+      if (filePath && !opts.forceDialog && !filePath.includes("未命名")) {
+        const res = await window.electronAPI.saveFile(content, filePath);
+        if (res && res.success) {
+          window.electronAPI.setLastFile(res.path || filePath);
+          setFilePath(res.path || filePath);
+          setStatus("已保存");
+          showToast("💾 文件已保存在: " + (res.path || filePath));
+        } else {
+          showToast("保存失败: " + (res && res.error));
+        }
+        return;
+      }
+
+      // 否则（没有 filePath 或 强制另存为）——弹出“另存为”对话，默认用第一行作为文件名
+      const firstLineName = sanitizeFileName(content);
+      let baseDir = lastSaveDir || defaultDir || '';
+      const suggestedFull = joinPath(baseDir, `${firstLineName}.md`);
+
+      const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggestedFull });
+      if (!dlg || dlg.canceled || !dlg.filePath) return;
+
+      let chosen = dlg.filePath;
+      if (!chosen.toLowerCase().endsWith('.md')) chosen += '.md';
+
+      // 保存成功后记住目录
+      setLastSaveDir(dirname(chosen));
+
+
+
+
+      // const defaultDirPath = defaultDir || (await window.electronAPI.getDefaultDir?.()) || '';
+      // const suggestedFull = defaultDirPath
+      // ? (defaultDirPath.endsWith('/') || defaultDirPath.endsWith('\\') ? defaultDirPath : (defaultDirPath + pathSep())) + `${firstLineName}.md`
+      // : `${firstLineName}.md`;
+
+      // 调用主进程弹出保存对话（需要 preload 暴露 showSaveDialog）
+      // const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggestedFull });
+      // if (!dlg || dlg.canceled || !dlg.filePath) {
+      //   // showToast("已取消保存");
+      //   return;
+      // }
+
+      // 确保扩展名为 .md（用户可能改名了）
+      // let chosen = dlg.filePath;
+      // if (!chosen.toLowerCase().endsWith('.md')) chosen = chosen + '.md';
+
+      // 最后写文件
+      const result = await window.electronAPI.saveFile(content, chosen);
+      if (result && result.success) {
+        window.electronAPI.setLastFile(result.path || chosen);
+        setFilePath(result.path || chosen);
+        setStatus("已保存");
+        showToast("💾 文件已保存在: " + (result.path || chosen));
+      } else {
+        showToast("保存失败: " + (result && result.error));
+      }
+    } catch (err) {
+      console.error('handleSave error', err);
+      showToast("保存时出错: " + (err && err.message));
+    }
+  };
+
+  // 小 helper：在渲染端获取 path 分隔符 (简单实现)
+  const pathSep = () => (navigator.platform && navigator.platform.toLowerCase().includes('win') ? '\\' : '/');
+
+  // 在组件挂载时增加 Ctrl/Cmd+S 全局监听（放在 useEffect 中）
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const mod = e.ctrlKey || e.metaKey; // 支持 Windows/Linux 和 macOS
+      if (mod && !e.altKey && (e.key.toLowerCase() === 's')) {
+        e.preventDefault();
+        if (e.shiftKey) {// Ctrl+Shift+S -> 另存为
+          handleSave({ forceDialog: true });
+        } else {// Ctrl+S -> 普通保存
+          handleSave({ forceDialog: false });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [content, filePath, defaultDir]); // 依赖 content/filePath/defaultDir
+
 
   // 启动时加载上次的文件
   useEffect(() => {
-    // const lastFile = window.electronAPI.onLoadLastFile();
-    window.electronAPI.onLoadLastFile(async (fp) => {
-      if (fp) {
-        setFilePath(fp);
-        const res = await window.electronAPI.readFile(fp);
-        if (res) {
-          setContent(res.content);
-          setStatus("已加载");
-        }
+    try {
+      // 如果 electronAPI 可用，就调用；否则退到 localStorage
+      if (window.electronAPI && typeof window.electronAPI.onLoadLastFile === 'function') {
+        window.electronAPI.onLoadLastFile(async (fp) => {
+          if (fp) {
+            setFilePath(fp);
+            const res = await window.electronAPI.readFile(fp);
+            if (res) {
+              setContent(res.content);
+              setStatus("已加载");
+            }
+          }
+        });
+      } else {
+        setFilePath('');
       }
-    });
+    } catch (err) {
+      console.log('读取 onLoadLastFile 失败（降级）：', err);
+      setFilePath('');
+    }
+
+
+
+
   }, []);
 
   const handleOpen = async () => {
@@ -828,9 +1207,7 @@ useEffect(() => {
       setContent(result.content);
       window.electronAPI.setLastFile(result.path);
       setStatus("已打开");
-      showToast("📂 文件已打开");
     } else {
-      showToast("❌ 📂文件未打开");
     }
   };
 
@@ -844,52 +1221,13 @@ useEffect(() => {
       setContent(result.content);
       window.electronAPI.setLastFile(result.path);
       setStatus("新建");
-      showToast("🆕 新建文件");
+      console.log("🆕 新建文件：", result.path);
     }
   };
 
-  const [defaultDir, setDefaultDir] = useState("");
 
-  // 启动时获取默认文件夹
-  useEffect(() => {
-    (async () => {
-      const folder = await window.electronAPI.getDefaultDir();
-      console.log("defaultDir folder", folder);
-      if (folder) {
-        setDefaultDir(folder);
-      }
-    })();
-  }, []);
 
-  const handleSetDefaultDir = async () => {
-    const dir = await window.electronAPI.setDefaultDir();
-    if (dir) {
-      setDefaultDir(dir);
-      showToast(`📂 默认文件夹已设置为: ${dir}`);
-    }
-  };
 
-  const handleOpenDefaultDir = async () => {
-    const dir = await window.electronAPI.openDefaultDir();
-    if (dir) {
-      showToast(`📂 已在系统中打开: ${dir}`);
-    }
-  };
-
-  const handlePreview = () => {
-    window.electronAPI.openPreview();
-  };
-
-  if (mode === "preview") {
-    return (
-      <div className="app">
-        <div className="main preview-mode">
-          <Preview value={content} filePath={filePath} />
-          <Outline value={content} />
-        </div>
-      </div>
-    );
-  }
 
   // 处理公众号复制的函数
   const handleCopyToWechat = async () => {
@@ -923,7 +1261,7 @@ useEffect(() => {
       console.log("222mdTheme", mdTheme);
 
       // 提取当前主题的CSS样式
-      const extractedCSS = extractPreviewStyles(mdTheme);
+      const extractedCSS = extractWechatPreviewStyles(mdTheme);
       console.log("extractedCSS", extractedCSS);
       // 获取渲染后的HTML内容
       const previewElement = document.querySelector('.wechat-export');
@@ -932,7 +1270,14 @@ useEffect(() => {
 
       // 克隆预览元素并添加类名
       const clonedElement = previewElement.cloneNode(true);
+
+      // --- 新增代码：从克隆的元素中移除所有 H1 和 H2 标签 ---
+      const headers = clonedElement.querySelectorAll('h1, h2');
+      headers.forEach(header => header.remove());
+      // --- 新增代码结束 ---
+
       clonedElement.className = 'markdown-body';
+
 
       // 创建完整的HTML结构
       const styledHTML = `
@@ -984,18 +1329,173 @@ useEffect(() => {
     }
   };
 
+  // 在 App 组件内部（和 handleCopyToWechat 同级）
+const handleExportHtml = async () => {
+  try {
+    if (!content || content.trim() === "") {
+      alert("内容为空，无法导出。");
+      return;
+    }
+
+    // 1. 构建主题 CSS（复用你已有的提取函数）
+    const extractedCSS = extractPreviewStyles(mdTheme) || "";
+
+    // 2. 取出用于导出的 preview DOM（复用 wechat-export 区域的结构）
+    const previewElement = document.querySelector(".preview");
+    if (!previewElement) {
+      alert("找不到导出区域（.preview .markdown-body），请先打开公众号预览或切换布局。");
+      return;
+    }
+
+    console.log("previewElement///", previewElement);
+    
+
+    // 克隆并做同样的处理（去掉 H1/H2 是你在 copy 中的行为，按需保留或删除）
+    const cloned = previewElement.cloneNode(true);
+    // 如果想与复制到公众号一致，删除 h1/h2：
+    const headers = cloned.querySelectorAll("h1,h2");
+    headers.forEach(h => h.remove());
+    cloned.className = "markdown-body";
+
+    // 3. 生成要发到主进程处理的“裸 HTML”
+    // 生成导出 HTML（替换之前的 styledHTML）
+const exportWrapperCss = `
+/* 导出时强制预览区宽度和居中 —— 覆盖应用中可能的全屏规则 */
+.preview-export {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  background: var(--md-bg, #ffffff);
+  color: var(--md-fg, #000);
+  min-height: 100vh;
+}
+
+/* 这里控制实际的可视宽度：80% / 最大 1100px（和你 app 的 layout-preview 一致） */
+.preview-export .preview {
+  width: 80%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* markdown-body 在导出时按 preview 的内部样式显示 */
+.preview-export .markdown-body {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 32px;
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+/* 保证图片/mermaid 等不超出 */
+.preview-export .markdown-body img,
+.preview-export .markdown-body svg,
+.preview-export .markdown-body .mermaid {
+  max-width: 100% !important;
+  width: auto !important;
+}
+`;
+
+// clonedHtml 是你 cloneNode 后取的 innerHTML
+const styledHTML = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>
+      ${extractedCSS || ""}   /* 你的主题/hljs 等样式 */
+      ${exportWrapperCss}     /* 覆盖宽度的导出用 CSS */
+    </style>
+  </head>
+  <body>
+    <div class="preview-export">
+      <div class="preview">
+        <div class="preview-inner">
+          <div class="markdown-body">
+            ${cloned.innerHTML}
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+
+
+    // 4. 先让主进程做转换（图片 base64 / 样式内联 / 代码样式等）
+    const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+      html: styledHTML,
+      codeThemeKey: themeKey,
+      css: extractedCSS,
+      themeCssValues: mdTheme,
+    });
+
+    if (!finalHtml || finalHtml.trim() === "") {
+      alert("导出失败：主进程返回空内容。");
+      return;
+    }
+
+    // 5. 建议文件名：用第一行（sanitizeFileName 为你组件已有函数）
+    const firstLineName = sanitizeFileName(content || "");
+    const suggested = (firstLineName || "untitled") + ".html";
+
+    // 6. 弹出保存对话（使用已有 show-save-dialog）
+    const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggested });
+    if (!dlg || dlg.canceled || !dlg.filePath) {
+      // 用户取消
+      return;
+    }
+
+    let chosen = dlg.filePath;
+    // 强制 .html 后缀
+    if (!chosen.toLowerCase().endsWith(".html")) chosen += ".html";
+
+    // 7. 调用 save-file 把 finalHtml 写入磁盘
+    const res = await window.electronAPI.saveFile(finalHtml, chosen);
+    if (res && res.success) {
+      // 可选：把导出的 html 记为 lastFile（或只记 md 文件），这里不改 lastFile 行为
+      showToast("✅ 导出成功：" + (res.path || chosen));
+    } else {
+      showToast("导出失败：" + (res && res.error ? res.error : ""));
+    }
+  } catch (err) {
+    console.error("handleExportHtml error:", err);
+    alert("导出失败：" + (err && err.message ? err.message : String(err)));
+  }
+};
+
+
+  // 返回路径中的目录部分
+  function dirname(filePath) {
+    if (!filePath) return '';
+    return filePath.substring(0, filePath.lastIndexOf('/') > -1
+      ? filePath.lastIndexOf('/')
+      : filePath.lastIndexOf('\\'));
+  }
+
+  // 拼接路径
+  function joinPath(dir, name) {
+    if (!dir) return name;
+    const sep = dir.includes('\\') ? '\\' : '/';
+    return dir.endsWith(sep) ? dir + name : dir + sep + name;
+  }
+
+
   // 默认编辑模式
   return (
     <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
-        <label className="toolbar-button" onClick={handleNewFile}>
-          🙂 新建</label>
-        <label onClick={handleOpen} className="toolbar-button" >📂 打开</label>
-        <label onClick={handleSave} className="toolbar-button">💾 保存</label>
-        <label onClick={handlePreview} className="toolbar-button">🏳 预览</label>
+        <label className="toolbar-button" onClick={handleNewFile}>新建</label>
+        <label onClick={handleOpen} className="toolbar-button" >打开</label>
+        <label onClick={handleSave} className="toolbar-button">保存</label>
 
-
- {/* --------------- 新增：布局切换按钮 --------------- */}
+        {/* --------------- 新增：布局切换按钮 --------------- */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 8 }}>
           <button
             className={layoutMode === 'split' ? 'toolbar-button active' : 'toolbar-button'}
@@ -1018,15 +1518,17 @@ useEffect(() => {
           >
             仅预览
           </button>
+
+          <button
+            className={showOutline ? "toolbar-button active" : "toolbar-button"}
+            onClick={() => setShowOutline(s => !s)}
+            title="显示 / 隐藏 目录"
+          >
+            📑 目录
+          </button>
+
         </div>
 
-
-        {/* <label
-          className={showPreview ? "active" : ""}
-          onClick={() => setShowPreview(!showPreview)}
-        >
-          🏳 预览
-        </label> */}
 
         <label className="toolbar-button">
           🌼 插入图片
@@ -1038,6 +1540,9 @@ useEffect(() => {
             style={{ display: 'none' }}
           />
         </label>
+        
+        <label onClick={handleExportHtml} className="toolbar-button">导出 HTML</label>
+
         {editorUploading && <span className="uploading">上传中...</span>}
 
         {/* 6. 创建主题选择下拉菜单 */}
@@ -1064,9 +1569,9 @@ useEffect(() => {
       </div>
 
       {/* <div className={`main ${showWechat ? "wechat-visible" : ""}`}> */}
-         {/* main 容器：基于 layoutMode 组合 class */}
-      <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode}`}>
-
+      {/* main 容器：基于 layoutMode 组合 class */}
+      {/* <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode}`}> */}
+      <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode} ${showOutline ? "outline-visible" : ""}`}>
         {/* <Editor
           ref={scrollEditorRef}
           value={content}
@@ -1083,13 +1588,13 @@ useEffect(() => {
           </div>
         </div> */}
 
-          {/* ---------- 编辑 + 预览 的渲染策略 ---------- */}
+        {/* ---------- 编辑 + 预览 的渲染策略 ---------- */}
 
         {/* 1) split（分栏）模式：左 Editor 右 Preview（默认） */}
         {/* 2) editor（仅编辑）: 只渲染编辑器，并居中（CSS 控制） */}
         {/* 3) preview（仅预览）: 只渲染预览，并居中 */}
         {/* 4) unified（合并）: 在同一列内纵向显示 编辑器（上） + 预览（下），类似 Obsidian 的“编辑区 + 实时预览” */}
-        
+
         {(layoutMode === "split" || layoutMode === "editor" || layoutMode === "unified") && (
           <div className="editor-wrapper">
             <Editor
@@ -1098,6 +1603,22 @@ useEffect(() => {
               onChange={setContent}
               onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
             />
+          </div>
+        )}
+
+        { /* 如果显示目录，在 editor 和 preview 之间渲染目录 */}
+        {showOutline && (
+          <div className="outline-wrapper">
+            <Outline headings={headings} onNavigate={(id) => {
+              // 点目录时滚动到预览中的对应标题
+              const el = document.getElementById(id);
+              if (el && previewRef.current) {
+                // 相对于 preview 容器滚动，使标题靠近顶部（留点 padding）
+                const container = previewRef.current;
+                const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 12;
+                container.scrollTo({ top, behavior: 'smooth' });
+              }
+            }} />
           </div>
         )}
 

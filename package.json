@@ -16,7 +16,8 @@
     "appId": "com.lingmd.app",
     "productName": "LingMD",
     "directories": {
-      "output": "dist_electron"
+      "output": "dist_electron",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -60,7 +61,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.1",
-    "electron": "^37.4.0",
+    "electron": "^37.5.0",
     "electron-builder": "^26.0.12",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",

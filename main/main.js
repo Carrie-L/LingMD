@@ -20,7 +20,26 @@ const os = require('os');
 
 
 let mainWindow;
-let previewWindow;
+let pendingFileToOpen = null; // 外部传入的文件路径优先级最高
+
+// helper: 判定是否是 markdown 文件（按需扩展）
+function isMarkdownFile(p) {
+  if (!p || typeof p !== 'string') return false;
+  const ext = path.extname(p).toLowerCase();
+  return ['.md', '.markdown'].includes(ext) && fs.existsSync(p);
+}
+
+// helper: 从 argv 数组中找第一个 markdown 文件路径
+function getFileFromArgv(argv) {
+  if (!Array.isArray(argv)) return null;
+  for (const a of argv) {
+    // skip electron exe path / app path
+    if (!a) continue;
+    // 在 Windows 下 args 有可能包裹 "C:\path\to\file.md"
+    if (isMarkdownFile(a)) return path.resolve(a);
+  }
+  return null;
+}
 
 // -------------------------------------------------------------------
 // 单例锁：确保应用只有一个实例
@@ -30,12 +49,32 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (event, argv) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-      const fileArg = argv.find((arg) => arg.endsWith(".md"));
-      if (fileArg && fs.existsSync(fileArg)) {
-        mainWindow.webContents.send("load-last-file", fileArg);
+    // if (mainWindow) {
+    //   if (mainWindow.isMinimized()) mainWindow.restore();
+    //   mainWindow.focus();
+    //   const fileArg = argv.find((arg) => arg.endsWith(".md"));
+    //   if (fileArg && fs.existsSync(fileArg)) {
+    //     mainWindow.webContents.send("load-last-file", fileArg);
+    //   }
+    // }
+
+     // argv 在 Windows/Linux 下包含新打开的文件路径
+    const file = getFileFromArgv(argv);
+    if (file) {
+      // 如果窗口已经存在，立刻打开并激活窗口
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+        openFileInWindow(file);
+      } else {
+        // 否则放到 pending，窗口创建时会处理
+        pendingFileToOpen = file;
+      }
+    } else {
+      // 没有外部文件，也可以把已有窗口激活
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
       }
     }
   });
@@ -197,11 +236,30 @@ ipcMain.handle('exit-fullscreen', (event) => {
   }
 });
 
+const LOGFILE = path.join(app.getPath('userData'), 'electron.log');
+function safeLog(...args) {
+  try {
+    const line = `[${new Date().toISOString()}] ${args.map(a => {
+      try { return typeof a === 'string' ? a : JSON.stringify(a); } catch(e){ return String(a); }
+    }).join(' ')}\n`;
+    fs.appendFileSync(LOGFILE, line);
+  } catch (e) { console.error('写日志失败', e); }
+  try { console.log(...args); } catch (e) {}
+}
+
+// 一次性保护，避免重复声明
+if (!globalThis.__ling_logger_defined) {
+  globalThis.__ling_logger_defined = true;
+  globalThis.appLog = safeLog;
+}
+const log0 = globalThis.appLog;
 
 // -------------------------------------------------------------------
 // 主窗口创建
 // -------------------------------------------------------------------
 function createWindow() {
+  log0('createWindow enter. app.isPackaged=', app.isPackaged, ' __dirname=', __dirname, ' resourcesPath=', process.resourcesPath);
+
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
@@ -210,6 +268,7 @@ function createWindow() {
 
       // ✅ 关键修复：允许 preload 脚本使用 Node.js 的 'require'
       contextIsolation: true,
+      nodeIntegration: false,
       sandbox: false,
       // ✅ 关键修复：同样为预览窗口禁用 webSecurity
       webSecurity: false,
@@ -217,10 +276,69 @@ function createWindow() {
   });
  
 
+ // 将渲染器 console 输出写入日志（方便定位前端错误）
+  mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
+    log('Renderer console:', { level, message, line, sourceId });
+  });
 
-  // 默认打开开发者工具，方便调试
-  mainWindow.webContents.openDevTools();
-  mainWindow.loadURL("http://127.0.0.1:5173");
+  // 监听加载失败
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    log('did-fail-load', { errorCode, errorDescription, validatedURL, isMainFrame });
+  });
+
+  // 页面加载完
+  mainWindow.webContents.on('did-finish-load', () => {
+    log('did-finish-load ok, url=', mainWindow.webContents.getURL());
+  });
+
+  // 打开 DevTools：开发时自动打开，生产环境默认不打开
+  // if (!app.isPackaged) {
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // }
+  // 根据是否打包加载不同资源
+  if (app.isPackaged) {
+    // 注意：__dirname 在打包后指向 .../resources/app.asar/main
+    // dist 在 app.asar/dist，因此使用 ../dist/index.html
+    const indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+    log('Production mode: loading file', indexPath);
+    mainWindow
+      .loadFile(indexPath)
+      .then(() => {
+        log('loadFile ok', indexPath);
+      })
+      .catch((err) => {
+        log('loadFile error', err && (err.stack || err.message || err));
+        // 失败时打开 devtools 以便人工排查（改成 true 可在生产调试）
+        // mainWindow.webContents.openDevTools({ mode: 'detach' });
+      });
+  } else {
+    const devUrl = 'http://127.0.0.1:5173';
+    log('Dev mode: loading url', devUrl);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow
+      .loadURL(devUrl)
+      .then(() => {
+        log('loadURL ok', devUrl);
+      })
+      .catch((err) => {
+        log('loadURL error', err && (err.stack || err.message || err));
+      });
+  }
+
+  mainWindow.once('ready-to-show', () => {
+    // 显示窗口
+    mainWindow.show();
+
+    // 优先处理来自外部（双击等）的文件请求
+    if (pendingFileToOpen) {
+      const fileToOpen = pendingFileToOpen;
+      pendingFileToOpen = null;
+      openFileInWindow(fileToOpen);
+    } else {
+      // 没有外部文件，按你原来的逻辑恢复上一次打开的文件
+      // loadLastOpenedFileIfAny && loadLastOpenedFileIfAny();
+    }
+  });
 
   mainWindow.webContents.once("did-finish-load", () => {
     const lastFile = store.get("lastFile");
@@ -229,36 +347,32 @@ function createWindow() {
     }
   });
 
-  //  mainWindow.webContents.openDevTools({ mode: 'detach' }); // 临时加,用于调试
+  // 窗口关闭处理
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 // -------------------------------------------------------------------
 // 应用生命周期
 // -------------------------------------------------------------------
 app.whenReady().then(() => {
-  // 注册自定义协议，用于安全加载本地图片
-  // ✅ 修复后的 safe-file 协议
-  // ✅ 2. 使用更健壮的 protocol.handle 实现
+  
+  // 注册自定义协议，用于安全加载本地图片（保留你原有实现）
   protocol.handle("safe-file", (request) => {
     try {
-      // Swap our custom protocol for the standard 'file:' protocol
       const standardFileUrl = request.url.replace("safe-file:", "file:");
-
-      console.log(
-        `[safe-file] Forwarding to net.fetch with URL: ${standardFileUrl}`
-      );
-
-      // Let Electron's built-in, powerful fetch handler do the work.
-      // It knows how to correctly handle valid file:// URLs.
+      console.log(`[safe-file] Forwarding to net.fetch with URL: ${standardFileUrl}`);
       return net.fetch(standardFileUrl);
     } catch (err) {
-      console.error(
-        `[safe-file] Failed to handle request for ${request.url}:`,
-        err
-      );
+      console.error(`[safe-file] Failed to handle request for ${request.url}:`, err);
       return new Response("Not Found", { status: 404 });
     }
   });
+
+  // 如果第一次启动时命令行参数里带有文件（例如双击启动），优先记录
+  const startFile = getFileFromArgv(process.argv);
+  if (startFile) pendingFileToOpen = startFile;
 
   createWindow();
 
@@ -278,10 +392,13 @@ app.on("window-all-closed", () => {
 // -------------------------------------------------------------------
 
 function getDefaultDir() {
-  const customDir = store.get("defaultDir");
+  const customDir = store.get('defaultDir');
   if (customDir && fs.existsSync(customDir)) return customDir;
-  const fallback = path.join(app.getPath("documents"), "LingMD");
-  if (!fs.existsSync(fallback)) fs.mkdirSync(fallback, { recursive: true });
+  const fallback = path.join(app.getPath('documents'), 'LingMD');
+  if (!fs.existsSync(fallback)) {
+    try { fs.mkdirSync(fallback, { recursive: true }); }
+    catch (e) { /* 若没有权限或其他问题，返回 fallback 路径字符串但不抛 */ }
+  }
   return fallback;
 }
 
@@ -302,6 +419,27 @@ ipcMain.handle("read-file", (event, filePath) => {
   }
   return null;
 });
+
+// ---- 新增：在 main.js 中添加 show-save-dialog handler ----
+ipcMain.handle("show-save-dialog", async (event, { defaultPath }) => {
+  // 在窗口上弹出保存对话框并返回用户选择的路径（或 null）
+  try {
+    const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+    const options = {
+      title: "保存文件",
+      defaultPath: defaultPath || getDefaultDir(),
+      buttonLabel: "保存",
+      filters: [{ name: "Markdown", extensions: ["md"] }],
+    };
+    const res = await dialog.showSaveDialog(win, options);
+    if (res.canceled || !res.filePath) return { canceled: true, filePath: null };
+    return { canceled: false, filePath: res.filePath };
+  } catch (err) {
+    console.error("show-save-dialog error:", err);
+    return { canceled: true, filePath: null, error: err.message || String(err) };
+  }
+});
+
 
 // 更稳健的 save-file handler（会处理 filePath 为目录 / 空值 的情况）
 ipcMain.handle("save-file", async (event, content, filePath) => {
@@ -364,13 +502,27 @@ ipcMain.handle("new-file", async () => {
 });
 
 ipcMain.handle("set-default-dir", async () => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    properties: ["openDirectory"],
+  // const { canceled, filePaths } = await dialog.showOpenDialog({
+  //   properties: ["openDirectory"],
+  // });
+  // if (canceled || !filePaths.length) return null;
+  // const dir = filePaths[0];
+  // store.set("defaultDir", dir);
+  // return dir;
+
+   // 弹出目录选择对话框，返回所选路径或 null
+  const win = BrowserWindow.getFocusedWindow();
+  const res = await require('electron').dialog.showOpenDialog(win, {
+    properties: ['openDirectory']
   });
-  if (canceled || !filePaths.length) return null;
-  const dir = filePaths[0];
-  store.set("defaultDir", dir);
-  return dir;
+  if (res.canceled || !res.filePaths || !res.filePaths[0]) return null;
+  const selected = res.filePaths[0];
+  try {
+    store.set('defaultDir', selected);
+  } catch (e) {
+    console.error('保存 defaultDir 失败', e);
+  }
+  return selected;
 });
 
 ipcMain.handle("get-default-dir", async () => getDefaultDir());
@@ -495,28 +647,7 @@ ipcMain.handle(
   (event, filePath) => `safe-file://${path.normalize(filePath)}`
 );
 
-ipcMain.on("open-preview", () => {
-  if (previewWindow) {
-    previewWindow.focus();
-    return;
-  }
-  previewWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      contextIsolation: true,
-      sandbox: false,
-      // ✅ 关键修复：允许 http://localhost 加载本地资源
-      // 这对于在开发服务器(vite)环境下显示 safe-file:// 协议的图片至关重要
-      webSecurity: false,
-    },
-  });
-  previewWindow.on("closed", () => {
-    previewWindow = null;
-  });
-  previewWindow.loadURL("http://127.0.0.1:5173?mode=preview");
-});
+
 
 // ===================================================================
 // ✅ (终极版) 为公众号复制功能转换 HTML

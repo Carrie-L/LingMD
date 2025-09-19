@@ -1,27 +1,33 @@
-import React from "react";
+// Outline.jsx
+import React from 'react';
 
-export default function Outline({ value }) {
-  const lines = value.split("\n");
-  const headings = lines
-    .map((line, i) => {
-      const match = line.match(/^(#{1,6})\s+(.*)/);
-      if (match) {
-        return { level: match[1].length, text: match[2], line: i };
-      }
-      return null;
-    })
-    .filter(Boolean);
+export default function Outline({ headings = [], onNavigate }) {
+  if (!headings || headings.length === 0) {
+    return (
+      <div className="outline empty">
+        <div style={{padding: 12, color: '#666'}}>无标题 — 请在文档中添加 # / ## / ### 标题</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="outline">
-      <h3>目录</h3>
+    <nav className="outline">
       <ul>
-        {headings.map((h, idx) => (
-          <li key={idx} style={{ marginLeft: (h.level - 1) * 12 }}>
-            {h.text}
+        {headings.map(h => (
+          <li key={h.id} style={{ paddingLeft: (h.level - 1) * 10 }}>
+            <a
+              href={"#"+h.id}
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigate) onNavigate(h.id);
+              }}
+              title={h.text}
+            >
+              {h.text}
+            </a>
           </li>
         ))}
       </ul>
-    </div>
+    </nav>
   );
 }

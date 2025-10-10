@@ -596,10 +596,9 @@ function App() {
   //   }
   // }, []); // 空依赖数组确保只运行一次
 
-  // ====== 新增：布局模式状态 ======
-  // 'split'（默认两栏），'editor'（只编辑），'preview'（只预览），'unified'（编辑+预览在同一列）
-  const [layoutMode, setLayoutMode] = useState("split");
-  const [showOutline, setShowOutline] = useState(false);
+  // ====== 布局状态 ======
+  const [viewMode, setViewMode] = useState("edit"); // "edit" | "preview"
+  const [showOutline, setShowOutline] = useState(true); // 默认显示目录
   const [headings, setHeadings] = useState([]); // Outline 要的数据 
   const [defaultDir, setDefaultDir] = useState("");
   const [lastSaveDir, setLastSaveDir] = useState(null);
@@ -752,97 +751,108 @@ function App() {
   //   });
   // }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
 
-  // 替换原来依赖 sanitizedHtml 的 useEffect
+  // 优化后的 mermaid 渲染逻辑：防止重复渲染和消失
   useEffect(() => {
-    mermaidInitialized.then(() => {
+
+    let rafId;
+    let timeoutId;
+
+    const renderMermaid = async () => {
+      await mermaidInitialized;
+
       const container = previewRef.current;
       if (!container) return;
 
-      const nodes = Array.from(container.querySelectorAll('.mermaid'));
+      const nodes = Array.from(container.querySelectorAll('.mermaid:not([data-processed])'));
       if (!nodes.length) return;
 
-      let cancelled = false;
+      console.log(`[Mermaid] Found ${nodes.length} unprocessed mermaid blocks`);
 
-      // helper: 等待节点变为可见（有宽度）或超时
-      const waitVisible = (el, timeout = 1000) => new Promise((resolve) => {
-        if (el.clientWidth > 0 && el.offsetHeight > 0) return resolve(true);
-        let waited = 0;
-        const interval = 50;
-        const id = setInterval(() => {
-          if (cancelled) { clearInterval(id); return resolve(false); }
-          waited += interval;
-          if (el.clientWidth > 0 && el.offsetHeight > 0) {
-            clearInterval(id);
-            return resolve(true);
-          }
-          if (waited >= timeout) {
-            clearInterval(id);
-            return resolve(false);
-          }
-        }, interval);
-      });
+      nodes.forEach(async (node, index) => {
+        const code = node.textContent?.trim();
+        if (!code) return;
 
-      // 按节点逐个渲染（更稳）
-      const renderAll = async () => {
-        for (let i = 0; i < nodes.length; i++) {
-          if (cancelled) break;
-          const node = nodes[i];
-          const code = node.textContent || node.innerText || '';
-          if (!code.trim()) continue;
+        // 标记为已处理，防止重复渲染
+        node.setAttribute('data-processed', 'true');
 
-          const visible = await waitVisible(node, 800); // 如果节点不可见可延长超时
-          if (!visible) {
-            // 如果不可见，跳过或稍后再重试（防止 render 结果为 0）
-            // 这里我们做一次短延迟再试一次
-            await new Promise(r => setTimeout(r, 120));
-          }
+        const id = `mermaid-preview-${Date.now()}-${index}`;
 
-          // 尝试用 mermaid.mermaidAPI.render（按节点渲染），回退使用 mermaid.init
-          try {
-            const id = `mermaid-${Date.now()}-${i}`;
-            // mermaid.parse.render 需要 mermaid 已初始化
-            if (mermaid.render && mermaid.mermaidAPI.render) {
-              // callback 将返回 SVG 字符串
-              mermaid.mermaidAPI.render(id, code, (svgCode) => {
-                // 将容器替换为渲染好的 svg
-                node.innerHTML = svgCode;
-              }, node);
-            } else {
-              // fallback to init on the single node
-              mermaid.init(undefined, node);
-            }
-          } catch (err) {
-            console.warn('Mermaid render failed for node, fallback to init:', err);
-            try { mermaid.init(undefined, node); } catch (e) { console.error('mermaid.init fallback failed', e); }
-          }
-        }
-      };
-
-      // schedule on next frame (并做一个短退避重试)
-      const rafId = requestAnimationFrame(() => {
-        renderAll().catch(e => console.error('renderAll error', e));
-      });
-
-      // 保险重试：在小延迟后再次运行（某些环境下 innerHTML 还没最终 layout）
-      const retryTimer = setTimeout(() => {
-        if (cancelled) return;
         try {
-          // 再次调用 init 整体节点（防止个别失败）
-          mermaid.init(undefined, container.querySelectorAll('.mermaid'));
-        } catch (e) {
-          console.error('mermaid.init retry failed', e);
+          // 使用 mermaid v10+ 的 render API
+          const { svg } = await mermaid.render(id, code);
+          if (node.getAttribute('data-processed') === 'true') {
+            node.innerHTML = svg;
+            console.log(`[Mermaid] Rendered block ${index}`);
+          }
+        } catch (err) {
+          console.error(`[Mermaid] Render failed for block ${index}:`, err);
+          node.setAttribute('data-processed', 'false');
+          // 显示错误信息
+          node.innerHTML = `<pre style="color: red;">Mermaid render error: ${err.message}</pre>`;
         }
-      }, 120);
+      });
+    };
 
-      return () => {
-        cancelled = true;
-        cancelAnimationFrame(rafId);
-        clearTimeout(retryTimer);
-      };
-    });
+    // 延迟渲染，确保 DOM 已稳定
+    timeoutId = setTimeout(() => {
+      rafId = requestAnimationFrame(renderMermaid);
+    }, 100);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [sanitizedHtml]);
 
+  // 同样处理 wechatRef 的 mermaid 渲染
+  useEffect(() => {
+    if (!showWechat) return;
 
+    let rafId;
+    let timeoutId;
+
+    const renderMermaid = async () => {
+      await mermaidInitialized;
+
+      const container = wechatRef.current;
+      if (!container) return;
+
+      const nodes = Array.from(container.querySelectorAll('.mermaid:not([data-processed])'));
+      if (!nodes.length) return;
+
+      console.log(`[Mermaid WeChat] Found ${nodes.length} unprocessed mermaid blocks`);
+
+      nodes.forEach(async (node, index) => {
+        const code = node.textContent?.trim();
+        if (!code) return;
+
+        node.setAttribute('data-processed', 'true');
+
+        const id = `mermaid-wechat-${Date.now()}-${index}`;
+
+        try {
+          const { svg } = await mermaid.render(id, code);
+          if (node.getAttribute('data-processed') === 'true') {
+            node.innerHTML = svg;
+            console.log(`[Mermaid WeChat] Rendered block ${index}`);
+          }
+        } catch (err) {
+          console.error(`[Mermaid WeChat] Render failed for block ${index}:`, err);
+          node.setAttribute('data-processed', 'false');
+          node.innerHTML = `<pre style="color: red;">Mermaid render error: ${err.message}</pre>`;
+        }
+      });
+    };
+
+    timeoutId = setTimeout(() => {
+      rafId = requestAnimationFrame(renderMermaid);
+    }, 100);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [sanitizedHtml, showWechat]);
 
   // 目录 Outline
   // previewRef 已经在你文件里（useBasicScrollSync 返回），我们用它来扫描 headings
@@ -1495,39 +1505,21 @@ const styledHTML = `
         <label onClick={handleOpen} className="toolbar-button" >打开</label>
         <label onClick={handleSave} className="toolbar-button">保存</label>
 
-        {/* --------------- 新增：布局切换按钮 --------------- */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 8 }}>
-          <button
-            className={layoutMode === 'split' ? 'toolbar-button active' : 'toolbar-button'}
-            onClick={() => setLayoutMode('split')}
-            title="双栏（编辑 + 预览）"
-          >
-            分栏
-          </button>
-          <button
-            className={layoutMode === 'editor' ? 'toolbar-button active' : 'toolbar-button'}
-            onClick={() => setLayoutMode('editor')}
-            title="仅显示编辑器"
-          >
-            仅编辑
-          </button>
-          <button
-            className={layoutMode === 'preview' ? 'toolbar-button active' : 'toolbar-button'}
-            onClick={() => setLayoutMode('preview')}
-            title="仅显示预览"
-          >
-            仅预览
-          </button>
-
-          <button
-            className={showOutline ? "toolbar-button active" : "toolbar-button"}
-            onClick={() => setShowOutline(s => !s)}
-            title="显示 / 隐藏 目录"
-          >
-            📑 目录
-          </button>
-
-        </div>
+        {/* 视图切换按钮 */}
+        <button
+          className={viewMode === 'edit' ? 'toolbar-button active' : 'toolbar-button'}
+          onClick={() => setViewMode('edit')}
+          title="编辑模式（左编辑右预览）"
+        >
+          编辑
+        </button>
+        <button
+          className={viewMode === 'preview' ? 'toolbar-button active' : 'toolbar-button'}
+          onClick={() => setViewMode('preview')}
+          title="仅预览模式"
+        >
+          仅预览
+        </button>
 
 
         <label className="toolbar-button">
@@ -1568,73 +1560,136 @@ const styledHTML = `
         )}
       </div>
 
-      {/* <div className={`main ${showWechat ? "wechat-visible" : ""}`}> */}
-      {/* main 容器：基于 layoutMode 组合 class */}
-      {/* <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode}`}> */}
-      <div className={`main ${showWechat ? "wechat-visible" : ""} layout-${layoutMode} ${showOutline ? "outline-visible" : ""}`}>
-        {/* <Editor
-          ref={scrollEditorRef}
-          value={content}
-          onChange={setContent}
-          onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
-        />
-        <div className="preview">
-          <div className="preview-inner">
-            <div
-              className="markdown-body"
-              ref={scrollPreviewRef}   // <- 把 ref 绑定到真实滚动元素
-              dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-            />
-          </div>
-        </div> */}
+      {/* 主布局：目录 + 内容区 + 微信区 */}
+      <div className={`main ${showWechat ? "wechat-visible" : ""} ${showOutline ? "outline-visible" : ""} mode-${viewMode}`}>
 
-        {/* ---------- 编辑 + 预览 的渲染策略 ---------- */}
-
-        {/* 1) split（分栏）模式：左 Editor 右 Preview（默认） */}
-        {/* 2) editor（仅编辑）: 只渲染编辑器，并居中（CSS 控制） */}
-        {/* 3) preview（仅预览）: 只渲染预览，并居中 */}
-        {/* 4) unified（合并）: 在同一列内纵向显示 编辑器（上） + 预览（下），类似 Obsidian 的“编辑区 + 实时预览” */}
-
-        {(layoutMode === "split" || layoutMode === "editor" || layoutMode === "unified") && (
-          <div className="editor-wrapper">
-            <Editor
-              ref={scrollEditorRef}
-              value={content}
-              onChange={setContent}
-              onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
-            />
-          </div>
-        )}
-
-        { /* 如果显示目录，在 editor 和 preview 之间渲染目录 */}
+        {/* 左侧目录 */}
         {showOutline && (
           <div className="outline-wrapper">
             <Outline headings={headings} onNavigate={(id) => {
-              // 点目录时滚动到预览中的对应标题
+              console.log('目录点击，id:', id);
+
+              // 点目录时，同时滚动编辑器、预览和微信区
               const el = document.getElementById(id);
-              if (el && previewRef.current) {
-                // 相对于 preview 容器滚动，使标题靠近顶部（留点 padding）
+              console.log('找到元素:', el);
+
+              if (!el) {
+                console.warn('未找到元素 id:', id);
+                return;
+              }
+
+              // 1. 滚动预览区
+              if (previewRef.current) {
+                console.log('滚动预览区');
                 const container = previewRef.current;
-                const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 12;
+                const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - 20;
                 container.scrollTo({ top, behavior: 'smooth' });
+              } else {
+                console.warn('previewRef.current 为空');
+              }
+
+              // 2. 滚动微信区（如果存在）
+              if (wechatRef.current && showWechat) {
+                console.log('滚动微信区');
+                // 在微信区查找相同 id 的元素
+                const wechatEl = wechatRef.current.querySelector(`#${CSS.escape(id)}`);
+                if (wechatEl) {
+                  const top = wechatEl.getBoundingClientRect().top - wechatRef.current.getBoundingClientRect().top + wechatRef.current.scrollTop - 20;
+                  wechatRef.current.scrollTo({ top, behavior: 'smooth' });
+                }
+              }
+
+              // 3. 滚动编辑器到对应位置（根据标题在内容中的位置）
+              if (scrollEditorRef.current && scrollEditorRef.current.el) {
+                console.log('滚动编辑器');
+                try {
+                  // 获取标题文本
+                  const headingText = el.textContent || '';
+                  const editorTextarea = scrollEditorRef.current.el;
+                  const editorContent = editorTextarea.value || '';
+
+                  // 在编辑器内容中查找标题
+                  // 尝试多种标题格式：# 标题, ## 标题, ### 标题 等
+                  const patterns = [
+                    new RegExp(`^#{1,6}\\s+${headingText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'm'),
+                    new RegExp(headingText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+                  ];
+
+                  let matchIndex = -1;
+                  for (const pattern of patterns) {
+                    const match = editorContent.match(pattern);
+                    if (match && match.index !== undefined) {
+                      matchIndex = match.index;
+                      break;
+                    }
+                  }
+
+                  if (matchIndex >= 0) {
+                    // 计算到该位置的行数
+                    const textBefore = editorContent.substring(0, matchIndex);
+                    const linesBefore = textBefore.split('\n').length - 1;
+
+                    // 估算滚动位置（基于行高）
+                    const lineHeight = 2.5 * 15; // line-height * font-size
+                    const scrollTop = linesBefore * lineHeight;
+
+                    editorTextarea.scrollTop = scrollTop;
+                    console.log('编辑器已滚动到行:', linesBefore);
+                  } else {
+                    console.warn('未在编辑器中找到标题:', headingText);
+                  }
+                } catch (err) {
+                  console.warn('编辑器滚动失败:', err);
+                }
+              } else {
+                console.warn('scrollEditorRef.current 或 .el 为空');
               }
             }} />
           </div>
         )}
 
-        {(layoutMode === "split" || layoutMode === "preview" || layoutMode === "unified") && (
-          <div className="preview-wrapper">
-            <div className="preview">
-              <div className="preview-inner">
-                <div
-                  className="markdown-body"
-                  ref={scrollPreviewRef}
-                  dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+        {/* 中间内容区 */}
+        <div className="content-area">
+          {/* 编辑模式：左右分栏 */}
+          {viewMode === 'edit' && (
+            <>
+              <div className="editor-wrapper">
+                <Editor
+                  ref={scrollEditorRef}
+                  value={content}
+                  onChange={setContent}
+                  onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
                 />
               </div>
+              <div className="preview-wrapper">
+                <div className="preview">
+                  <div className="preview-inner">
+                    <div
+                      className="markdown-body"
+                      ref={scrollPreviewRef}
+                      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 仅预览模式：只显示预览 */}
+          {viewMode === 'preview' && (
+            <div className="preview-wrapper preview-only">
+              <div className="preview">
+                <div className="preview-inner">
+                  <div
+                    className="markdown-body"
+                    ref={scrollPreviewRef}
+                    dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* 公众号区 */}
         {showWechat && (

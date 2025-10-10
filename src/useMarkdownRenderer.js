@@ -298,14 +298,14 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
         rawHtml.substring(0, 300)
       );
 
-      // ====== 新增步骤：把 mermaid div 预渲染为内联 SVG（方案 B） ======
-      try {
-        rawHtml = await renderMermaidBlocksToSvg(rawHtml);
-        console.log("[Renderer] mermaid blocks rendered to SVG where possible");
-      } catch (e) {
-        console.warn("[Renderer] renderMermaidBlocksToSvg failed:", e);
-        // 失败时回退到不做替换的 rawHtml（后续仍会走 sanitize）
-      }
+      // ====== 注释掉预渲染步骤，改为在 DOM 插入后由 App.jsx 统一渲染 ======
+      // try {
+      //   rawHtml = await renderMermaidBlocksToSvg(rawHtml);
+      //   console.log("[Renderer] mermaid blocks rendered to SVG where possible");
+      // } catch (e) {
+      //   console.warn("[Renderer] renderMermaidBlocksToSvg failed:", e);
+      //   // 失败时回退到不做替换的 rawHtml（后续仍会走 sanitize）
+      // }
 
       // 4. 清理 HTML，确保 mermaid 相关的标签和属性不被移除
       const sanitizedHtml = DOMPurify.sanitize(rawHtml, {

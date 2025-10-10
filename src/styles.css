@@ -189,6 +189,90 @@ html, body {
   height: calc(100% - 20px);
 }
 
+/* ========== 主布局 Grid ========== */
+
+/* 基础布局：只有内容区 */
+.main {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 有目录：目录 + 内容区 */
+.main.outline-visible {
+  grid-template-columns: minmax(200px, 300px) 1fr;
+}
+
+/* 无目录 + 有微信：内容区 + 微信 */
+.main.wechat-visible:not(.outline-visible) {
+  grid-template-columns: 1fr 375px;
+}
+
+/* 有目录 + 有微信：目录 + 内容区 + 微信 */
+.main.outline-visible.wechat-visible {
+  grid-template-columns: minmax(200px, 300px) 1fr 375px;
+}
+
+/* ========== 内容区布局 ========== */
+
+/* 内容区容器 */
+.content-area {
+  display: flex;
+  justify-content: center; /* 居中显示 */
+  align-items: stretch;
+  gap: 10px;
+  height: 100%;
+  margin: 0px auto;
+  max-width: 2400px; /* 限制最大宽度 */
+  overflow: hidden;
+}
+
+/* 编辑模式：编辑器和预览各占一半，贴在一起居中 */
+.mode-edit .content-area {
+  display: flex;
+  gap: 24px; /* 增加间距 */
+}
+
+.mode-edit .editor-wrapper {
+  flex: 1;
+  min-width: 300px;
+  max-width: 1200px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.mode-edit .editor-wrapper .editor {
+  height: 100%;
+  padding-top: 20px; /* 增加顶部内边距 */
+}
+
+.mode-edit .preview-wrapper {
+  flex: 1;
+  min-width: 300px;
+  max-width: 1200px;
+  height: 100%;
+}
+
+.mode-edit .preview-wrapper .preview {
+  height: 100%;
+  margin: 0;
+  padding-top: 20px; /* 增加顶部内边距 */
+}
+
+
+
+/* 仅预览模式：预览居中 */
+.mode-preview .content-area {
+  display: flex;
+  justify-content: center;
+}
+
+.mode-preview .preview-wrapper {
+  width: 100%;
+  max-width: 1100px;
+  height: 100%;
+}
+
 
 /* ========== 微信栏与模式组合 ========== */
 /* 如果同时显示 wechat（.wechat-visible），并且在 editor/preview/unified 模式下，
@@ -204,6 +288,10 @@ html, body {
 }
 .main.wechat-visible.layout-preview {
   /* 只有预览 + 右侧 wechat */
+  grid-template-columns: 1fr 375px !important;
+}
+.main.wechat-visible.layout-unified {
+  /* 统一视图 + 右侧 wechat */
   grid-template-columns: 1fr 375px !important;
 }
 
@@ -376,15 +464,14 @@ html, body {
 }
 
 .wechat-export {
-  width: 375px;            /* 固定宽度（和你主意一致） */
-  flex: none;              /* 不让 flex/grid 拉伸或收缩 */
+  width: 375px;            /* 固定宽度 */
   min-width: 375px;
   max-width: 375px;
   box-sizing: border-box;
   overflow-x: hidden;      /* 禁止水平滚动 */
-  overflow-y: auto;        /* 纵向滚动由内部处理 */
-  height: 100%;            /* 占满父容器高度（父容器负责高度计算） */
-  height: 100%;
+  overflow-y: auto;        /* 纵向滚动 */
+  height: 100%;            /* 占满父容器高度 */
+  margin-right: 10px;      /* 右边距 */
   font-family: 
           "PingFang SC", "Microsoft YaHei",
           "Kaiti SC", "KaiTi",
@@ -821,9 +908,10 @@ html, body {
   text-align: center;
   margin: 1.5em 0;
   display: flex;
-  width: 800px !important;
-  min-width: 600px;   
-  overflow-x: auto; 
+  width: 300px !important;
+  min-width: 600px;
+  max-height: 800px; /* 最大高度限制 */
+  overflow: auto; /* 超过高度可滚动 */
   box-sizing: border-box;
   max-width: 100%;
   justify-content: center;
@@ -833,6 +921,7 @@ html, body {
 
 .markdown-body .mermaid svg {
   max-width: 100%;
+  max-height: 800px; /* SVG 最大高度 */
   height: auto;
   width: 800px;
   text-align: center;

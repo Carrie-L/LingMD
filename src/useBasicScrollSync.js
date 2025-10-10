@@ -71,20 +71,40 @@ export const useBasicScrollSync = (enabled = true, opts = {}) => {
   const getScrollPercentage = useCallback((el) => {
     if (!el) return 0;
     const { scrollTop, scrollHeight, clientHeight } = el;
-    const max = scrollHeight - clientHeight;
-    if (max <= 0) return 0;
-    return scrollTop / max;
+    const maxScroll = scrollHeight - clientHeight;
+
+    // 边界处理：精确对齐顶部和底部（使用容差处理浮点数精度问题）
+    if (maxScroll <= 0) return 0;
+    if (scrollTop <= 1) return 0;  // 容差 1px
+    if (scrollTop >= maxScroll - 1) return 1;  // 容差 1px
+
+    return scrollTop / maxScroll;
   }, []);
 
   // 根据百分比滚动（直接设置 scrollTop）
   const scrollToPercentage = useCallback((el, percentage) => {
     if (!el) return;
-    const { scrollHeight, clientHeight } = el;
-    const max = scrollHeight - clientHeight;
-    if (max <= 0) return;
-    const target = Math.round(percentage * max);
-    // 直接设置，不要使用 smooth 行为（会产生大量中间 scroll 事件）
-    el.scrollTop = target;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const maxScroll = scrollHeight - clientHeight;
+    if (maxScroll <= 0) return;
+
+    // 边界处理：精确对齐顶部和底部
+    if (percentage === 0) {
+      // 如果已经在顶部附近，跳过（避免反向滚动）
+      if (scrollTop <= 1) return;
+      el.scrollTop = 0;
+      return;
+    }
+    if (percentage === 1) {
+      // 如果已经在底部附近，跳过（避免反向滚动）
+      if (scrollTop >= maxScroll - 1) return;
+      el.scrollTop = maxScroll;
+      return;
+    }
+
+    // 应用滚动比例
+    const targetScrollTop = percentage * maxScroll;
+    el.scrollTop = targetScrollTop;
   }, []);
 
   // 将一次“用户滚动”同步到别处（节流 rAF）

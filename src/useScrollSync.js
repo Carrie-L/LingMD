@@ -28,16 +28,33 @@ export const useScrollSync = (content, enabled = true) => {
   }, []);
 
   // 计算预览区中对应的位置
-  const scrollToLineInPreview = useCallback((targetElement, lineIndex, lineHeight) => {
+  const scrollToLineInPreview = useCallback((targetElement, lineIndex, lineHeight, sourceScrollTop, sourceMaxScroll) => {
     if (!targetElement) return;
-    
+
+    // 检查源元素是否在顶部或底部（容差 1px）
+    const isAtTop = sourceScrollTop <= 1;
+    const isAtBottom = sourceScrollTop >= sourceMaxScroll - 1;
+
+    if (isAtTop) {
+      // 强制滚动到顶部
+      targetElement.scrollTop = 0;
+      return;
+    }
+
+    if (isAtBottom) {
+      // 强制滚动到底部
+      const maxScroll = targetElement.scrollHeight - targetElement.clientHeight;
+      targetElement.scrollTop = maxScroll;
+      return;
+    }
+
     // 在预览区查找对应的元素位置
     const scrollPosition = lineIndex * lineHeight;
-    
+
     // 确保滚动位置在有效范围内
     const maxScroll = targetElement.scrollHeight - targetElement.clientHeight;
     const finalScrollPosition = Math.min(scrollPosition, maxScroll);
-    
+
     targetElement.scrollTop = Math.max(0, finalScrollPosition);
   }, []);
 
@@ -68,33 +85,46 @@ export const useScrollSync = (content, enabled = true) => {
 
     const syncFromEditor = () => {
       if (isScrollingRef.current) return;
-      
+
       isScrollingRef.current = true;
-      
+
       try {
         const { line, lineHeight } = getEditorLineInfo(editor);
-        
+        const { scrollTop, scrollHeight, clientHeight } = editor;
+        const maxScroll = scrollHeight - clientHeight;
+
         // 同步到预览区
         if (preview) {
-          scrollToLineInPreview(preview, line, lineHeight);
+          scrollToLineInPreview(preview, line, lineHeight, scrollTop, maxScroll);
         }
-        
+
         // 同步到微信预览区
         if (wechat) {
-          scrollToLineInPreview(wechat, line, lineHeight);
+          scrollToLineInPreview(wechat, line, lineHeight, scrollTop, maxScroll);
         }
       } catch (error) {
         console.warn('Editor sync error:', error);
-        
+
         // 降级到比例同步
         const { scrollTop, scrollHeight, clientHeight } = editor;
         const maxScroll = scrollHeight - clientHeight;
-        const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
-        
+
+        // 检查顶部和底部
+        const isAtTop = scrollTop <= 1;
+        const isAtBottom = scrollTop >= maxScroll - 1;
+
         [preview, wechat].forEach(target => {
           if (target && target !== editor) {
-            const targetMaxScroll = target.scrollHeight - target.clientHeight;
-            target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+            if (isAtTop) {
+              target.scrollTop = 0;
+            } else if (isAtBottom) {
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = targetMaxScroll;
+            } else {
+              const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+            }
           }
         });
       }
@@ -109,45 +139,84 @@ export const useScrollSync = (content, enabled = true) => {
 
     const syncFromPreview = (sourceElement) => {
       if (isScrollingRef.current) return;
-      
+
       isScrollingRef.current = true;
-      
+
       try {
-        const editorLine = getEditorLineFromPreviewScroll(sourceElement, editor);
-        
-        // 滚动编辑器到对应行
-        const textarea = editor.querySelector('textarea');
-        if (textarea) {
-          const computedStyle = window.getComputedStyle(textarea);
-          const lineHeight = parseInt(computedStyle.lineHeight) || 20;
-          const targetScrollTop = editorLine * lineHeight;
-          const maxScroll = editor.scrollHeight - editor.clientHeight;
-          editor.scrollTop = Math.min(targetScrollTop, maxScroll);
-        }
-        
-        // 同步到另一个预览区
-        const targets = [preview, wechat].filter(el => el && el !== sourceElement);
-        targets.forEach(target => {
-          if (target) {
-            const { scrollTop, scrollHeight, clientHeight } = sourceElement;
-            const maxScroll = scrollHeight - clientHeight;
-            const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
-            const targetMaxScroll = target.scrollHeight - target.clientHeight;
-            target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+        const { scrollTop, scrollHeight, clientHeight } = sourceElement;
+        const maxScroll = scrollHeight - clientHeight;
+
+        // 检查顶部和底部
+        const isAtTop = scrollTop <= 1;
+        const isAtBottom = scrollTop >= maxScroll - 1;
+
+        if (isAtTop) {
+          // 强制所有区域滚动到顶部
+          if (editor) editor.scrollTop = 0;
+          [preview, wechat].forEach(target => {
+            if (target && target !== sourceElement) {
+              target.scrollTop = 0;
+            }
+          });
+        } else if (isAtBottom) {
+          // 强制所有区域滚动到底部
+          if (editor) {
+            const editorMaxScroll = editor.scrollHeight - editor.clientHeight;
+            editor.scrollTop = editorMaxScroll;
           }
-        });
+          [preview, wechat].forEach(target => {
+            if (target && target !== sourceElement) {
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = targetMaxScroll;
+            }
+          });
+        } else {
+          // 中间位置，使用正常的同步逻辑
+          const editorLine = getEditorLineFromPreviewScroll(sourceElement, editor);
+
+          // 滚动编辑器到对应行
+          const textarea = editor.querySelector('textarea');
+          if (textarea) {
+            const computedStyle = window.getComputedStyle(textarea);
+            const lineHeight = parseInt(computedStyle.lineHeight) || 20;
+            const targetScrollTop = editorLine * lineHeight;
+            const editorMaxScroll = editor.scrollHeight - editor.clientHeight;
+            editor.scrollTop = Math.min(targetScrollTop, editorMaxScroll);
+          }
+
+          // 同步到另一个预览区
+          const targets = [preview, wechat].filter(el => el && el !== sourceElement);
+          targets.forEach(target => {
+            if (target) {
+              const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+            }
+          });
+        }
       } catch (error) {
         console.warn('Preview sync error:', error);
-        
+
         // 降级到比例同步
         const { scrollTop, scrollHeight, clientHeight } = sourceElement;
         const maxScroll = scrollHeight - clientHeight;
-        const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
-        
+
+        // 检查顶部和底部
+        const isAtTop = scrollTop <= 1;
+        const isAtBottom = scrollTop >= maxScroll - 1;
+
         [editor, ...(wechat === sourceElement ? [preview] : wechat ? [wechat] : [])].forEach(target => {
           if (target && target !== sourceElement) {
-            const targetMaxScroll = target.scrollHeight - target.clientHeight;
-            target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+            if (isAtTop) {
+              target.scrollTop = 0;
+            } else if (isAtBottom) {
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = targetMaxScroll;
+            } else {
+              const scrollRatio = maxScroll <= 0 ? 0 : scrollTop / maxScroll;
+              const targetMaxScroll = target.scrollHeight - target.clientHeight;
+              target.scrollTop = Math.max(0, targetMaxScroll * scrollRatio);
+            }
           }
         });
       }

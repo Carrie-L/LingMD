@@ -550,14 +550,61 @@ html, body {
 .wechat-export .markdown-body table {
   font-size: 11px;  /* 缩小字体，让内容能在窄屏显示 */
   width: 100%;
+  line-height: 1.8;
+  letter-spacing: 0.1px;
+}
+.wechat-export .markdown-body th{
+    padding: 4px 4px;  /* 减小内边距，节省空间 */
+    font-size: 12px;
+    overflow-wrap: break-word;
+   text-align: center;
+}
+.wechat-export .markdown-body td {
+  padding: 4px 4px;  /* 减小内边距，节省空间 */
+  font-size: 12px;
+  overflow-wrap: break-word;
 }
 
-.wechat-export .markdown-body th,
-.wechat-export .markdown-body td {
-  padding: 4px 6px;  /* 减小内边距，节省空间 */
+/* 表格行内代码，更小更紧凑 */
+.wechat-export .markdown-body table :not(pre)>code {
+  background: var(--md-code-bg);
+  color: var(--md-code-fg);
+  border: 1px solid var(--md-border);
+  padding: .02em .4em;
+  border-radius: 4px;
+ font-family: 
+          "PingFang SC", "Microsoft YaHei",
+          "Kaiti SC", "KaiTi",
+          "Songti SC", "SimSun", 
+           "Heiti SC", "SimHei",
+          -apple-system, BlinkMacSystemFont,
+          "Hiragino Sans GB", "Noto Sans SC",
+          sans-serif;
   font-size: 11px;
-  word-break: break-word;  /* 长单词自动换行 */
-  overflow-wrap: break-word;
+  margin: 0 0.1em;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+
+/* 行内代码 */
+.wechat-export .markdown-body :not(pre)>code {
+  background: var(--md-code-bg);
+  color: var(--md-code-fg);
+  border: 1px solid var(--md-border);
+  padding: .02em .4em;
+  border-radius: 4px;
+ font-family: 
+          "PingFang SC", "Microsoft YaHei",
+          "Kaiti SC", "KaiTi",
+          "Songti SC", "SimSun", 
+           "Heiti SC", "SimHei",
+          -apple-system, BlinkMacSystemFont,
+          "Hiragino Sans GB", "Noto Sans SC",
+          sans-serif;
+  font-size: 13px;
+  margin: 0 0.1em;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
 
@@ -914,7 +961,36 @@ html, body {
   border-radius: 8px;
   line-height: 1.7;
   font-size: 90%;
+  white-space: pre !important;  /* 不换行，保持代码原样 */
+  word-break: normal;
+  letter-spacing: normal;  /* 重置字间距 */
 }
+
+/* ================================================ */
+/* Highlight.js 样式修正               */
+/* ================================================ */
+
+/*
+ * 1. 解决 fun/class 关键字与其后标识符的空格丢失问题
+ * 例如： "funobserveArticles" -> "fun observeArticles"
+ */
+.hljs-function .hljs-keyword + .hljs-title,
+.hljs-keyword + .hljs-title.class_ {
+  margin-left: 0.5em; /* 添加一个水平间距来模拟空格 */
+}
+
+/*
+ * 2. 解决单行注释后的换行符丢失问题 (精确版)
+ * 使用 ::before 伪元素插入一个换行符，而不改变元素本身的 display 属性
+ */
+
+.hljs-comment {
+  white-space: pre-wrap; /* 保留换行和空格，自动换行 */
+}
+
+/*
+ * 2. 解决单行注释后的换行及缩进丢失问题
+ */
 
 /* ========== Mermaid 图表样式 ========== */
 
@@ -931,7 +1007,7 @@ html, body {
 
 .preview .markdown-body .mermaid svg {
   max-width: 600px;  /* 限制最大宽度，避免太大 */
-  max-height: 400px; /* 限制最大高度 */
+  max-height: 600px; /* 限制最大高度 */
   width: auto !important;
   height: auto !important;
 }
@@ -971,12 +1047,12 @@ html, body {
 /* Mermaid 图表：固定宽度，按比例缩小适应手机屏幕 */
 .wechat-export .markdown-body .mermaid {
   text-align: center;
-  margin: 1.5em 0;
+  margin: 1em 0;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 345px;  /* 公众号区域宽度 375px - 左右 padding 30px */
+  max-width: 375px;  /* 公众号区域宽度 375px - 左右 padding 30px */
   overflow: hidden;  /* 禁止滚动 */
 }
 
@@ -1284,7 +1360,7 @@ html, body {
   --md-quote-bg: #ecfdf5;
   --md-quote-bar: #34d399;
   --md-table-stripe: #f7fee7;
-  --md-strong:#fe829d;
+  --md-strong:#242929 ;
 }
 
 .app[data-mdtheme="mintBreeze"] h1,

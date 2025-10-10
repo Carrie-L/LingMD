@@ -1566,3 +1566,89 @@ html, body {
   background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
   border-radius: 2px;
 }
+
+/* ========================================= */
+/*       CodeMirror 纯文本写作模式         */
+/* ========================================= */
+
+/* CodeMirror 容器 - 极简黑白风格 */
+.codemirror-editor {
+  height: 100%;
+  width: 100%;
+  font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
+}
+
+/* 隐藏所有代码感元素 */
+.codemirror-editor .cm-gutters {
+  display: none !important;
+}
+
+/* 编辑器主体 - 纯白背景 */
+.codemirror-editor .cm-editor {
+  height: 100%;
+  background: #ffffff !important;
+  font-size: 15px;
+  line-height: 2.5;
+  color: #212121;
+}
+
+/* 滚动区域 */
+.codemirror-editor .cm-scroller {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+/* 内容区 - 加大内边距 */
+.codemirror-editor .cm-content {
+  padding: 40px;
+  caret-color: #212121;
+  font-family: inherit;
+  line-height: 2.5;
+  color: #212121 !important;
+}
+
+/* 每一行的文字颜色 */
+.codemirror-editor .cm-line {
+  font-family: inherit;
+  color: #212121 !important;
+}
+
+/* 光标 */
+.codemirror-editor .cm-cursor {
+  border-left-color: #212121;
+  border-left-width: 2px;
+}
+
+/* 选中文本 - 淡灰色 */
+.codemirror-editor .cm-selectionBackground {
+  background-color: #e5e5e5 !important;
+}
+
+.codemirror-editor.cm-focused .cm-selectionBackground {
+  background-color: #e5e5e5 !important;
+}
+
+/* 占位符 */
+.codemirror-editor .cm-placeholder {
+  color: #999;
+  font-style: normal;
+}
+
+/* 移除所有语法高亮 - 纯黑文字 */
+.codemirror-editor .cm-line * {
+  color: #212121 !important;
+  font-weight: inherit !important;
+  font-style: inherit !important;
+  text-decoration: none !important;
+  background: transparent !important;
+}
+
+/* 响应式字体大小 */
+@media (max-width: 768px) {
+  .codemirror-editor .cm-editor {
+    font-size: 14px;
+  }
+  .codemirror-editor .cm-content {
+    padding: 20px;
+  }
+}

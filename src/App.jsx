@@ -1486,9 +1486,11 @@ const styledHTML = `
 
                   // 在编辑器内容中查找标题
                   // 尝试多种标题格式：# 标题, ## 标题, ### 标题 等
+                  const escapedText = headingText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                   const patterns = [
-                    new RegExp(`^#{1,6}\\s+${headingText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'm'),
-                    new RegExp(headingText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+                    new RegExp(`^#{1,6}\\s+${escapedText}\\s*$`, 'm'),
+                    new RegExp(`^#{1,6}\\s+${escapedText}`, 'm'),
+                    new RegExp(escapedText, 'i')
                   ];
 
                   let matchIndex = -1;
@@ -1505,12 +1507,22 @@ const styledHTML = `
                     const textBefore = editorContent.substring(0, matchIndex);
                     const linesBefore = textBefore.split('\n').length - 1;
 
-                    // 估算滚动位置（基于行高）
-                    const lineHeight = 2.5 * 15; // line-height * font-size
-                    const scrollTop = linesBefore * lineHeight;
+                    // 读取实际的行高和字体大小
+                    const computedStyle = window.getComputedStyle(editorTextarea);
+                    const fontSize = parseFloat(computedStyle.fontSize) || 15;
 
-                    editorTextarea.scrollTop = scrollTop;
-                    console.log('编辑器已滚动到行:', linesBefore);
+                    // styles.css 中 .editor 的 line-height: 2em
+                    // 所以实际行高是 fontSize * 2
+                    const lineHeight = fontSize * 2;
+
+                    console.log('fontSize:', fontSize, 'lineHeight:', lineHeight, 'linesBefore:', linesBefore);
+
+                    // 计算滚动位置：标题行的位置，让标题显示在顶部
+                    // 减去一点偏移量，让标题不会完全贴顶
+                    const scrollTop = Math.max(0, linesBefore * lineHeight - 20);
+
+                    editorTextarea.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                    console.log('编辑器已滚动到 scrollTop:', scrollTop);
                   } else {
                     console.warn('未在编辑器中找到标题:', headingText);
                   }
@@ -1535,6 +1547,7 @@ const styledHTML = `
                   value={content}
                   onChange={setContent}
                   onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+                  mdTheme={mdTheme}
                 />
               </div>
               <div className="preview-wrapper">

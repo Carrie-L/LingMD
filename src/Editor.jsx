@@ -1,192 +1,376 @@
-// Editor.jsx
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+// Editor.jsx - CodeMirror 6 版本，配置为纯文本写作模式
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { EditorView, keymap, placeholder } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 
-const UNDO_HISTORY_LIMIT = 100;
-function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
-  const textareaRef = useRef(null);
-  const wrapperRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
+function EditorComponent({ value, onChange, onUploadingChange, mdTheme }, forwardedRef) {
+  const editorContainerRef = useRef(null);
+  const editorViewRef = useRef(null);
+  const isUpdatingRef = useRef(false);
 
-  const historyRef = useRef([]);
-  const historyIndexRef = useRef(-1);
-  const lastPushTimeRef = useRef(0);
-  const PUSH_DEBOUNCE_MS = 400;
-
+  // 初始化 CodeMirror
   useEffect(() => {
-    if (typeof value === 'string') {
-      historyRef.current = [value];
-      historyIndexRef.current = 0;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!editorContainerRef.current) return;
 
+    // 保存当前编辑器内容
+    const currentValue = editorViewRef.current ? editorViewRef.current.state.doc.toString() : (value || '');
+
+    const startState = EditorState.create({
+      doc: currentValue,
+      extensions: [
+        // 启用历史记录（撤销/重做）
+        history(),
+
+        // 自动换行 - 写作必备
+        EditorView.lineWrapping,
+
+        // 占位符
+        placeholder('在这里输入 Markdown，或者打开文件...'),
+
+        // 极简黑白主题样式
+        EditorView.theme({
+          '&': {
+            height: '100%',
+            fontSize: '15px',
+            fontFamily: "'LXGW WenKai', 'PingFang SC', system-ui, sans-serif",
+            backgroundColor: '#ffffff',
+          },
+          '.cm-content': {
+            padding: '40px',
+            caretColor: '#212121',
+            lineHeight: '2.5',
+            color: '#212121',
+            fontFamily: 'inherit',
+          },
+          '.cm-scroller': {
+            overflow: 'auto',
+            fontFamily: 'inherit',
+          },
+          '.cm-line': {
+            fontFamily: 'inherit',
+            color: '#212121',
+          },
+          // 隐藏行号和侧边栏
+          '.cm-gutters': {
+            display: 'none',
+          },
+          // 光标样式
+          '.cm-cursor': {
+            borderLeftColor: '#212121',
+            borderLeftWidth: '2px',
+          },
+          // 选中文本样式 - 淡灰色
+          '&.cm-focused .cm-selectionBackground, ::selection': {
+            backgroundColor: '#e5e5e5',
+          },
+          // 占位符样式
+          '.cm-placeholder': {
+            color: '#999',
+            fontStyle: 'normal',
+          },
+        }),
+
+        // 键盘快捷键
+        keymap.of([
+          ...defaultKeymap,
+          ...historyKeymap,
+          // 自定义快捷键
+          {
+            key: 'Mod-b',
+            run: (view) => {
+              toggleWrap(view, '**', '**');
+              return true;
+            },
+          },
+          {
+            key: 'Mod-i',
+            run: (view) => {
+              toggleWrap(view, '*', '*');
+              return true;
+            },
+          },
+          {
+            key: '`',
+            run: (view) => {
+              toggleWrap(view, '`', '`');
+              return true;
+            },
+          },
+          {
+            key: 'Mod-k',
+            run: (view) => {
+              insertLink(view);
+              return true;
+            },
+          },
+          {
+            key: 'Mod-Shift-c',
+            run: (view) => {
+              toggleCodeBlock(view);
+              return true;
+            },
+          },
+          {
+            key: 'Mod-Shift-l',
+            run: (view) => {
+              toggleLinePrefix(view, '- ');
+              return true;
+            },
+          },
+          {
+            key: 'Mod-Shift-o',
+            run: (view) => {
+              toggleOrderedList(view);
+              return true;
+            },
+          },
+          {
+            key: 'Mod-Shift-h',
+            run: (view) => {
+              toggleLinePrefix(view, '# ');
+              return true;
+            },
+          },
+          {
+            key: 'Escape',
+            run: () => {
+              if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+                return true;
+              }
+              if (window.electronAPI && typeof window.electronAPI.exitFullScreen === 'function') {
+                window.electronAPI.exitFullScreen().catch(() => {});
+                return true;
+              }
+              return false;
+            },
+          },
+        ]),
+
+        // 监听内容变化
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged && !isUpdatingRef.current) {
+            const newValue = update.state.doc.toString();
+            onChange && onChange(newValue);
+          }
+        }),
+      ],
+    });
+
+    const view = new EditorView({
+      state: startState,
+      parent: editorContainerRef.current,
+    });
+
+    editorViewRef.current = view;
+
+    return () => {
+      view.destroy();
+    };
+  }, [mdTheme]); // 主题变化时重新创建编辑器
+
+  // 当外部 value 变化时更新编辑器
   useEffect(() => {
-    const curIdx = historyIndexRef.current;
-    const hist = historyRef.current;
-    const top = hist[curIdx];
-    if (value !== undefined && value !== top) {
-      pushHistory(value);
+    if (!editorViewRef.current || isUpdatingRef.current) return;
+
+    const currentDoc = editorViewRef.current.state.doc.toString();
+    if (currentDoc !== value) {
+      isUpdatingRef.current = true;
+      editorViewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: currentDoc.length,
+          insert: value || '',
+        },
+      });
+      isUpdatingRef.current = false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  useEffect(() => {
-    if (typeof onUploadingChange === 'function') onUploadingChange(isUploading);
-  }, [isUploading, onUploadingChange]);
-
-  const pushHistory = (newVal) => {
-    const now = Date.now();
-    if (now - lastPushTimeRef.current < PUSH_DEBOUNCE_MS) {
-      const idx = historyIndexRef.current;
-      if (idx >= 0) historyRef.current[idx] = newVal;
-      lastPushTimeRef.current = now;
-      return;
-    }
-    lastPushTimeRef.current = now;
-
-    if (historyIndexRef.current < historyRef.current.length - 1) {
-      historyRef.current.splice(historyIndexRef.current + 1);
-    }
-    historyRef.current.push(newVal);
-    if (historyRef.current.length > UNDO_HISTORY_LIMIT) {
-      historyRef.current.shift();
-    }
-    historyIndexRef.current = historyRef.current.length - 1;
-  };
-
-  const doUndo = () => {
-    if (historyIndexRef.current > 0) {
-      historyIndexRef.current -= 1;
-      const prev = historyRef.current[historyIndexRef.current];
-      applyHistoryValue(prev);
-    }
-  };
-  const doRedo = () => {
-    if (historyIndexRef.current < historyRef.current.length - 1) {
-      historyIndexRef.current += 1;
-      const next = historyRef.current[historyIndexRef.current];
-      applyHistoryValue(next);
-    }
-  };
-  const applyHistoryValue = (val) => {
-    onChange && onChange(val);
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const pos = Math.min(val.length, textareaRef.current.selectionStart || 0);
-        textareaRef.current.setSelectionRange(pos, pos);
+  // 暴露方法给父组件
+  useImperativeHandle(forwardedRef, () => ({
+    // 返回可滚动的 DOM 元素
+    el: editorViewRef.current?.scrollDOM,
+    focus: () => editorViewRef.current?.focus(),
+    getValue: () => editorViewRef.current?.state.doc.toString(),
+    handleFileSelect: async (eOrFiles) => {
+      let files = [];
+      if (eOrFiles && eOrFiles.target && eOrFiles.target.files) {
+        files = Array.from(eOrFiles.target.files);
+      } else if (Array.isArray(eOrFiles)) {
+        files = eOrFiles;
+      } else if (eOrFiles instanceof FileList) {
+        files = Array.from(eOrFiles);
       }
-    }, 0);
-  };
-
-  const handleLocalChange = (e) => {
-    const newVal = e.target.value;
-    onChange && onChange(newVal);
-    pushHistory(newVal);
-  };
-
-  const handleKeyDown = (e) => {
-    const mod = e.ctrlKey || e.metaKey;
-    const modShift = mod && e.shiftKey;
-
-    if (mod && !e.altKey && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
-      e.preventDefault();
-      doUndo();
-      return;
-    }
-    if ((mod && !e.altKey && !e.shiftKey && (e.key === 'y' || e.key === 'Y')) ||
-      (modShift && (e.key === 'Z' || e.key === 'z'))) {
-      e.preventDefault();
-      doRedo();
-      return;
-    }
-
-    if (mod && !e.altKey && !e.shiftKey && (e.key === 'b' || e.key === 'B')) {
-      e.preventDefault();
-      toggleWrap('**', '**');
-      return;
-    }
-    if (mod && !e.altKey && !e.shiftKey && (e.key === 'i' || e.key === 'I')) {
-      e.preventDefault();
-      toggleWrap('*', '*');
-      return;
-    }
-    if (!mod && !e.altKey && !e.shiftKey && e.key === '`') {
-      e.preventDefault();
-      toggleWrap('`', '`');
-      return;
-    }
-    if (mod && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
-      e.preventDefault();
-      insertLink();
-      return;
-    }
-    if (modShift && (e.key === 'C' || e.key === 'c')) {
-      e.preventDefault();
-      toggleCodeBlock();
-      return;
-    }
-    if (modShift && (e.key === 'L' || e.key === 'l')) {
-      e.preventDefault();
-      toggleLinePrefix('- ');
-      return;
-    }
-    if (modShift && (e.key === 'O' || e.key === 'o')) {
-      e.preventDefault();
-      toggleOrderedList();
-      return;
-    }
-    if (modShift && (e.key === 'H' || e.key === 'h')) {
-      e.preventDefault();
-      toggleLinePrefix('# ');
-      return;
-    }
-
-    if (e.key === 'Escape') {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-        e.preventDefault();
-        return;
+      const imageFiles = files.filter(f => f.type && f.type.startsWith('image/'));
+      for (let file of imageFiles) {
+        await handleImageUpload(file);
       }
-      if (window.electronAPI && typeof window.electronAPI.exitFullScreen === 'function') {
-        window.electronAPI.exitFullScreen().catch(() => {});
-        e.preventDefault();
-        return;
-      }
+      if (eOrFiles && eOrFiles.target && eOrFiles.target.files) eOrFiles.target.value = '';
+    },
+  }), []);
+
+  // ========== 辅助函数 ==========
+
+  const toggleWrap = (view, prefix, suffix) => {
+    const state = view.state;
+    const selection = state.selection.main;
+    const from = selection.from;
+    const to = selection.to;
+    const text = state.doc.toString();
+
+    const before = text.slice(0, from);
+    const selected = text.slice(from, to);
+    const after = text.slice(to);
+
+    const preStart = from - prefix.length;
+    const postEnd = to + suffix.length;
+
+    // 检查是否已经被包裹
+    if (
+      preStart >= 0 &&
+      text.slice(preStart, from) === prefix &&
+      text.slice(to, postEnd) === suffix
+    ) {
+      // 取消包裹
+      view.dispatch({
+        changes: [
+          { from: preStart, to: from, insert: '' },
+          { from: to, to: postEnd, insert: '' },
+        ],
+        selection: { anchor: preStart, head: preStart + selected.length },
+      });
+    } else {
+      // 添加包裹
+      view.dispatch({
+        changes: { from, to, insert: prefix + selected + suffix },
+        selection: { anchor: from + prefix.length, head: from + prefix.length + selected.length },
+      });
     }
   };
 
-  const handlePaste = async (e) => {
-    const items = e.clipboardData?.items || [];
-    for (let item of items) {
-      if (item.type && item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file) await handleImageUpload(file);
-        break;
-      }
+  const toggleCodeBlock = (view) => {
+    const state = view.state;
+    const selection = state.selection.main;
+    const from = selection.from;
+    const to = selection.to;
+    const text = state.doc.toString();
+
+    const before = text.slice(0, from);
+    const selected = text.slice(from, to);
+    const after = text.slice(to);
+
+    const pre = text.slice(Math.max(0, from - 4), from);
+    const post = text.slice(to, to + 4);
+
+    if (pre.endsWith('```\n') && post.startsWith('\n```')) {
+      // 取消代码块
+      view.dispatch({
+        changes: [
+          { from: from - 4, to: from, insert: '' },
+          { from: to, to: to + 4, insert: '' },
+        ],
+        selection: { anchor: from - 4, head: from - 4 + selected.length },
+      });
+    } else {
+      // 添加代码块
+      const needNewlineBefore = before.length === 0 || before.endsWith('\n') ? '' : '\n';
+      const needNewlineAfter = after.length === 0 || after.startsWith('\n') ? '' : '\n';
+      const insert = needNewlineBefore + '```\n' + selected + '\n```' + needNewlineAfter;
+
+      view.dispatch({
+        changes: { from, to, insert },
+        selection: {
+          anchor: from + needNewlineBefore.length + 4,
+          head: from + needNewlineBefore.length + 4 + selected.length
+        },
+      });
     }
   };
 
-  const handleFileSelect = async (eOrFiles) => {
-    let files = [];
-    if (eOrFiles && eOrFiles.target && eOrFiles.target.files) {
-      files = Array.from(eOrFiles.target.files);
-    } else if (Array.isArray(eOrFiles)) {
-      files = eOrFiles;
-    } else if (eOrFiles instanceof FileList) {
-      files = Array.from(eOrFiles);
+  const toggleLinePrefix = (view, prefix) => {
+    const state = view.state;
+    const selection = state.selection.main;
+    const from = selection.from;
+    const to = selection.to;
+    const text = state.doc.toString();
+
+    // 找到选区的行范围
+    const lineStart = text.lastIndexOf('\n', Math.max(0, from - 1)) + 1;
+    const lineEndPos = text.indexOf('\n', to);
+    const lineEnd = lineEndPos === -1 ? text.length : lineEndPos;
+
+    const selectedLines = text.slice(lineStart, lineEnd).split('\n');
+    const allHave = selectedLines.every(l => l.startsWith(prefix));
+
+    let processed;
+    if (allHave) {
+      processed = selectedLines.map(l => l.slice(prefix.length)).join('\n');
+    } else {
+      processed = selectedLines.map(l => (l.trim() === '' ? l : prefix + l)).join('\n');
     }
-    const imageFiles = files.filter(f => f.type && f.type.startsWith('image/'));
-    for (let file of imageFiles) {
-      await handleImageUpload(file);
+
+    view.dispatch({
+      changes: { from: lineStart, to: lineEnd, insert: processed },
+      selection: {
+        anchor: from + (allHave ? -prefix.length : prefix.length),
+        head: from + (allHave ? -prefix.length : prefix.length) + (processed.length - (lineEnd - lineStart))
+      },
+    });
+  };
+
+  const toggleOrderedList = (view) => {
+    const state = view.state;
+    const selection = state.selection.main;
+    const from = selection.from;
+    const to = selection.to;
+    const text = state.doc.toString();
+
+    const lineStart = text.lastIndexOf('\n', Math.max(0, from - 1)) + 1;
+    const lineEndPos = text.indexOf('\n', to);
+    const lineEnd = lineEndPos === -1 ? text.length : lineEndPos;
+
+    const selectedLines = text.slice(lineStart, lineEnd).split('\n');
+    const allHave = selectedLines.every(l => /^\d+\. /.test(l));
+
+    let processed;
+    if (allHave) {
+      processed = selectedLines.map(l => l.replace(/^\d+\. /, '')).join('\n');
+    } else {
+      processed = selectedLines.map((l, idx) => (l.trim() === '' ? l : `${idx + 1}. ${l}`)).join('\n');
     }
-    if (eOrFiles && eOrFiles.target && eOrFiles.target.files) eOrFiles.target.value = '';
+
+    view.dispatch({
+      changes: { from: lineStart, to: lineEnd, insert: processed },
+      selection: { anchor: from, head: from + processed.length },
+    });
+  };
+
+  const insertLink = (view) => {
+    const state = view.state;
+    const selection = state.selection.main;
+    const from = selection.from;
+    const to = selection.to;
+    const text = state.doc.toString();
+    const selected = text.slice(from, to);
+
+    const url = prompt('输入链接 URL:', 'https://');
+    if (!url) return;
+
+    const textForLink = selected || prompt('链接文本（留空使用 URL）:', url) || url;
+    const linkMd = `[${textForLink}](${url})`;
+
+    view.dispatch({
+      changes: { from, to, insert: linkMd },
+      selection: { anchor: from, head: from + linkMd.length },
+    });
   };
 
   const handleImageUpload = async (file) => {
     try {
-      setIsUploading(true);
+      if (onUploadingChange) onUploadingChange(true);
+
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 8);
       const fileExtension = (file.name && file.name.split('.').pop()) || 'png';
@@ -216,226 +400,94 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
       console.error('处理图片失败:', error);
       alert('处理图片失败: ' + (error && error.message));
     } finally {
-      setIsUploading(false);
+      if (onUploadingChange) onUploadingChange(false);
     }
   };
 
   const insertImageMarkdown = (imagePath, altText) => {
-    const ta = textareaRef.current;
-    const textVal = value || '';
-    if (!ta) {
-      const appended = textVal + `\n\n![${altText || '图片'}](${imagePath})\n\n`;
-      onChange && onChange(appended);
-      pushHistory(appended);
-      return;
-    }
-    const cursorPosition = ta.selectionStart;
-    const textBefore = textVal.substring(0, cursorPosition);
-    const textAfter = textVal.substring(cursorPosition);
+    const view = editorViewRef.current;
+    if (!view) return;
+
+    const state = view.state;
+    const selection = state.selection.main;
+    const cursorPosition = selection.head;
+    const text = state.doc.toString();
+
+    const textBefore = text.substring(0, cursorPosition);
+    const textAfter = text.substring(cursorPosition);
     const imageMarkdown = `![](${imagePath})`;
+
     const needNewLineBefore = textBefore.length > 0 && !textBefore.endsWith('\n');
     const needNewLineAfter = textAfter.length > 0 && !textAfter.startsWith('\n');
-    const newContent =
-      textBefore +
+
+    const insert =
       (needNewLineBefore ? '\n\n' : '\n') +
       imageMarkdown +
-      (needNewLineAfter ? '\n\n' : '\n') +
-      textAfter;
+      (needNewLineAfter ? '\n\n' : '\n');
 
-    onChange && onChange(newContent);
-    pushHistory(newContent);
+    view.dispatch({
+      changes: { from: cursorPosition, to: cursorPosition, insert },
+      selection: { anchor: cursorPosition + insert.length, head: cursorPosition + insert.length },
+    });
 
-    setTimeout(() => {
-      const newCursorPosition = (textBefore + (needNewLineBefore ? '\n\n' : '\n') + imageMarkdown).length;
-      if (textareaRef.current) {
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-        textareaRef.current.focus();
+    view.focus();
+  };
+
+  // 处理粘贴事件
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const items = e.clipboardData?.items || [];
+      for (let item of items) {
+        if (item.type && item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) await handleImageUpload(file);
+          break;
+        }
       }
-    }, 0);
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const files = Array.from(e.dataTransfer.files || []);
-    await handleFileSelect(files);
-  };
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  // 对父组件暴露：**把真实可滚动元素（textarea DOM）暴露给父组件**
-  useImperativeHandle(forwardedRef, () => ({
-    // 直接返回 DOM 节点（外部 hook 可以直接用 el.scrollTop/read/write）
-    el: textareaRef.current,
-    focus: () => textareaRef.current && textareaRef.current.focus(),
-    getValue: () => textareaRef.current && textareaRef.current.value,
-    handleFileSelect,
-  }), []);
-
-  const getSelection = () => {
-    const ta = textareaRef.current;
-    return {
-      start: ta.selectionStart,
-      end: ta.selectionEnd,
-      text: (value || '').substring(ta.selectionStart, ta.selectionEnd)
     };
-  };
 
-  const setValueAndSelect = (newVal, selStart, selEnd) => {
-    onChange && onChange(newVal);
-    pushHistory(newVal);
-    setTimeout(() => {
-      if (!textareaRef.current) return;
-      textareaRef.current.setSelectionRange(selStart, selEnd);
-      textareaRef.current.focus();
-    }, 0);
-  };
-
-  const toggleWrap = (prefix, suffix) => {
-    const ta = textareaRef.current;
-    const { start, end } = getSelection();
-    const text = value || '';
-    const before = text.slice(0, start);
-    const selected = text.slice(start, end);
-    const after = text.slice(end);
-
-    const preStart = start - prefix.length;
-    const postEnd = end + suffix.length;
-
-    if (
-      preStart >= 0 &&
-      text.slice(preStart, start) === prefix &&
-      text.slice(end, postEnd) === suffix
-    ) {
-      const newVal = text.slice(0, preStart) + selected + text.slice(postEnd);
-      const newStart = preStart;
-      const newEnd = newStart + selected.length;
-      setValueAndSelect(newVal, newStart, newEnd);
-      return;
+    const container = editorContainerRef.current;
+    if (container) {
+      container.addEventListener('paste', handlePaste);
+      return () => container.removeEventListener('paste', handlePaste);
     }
+  }, []);
 
-    const newVal = before + prefix + selected + suffix + after;
-    const newStart = start + prefix.length;
-    const newEnd = newStart + selected.length;
-    setValueAndSelect(newVal, newStart, newEnd);
-  };
+  // 处理拖放事件
+  useEffect(() => {
+    const handleDrop = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const files = Array.from(e.dataTransfer.files || []);
+      const imageFiles = files.filter(f => f.type && f.type.startsWith('image/'));
+      for (let file of imageFiles) {
+        await handleImageUpload(file);
+      }
+    };
 
-  const toggleCodeBlock = () => {
-    const { start, end } = getSelection();
-    const text = value || '';
-    const before = text.slice(0, start);
-    const selected = text.slice(start, end);
-    const after = text.slice(end);
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
 
-    const pre = text.slice(Math.max(0, start - 4), start);
-    const post = text.slice(end, end + 4);
-    if (pre.endsWith('```\n') && post.startsWith('\n```')) {
-      const newVal = text.slice(0, start - 4) + selected + text.slice(end + 4);
-      setValueAndSelect(newVal, start - 4, start - 4 + selected.length);
-      return;
+    const container = editorContainerRef.current;
+    if (container) {
+      container.addEventListener('drop', handleDrop);
+      container.addEventListener('dragover', handleDragOver);
+      return () => {
+        container.removeEventListener('drop', handleDrop);
+        container.removeEventListener('dragover', handleDragOver);
+      };
     }
-
-    const block = '```\n' + selected + '\n```';
-    const needNewlineBefore = before.length === 0 || before.endsWith('\n') ? '' : '\n';
-    const needNewlineAfter = after.length === 0 || after.startsWith('\n') ? '' : '\n';
-    const newVal = before + needNewlineBefore + block + needNewlineAfter + after;
-    const newStart = before.length + needNewlineBefore.length + 3;
-    const newEnd = newStart + selected.length;
-    setValueAndSelect(newVal, newStart, newEnd);
-  };
-
-  const toggleLinePrefix = (prefix) => {
-    const ta = textareaRef.current;
-    const { start, end } = getSelection();
-    const text = value || '';
-
-    const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
-    const lineEndPos = text.indexOf('\n', end);
-    const lineEnd = lineEndPos === -1 ? text.length : lineEndPos;
-
-    const selectedLines = text.slice(lineStart, lineEnd).split('\n');
-
-    const allHave = selectedLines.every(l => l.startsWith(prefix));
-    let processed;
-    if (allHave) {
-      processed = selectedLines.map(l => l.slice(prefix.length)).join('\n');
-    } else {
-      processed = selectedLines.map(l => (l.trim() === '' ? l : prefix + l)).join('\n');
-    }
-
-    const newVal = text.slice(0, lineStart) + processed + text.slice(lineEnd);
-    const newStart = start + (allHave ? -prefix.length : prefix.length);
-    const newEnd = end + (processed.length - (lineEnd - lineStart));
-    setValueAndSelect(newVal, newStart, newEnd);
-  };
-
-  const toggleOrderedList = () => {
-    const ta = textareaRef.current;
-    const { start, end } = getSelection();
-    const text = value || '';
-    const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
-    const lineEndPos = text.indexOf('\n', end);
-    const lineEnd = lineEndPos === -1 ? text.length : lineEndPos;
-    const selectedLines = text.slice(lineStart, lineEnd).split('\n');
-
-    const allHave = selectedLines.every(l => /^\d+\. /.test(l));
-    let processed;
-    if (allHave) {
-      processed = selectedLines.map(l => l.replace(/^\d+\. /, '')).join('\n');
-    } else {
-      processed = selectedLines.map((l, idx) => (l.trim() === '' ? l : `${idx + 1}. ${l}`)).join('\n');
-    }
-
-    const newVal = text.slice(0, lineStart) + processed + text.slice(lineEnd);
-    const newStart = start;
-    const newEnd = newStart + processed.length;
-    setValueAndSelect(newVal, newStart, newEnd);
-  };
-
-  const insertLink = async () => {
-    const { start, end } = getSelection();
-    const selected = (value || '').slice(start, end);
-    const url = prompt('输入链接 URL:', 'https://');
-    if (!url) return;
-    const textForLink = selected || prompt('链接文本（留空使用 URL）:', url) || url;
-    const linkMd = `[${textForLink}](${url})`;
-
-    const newVal = (value || '').slice(0, start) + linkMd + (value || '').slice(end);
-    const newStart = start;
-    const newEnd = start + linkMd.length;
-    setValueAndSelect(newVal, newStart, newEnd);
-  };
+  }, []);
 
   return (
-    <div className="editor" ref={wrapperRef} style={{ height: '100%', width: '100%' }}>
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={handleLocalChange}
-        onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        placeholder={`在这里输入 Markdown，或者打开文件...`}
-        className="editor-textarea"
-        style={{
-          width: '100%',
-          height: '100%',
-          boxSizing: 'border-box',
-          border: 'none',
-          outline: 'none',
-          resize: 'none',
-          fontFamily: 'inherit',
-          background: 'transparent',
-          padding: '20px',
-          overflow: 'auto',
-          whiteSpace: 'pre-wrap',
-          lineHeight: '1.8'
-        }}
-      />
-    </div>
+    <div
+      className="editor codemirror-editor"
+      ref={editorContainerRef}
+      style={{ height: '100%', width: '100%' }}
+    />
   );
 }
 

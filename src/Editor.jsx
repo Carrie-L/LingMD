@@ -4,7 +4,7 @@ import { EditorView, keymap, placeholder } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 
-function EditorComponent({ value, onChange, onUploadingChange, mdTheme }, forwardedRef) {
+function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
   const editorContainerRef = useRef(null);
   const editorViewRef = useRef(null);
   const isUpdatingRef = useRef(false);
@@ -27,49 +27,6 @@ function EditorComponent({ value, onChange, onUploadingChange, mdTheme }, forwar
 
         // 占位符
         placeholder('在这里输入 Markdown，或者打开文件...'),
-
-        // 极简黑白主题样式
-        EditorView.theme({
-          '&': {
-            height: '100%',
-            fontSize: '15px',
-            fontFamily: "'LXGW WenKai', 'PingFang SC', system-ui, sans-serif",
-            backgroundColor: '#ffffff',
-          },
-          '.cm-content': {
-            padding: '40px',
-            caretColor: '#212121',
-            lineHeight: '2.5',
-            color: '#212121',
-            fontFamily: 'inherit',
-          },
-          '.cm-scroller': {
-            overflow: 'auto',
-            fontFamily: 'inherit',
-          },
-          '.cm-line': {
-            fontFamily: 'inherit',
-            color: '#212121',
-          },
-          // 隐藏行号和侧边栏
-          '.cm-gutters': {
-            display: 'none',
-          },
-          // 光标样式
-          '.cm-cursor': {
-            borderLeftColor: '#212121',
-            borderLeftWidth: '2px',
-          },
-          // 选中文本样式 - 淡灰色
-          '&.cm-focused .cm-selectionBackground, ::selection': {
-            backgroundColor: '#e5e5e5',
-          },
-          // 占位符样式
-          '.cm-placeholder': {
-            color: '#999',
-            fontStyle: 'normal',
-          },
-        }),
 
         // 键盘快捷键
         keymap.of([
@@ -168,7 +125,7 @@ function EditorComponent({ value, onChange, onUploadingChange, mdTheme }, forwar
     return () => {
       view.destroy();
     };
-  }, [mdTheme]); // 主题变化时重新创建编辑器
+  }); // 主题变化时重新创建编辑器
 
   // 当外部 value 变化时更新编辑器
   useEffect(() => {

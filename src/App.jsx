@@ -1547,7 +1547,6 @@ const styledHTML = `
                   value={content}
                   onChange={setContent}
                   onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
-                  mdTheme={mdTheme}
                 />
               </div>
               <div className="preview-wrapper">

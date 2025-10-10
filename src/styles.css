@@ -521,15 +521,19 @@ html, body {
   flex-direction: column; 
   overflow: hidden; 
 }
-.wechat-export .markdown-body { 
-  flex: 1 1 auto; 
-  overflow: auto; 
-  padding: 15px; 
-  box-sizing: border-box; 
-  width: 100%; 
-  margin: 0; 
+.wechat-export .markdown-body {
+  flex: 1 1 auto;
+  overflow-x: hidden !important;  /* 强制禁止水平滚动 */
+  overflow-y: auto;                /* 只允许垂直滚动 */
+  padding: 15px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;                /* 确保不超出父容器 */
+  margin: 0;
   font-size: 15px;
   line-height: 1.8;
+  word-wrap: break-word;          /* 强制长单词换行 */
+  overflow-wrap: break-word;      /* 强制长单词换行 */
 }
 
 .wechat-export .markdown-body h2{ 
@@ -543,8 +547,17 @@ html, body {
   line-height: 1.8;
 }
 
-.wechat-export .markdown-body table{ 
-  font-size: 12px;
+.wechat-export .markdown-body table {
+  font-size: 11px;  /* 缩小字体，让内容能在窄屏显示 */
+  width: 100%;
+}
+
+.wechat-export .markdown-body th,
+.wechat-export .markdown-body td {
+  padding: 4px 6px;  /* 减小内边距，节省空间 */
+  font-size: 11px;
+  word-break: break-word;  /* 长单词自动换行 */
+  overflow-wrap: break-word;
 }
 
 
@@ -903,40 +916,85 @@ html, body {
   font-size: 90%;
 }
 
-/* mermaid */
-.markdown-body .mermaid {
+/* ========== Mermaid 图表样式 ========== */
+
+/* 预览区的 Mermaid：适中尺寸，避免占满整个屏幕 */
+.preview .markdown-body .mermaid {
+  text-align: center;
+  margin: 1.5em auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.preview .markdown-body .mermaid svg {
+  max-width: 600px;  /* 限制最大宽度，避免太大 */
+  max-height: 400px; /* 限制最大高度 */
+  width: auto !important;
+  height: auto !important;
+}
+
+/* ========== 公众号预览区：强制固定宽度，内容可滚动 ========== */
+
+/* 图片强制不超出容器 */
+.wechat-export .markdown-body img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+/* 代码块：保持原样，添加水平滚动条，与预览区样式一致 */
+.wechat-export .markdown-body pre {
+  overflow-x: auto !important;  /* 水平滚动条 */
+  overflow-y: auto;
+  max-width: 100%;
+  margin: 1em 0;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--md-code-bg);
+  border: 1px solid var(--md-border);
+}
+
+.wechat-export .markdown-body pre code.hljs {
+  padding: 1em;
+  font-family: Menlo, Operator Mono, Consolas, Monaco, monospace;
+  border-radius: 8px;
+  line-height: 1.7;
+  font-size: 90%;
+  white-space: pre !important;  /* 不换行，保持代码原样 */
+  word-break: normal;
+  letter-spacing: normal;  /* 重置字间距 */
+}
+
+/* Mermaid 图表：固定宽度，按比例缩小适应手机屏幕 */
+.wechat-export .markdown-body .mermaid {
   text-align: center;
   margin: 1.5em 0;
   display: flex;
-  width: 300px !important;
-  min-width: 600px;
-  max-height: 800px; /* 最大高度限制 */
-  overflow: auto; /* 超过高度可滚动 */
-  box-sizing: border-box;
-  max-width: 100%;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  max-width: 345px;  /* 公众号区域宽度 375px - 左右 padding 30px */
+  overflow: hidden;  /* 禁止滚动 */
 }
 
-
-.markdown-body .mermaid svg {
-  max-width: 100%;
-  max-height: 800px; /* SVG 最大高度 */
-  height: auto;
-  width: 800px;
-  text-align: center;
+.wechat-export .markdown-body .mermaid svg {
+  max-width: 100% !important;
+  max-height: 300px !important;
+  width: auto !important;
+  height: auto !important;
+  display: block;
 }
 
 /* 图片 */
-.markdown-body img,
-.markdown-body svg {
+.markdown-body img {
   max-width: 100%;
   height: auto;
   display: block;
   margin: .8em auto;
   border-radius: 6px;
-  width: 800px;
-  text-align: center;
 }
 
 

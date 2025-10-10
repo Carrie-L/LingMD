@@ -8,6 +8,7 @@ import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
+import { PreviewWithMermaid } from './PreviewWithMermaid';
 import './styles.css';
 import 'katex/dist/katex.min.css';
 import { useBasicScrollSync } from './useBasicScrollSync';
@@ -734,125 +735,7 @@ function App() {
     return () => containers.forEach((c) => c.removeEventListener('click', handleClick));
   }, [sanitizedHtml, content]); // 依赖 sanitizedHtml & content，保证元素更新后重新绑定
 
-  // 🔥 预览区 Mermaid 渲染逻辑 (替换为以下内容)
-  //  useEffect(() => {
-  //   mermaidInitialized.then(() => {
-  //     // 检查 previewRef.current 是否存在
-  //     if (!previewRef.current) return;
-
-  //     try {
-  //       mermaid.run({
-  //         nodes: previewRef.current.querySelectorAll('.mermaid'),
-  //       });
-  //       console.log("Mermaid diagrams rendered successfully via mermaid.run()");
-  //     } catch (err) {
-  //       console.error("Mermaid.run() failed:", err);
-  //     }
-  //   });
-  // }, [sanitizedHtml]); // 依赖 sanitizedHtml，每当内容变化时重新运行
-
-  // 优化后的 mermaid 渲染逻辑：防止重复渲染和消失
-  useEffect(() => {
-
-    let rafId;
-    let timeoutId;
-
-    const renderMermaid = async () => {
-      await mermaidInitialized;
-
-      const container = previewRef.current;
-      if (!container) return;
-
-      const nodes = Array.from(container.querySelectorAll('.mermaid:not([data-processed])'));
-      if (!nodes.length) return;
-
-      console.log(`[Mermaid] Found ${nodes.length} unprocessed mermaid blocks`);
-
-      nodes.forEach(async (node, index) => {
-        const code = node.textContent?.trim();
-        if (!code) return;
-
-        // 标记为已处理，防止重复渲染
-        node.setAttribute('data-processed', 'true');
-
-        const id = `mermaid-preview-${Date.now()}-${index}`;
-
-        try {
-          // 使用 mermaid v10+ 的 render API
-          const { svg } = await mermaid.render(id, code);
-          if (node.getAttribute('data-processed') === 'true') {
-            node.innerHTML = svg;
-            console.log(`[Mermaid] Rendered block ${index}`);
-          }
-        } catch (err) {
-          console.error(`[Mermaid] Render failed for block ${index}:`, err);
-          node.setAttribute('data-processed', 'false');
-          // 显示错误信息
-          node.innerHTML = `<pre style="color: red;">Mermaid render error: ${err.message}</pre>`;
-        }
-      });
-    };
-
-    // 延迟渲染，确保 DOM 已稳定
-    timeoutId = setTimeout(() => {
-      rafId = requestAnimationFrame(renderMermaid);
-    }, 100);
-
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [sanitizedHtml]);
-
-  // 同样处理 wechatRef 的 mermaid 渲染
-  useEffect(() => {
-    if (!showWechat) return;
-
-    let rafId;
-    let timeoutId;
-
-    const renderMermaid = async () => {
-      await mermaidInitialized;
-
-      const container = wechatRef.current;
-      if (!container) return;
-
-      const nodes = Array.from(container.querySelectorAll('.mermaid:not([data-processed])'));
-      if (!nodes.length) return;
-
-      console.log(`[Mermaid WeChat] Found ${nodes.length} unprocessed mermaid blocks`);
-
-      nodes.forEach(async (node, index) => {
-        const code = node.textContent?.trim();
-        if (!code) return;
-
-        node.setAttribute('data-processed', 'true');
-
-        const id = `mermaid-wechat-${Date.now()}-${index}`;
-
-        try {
-          const { svg } = await mermaid.render(id, code);
-          if (node.getAttribute('data-processed') === 'true') {
-            node.innerHTML = svg;
-            console.log(`[Mermaid WeChat] Rendered block ${index}`);
-          }
-        } catch (err) {
-          console.error(`[Mermaid WeChat] Render failed for block ${index}:`, err);
-          node.setAttribute('data-processed', 'false');
-          node.innerHTML = `<pre style="color: red;">Mermaid render error: ${err.message}</pre>`;
-        }
-      });
-    };
-
-    timeoutId = setTimeout(() => {
-      rafId = requestAnimationFrame(renderMermaid);
-    }, 100);
-
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [sanitizedHtml, showWechat]);
+  // Mermaid 渲染现在由 PreviewWithMermaid 组件处理，不再需要这里的 useEffect
 
   // 目录 Outline
   // previewRef 已经在你文件里（useBasicScrollSync 返回），我们用它来扫描 headings
@@ -1664,10 +1547,9 @@ const styledHTML = `
               <div className="preview-wrapper">
                 <div className="preview">
                   <div className="preview-inner">
-                    <div
-                      className="markdown-body"
+                    <PreviewWithMermaid
+                      html={sanitizedHtml}
                       ref={scrollPreviewRef}
-                      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
                     />
                   </div>
                 </div>
@@ -1680,10 +1562,9 @@ const styledHTML = `
             <div className="preview-wrapper preview-only">
               <div className="preview">
                 <div className="preview-inner">
-                  <div
-                    className="markdown-body"
+                  <PreviewWithMermaid
+                    html={sanitizedHtml}
                     ref={scrollPreviewRef}
-                    dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
                   />
                 </div>
               </div>
@@ -1695,10 +1576,9 @@ const styledHTML = `
         {showWechat && (
           <div className="wechat-export">
             <div className="preview-inner">
-              <div
-                className="markdown-body"
-                ref={scrollWechatRef}    // <- 同上
-                dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+              <PreviewWithMermaid
+                html={sanitizedHtml}
+                ref={scrollWechatRef}
               />
             </div>
           </div>

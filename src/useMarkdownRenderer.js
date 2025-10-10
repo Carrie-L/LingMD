@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
-// import { marked } from "marked";
+import { useEffect, useState, useMemo } from "react";
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import mdTaskLists from "markdown-it-task-lists";
 import mdAttrs from "markdown-it-attrs";
 import mdKatex from "markdown-it-katex";
-import mermaid from "mermaid";
 import hljs from "highlight.js/lib/core";
+import { useDebounce } from "./useDebounce";
 
 // 导入并注册语言包
 import javascript from "highlight.js/lib/languages/javascript";
@@ -247,6 +246,9 @@ async function renderMermaidBlocksToSvg(rawHtml) {
 
 // 主 hook
 export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
+  // 添加防抖，避免频繁渲染（停止输入 150ms 后才渲染）
+  const debouncedContent = useDebounce(content, 150);
+
   const [htmlResult, setHtmlResult] = useState({
     rawHtml: "",
     sanitizedHtml: "",
@@ -256,13 +258,13 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
     let mounted = true;
 
     async function render() {
-      if (!content && content !== "") {
+      if (!debouncedContent && debouncedContent !== "") {
         if (mounted) setHtmlResult({ rawHtml: "", sanitizedHtml: "" });
         return;
       }
 
       // 1. 处理 Obsidian 图像语法
-      const withObsidianImages = content.replace(/!\[\[(.+?)\]\]/g, (m, p1) => {
+      const withObsidianImages = debouncedContent.replace(/!\[\[(.+?)\]\]/g, (m, p1) => {
         return `![](${encodeURIComponent(p1.trim())})`;
       });
 
@@ -431,7 +433,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
     return () => {
       mounted = false;
     };
-  }, [content, filePath]);
+  }, [debouncedContent, filePath]);
 
   return htmlResult;
 }

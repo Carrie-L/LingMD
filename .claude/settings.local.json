@@ -5,7 +5,9 @@
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(node:*)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(dir:*)",
+      "Bash(npm run build-react:*)"
     ],
     "deny": [],
     "ask": []

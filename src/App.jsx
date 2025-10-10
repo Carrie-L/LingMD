@@ -11,7 +11,6 @@ import { useMarkdownRenderer } from './useMarkdownRenderer';
 import { PreviewWithMermaid } from './PreviewWithMermaid';
 import './styles.css';
 import 'katex/dist/katex.min.css';
-import { useBasicScrollSync } from './useBasicScrollSync';
 
 
 
@@ -699,16 +698,10 @@ function App() {
     filePath
   );
 
-  //使用简化版doocs/md风格的滚动同步
-  // const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } 
-  // = useSimpleDoocsScrollSync(true);
-  // 使用基础的滚动同步
-  const { editorRef: scrollEditorRef, previewRef: scrollPreviewRef, wechatRef: scrollWechatRef } =
-    useBasicScrollSync(true, { lockMs: 150, syncOnInput: false });
-
-  // 合并滚动同步的ref
-  const previewRef = scrollPreviewRef;
-  const wechatRef = scrollWechatRef;
+  // 不再使用滚动同步，使用普通的 ref
+  const editorRef = useRef(null);
+  const previewRef = useRef(null);
+  const wechatRef = useRef(null);
 
   // 事件委托：preview 与 wechat 两个区域的 checkbox 点击同步回 editor
   useEffect(() => {
@@ -1483,12 +1476,12 @@ const styledHTML = `
               }
 
               // 3. 滚动编辑器到对应位置（根据标题在内容中的位置）
-              if (scrollEditorRef.current && scrollEditorRef.current.el) {
+              if (editorRef.current && editorRef.current.el) {
                 console.log('滚动编辑器');
                 try {
                   // 获取标题文本
                   const headingText = el.textContent || '';
-                  const editorTextarea = scrollEditorRef.current.el;
+                  const editorTextarea = editorRef.current.el;
                   const editorContent = editorTextarea.value || '';
 
                   // 在编辑器内容中查找标题
@@ -1525,7 +1518,7 @@ const styledHTML = `
                   console.warn('编辑器滚动失败:', err);
                 }
               } else {
-                console.warn('scrollEditorRef.current 或 .el 为空');
+                console.warn('editorRef.current 或 .el 为空');
               }
             }} />
           </div>
@@ -1538,7 +1531,7 @@ const styledHTML = `
             <>
               <div className="editor-wrapper">
                 <Editor
-                  ref={scrollEditorRef}
+                  ref={editorRef}
                   value={content}
                   onChange={setContent}
                   onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
@@ -1549,7 +1542,7 @@ const styledHTML = `
                   <div className="preview-inner">
                     <PreviewWithMermaid
                       html={sanitizedHtml}
-                      ref={scrollPreviewRef}
+                      ref={previewRef}
                     />
                   </div>
                 </div>
@@ -1564,7 +1557,7 @@ const styledHTML = `
                 <div className="preview-inner">
                   <PreviewWithMermaid
                     html={sanitizedHtml}
-                    ref={scrollPreviewRef}
+                    ref={previewRef}
                   />
                 </div>
               </div>
@@ -1578,7 +1571,7 @@ const styledHTML = `
             <div className="preview-inner">
               <PreviewWithMermaid
                 html={sanitizedHtml}
-                ref={scrollWechatRef}
+                ref={wechatRef}
               />
             </div>
           </div>

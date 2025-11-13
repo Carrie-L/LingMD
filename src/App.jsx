@@ -1382,12 +1382,19 @@ const styledHTML = `
         <label onClick={handleSave} className="toolbar-button">保存</label>
 
         {/* 视图切换按钮 */}
-        <button
+      <button
           className={viewMode === 'edit' ? 'toolbar-button active' : 'toolbar-button'}
           onClick={() => setViewMode('edit')}
           title="编辑模式（左编辑右预览）"
         >
-          编辑
+          分栏
+        </button>
+        <button
+          className={viewMode === 'pure-edit' ? 'toolbar-button active' : 'toolbar-button'}
+          onClick={() => setViewMode('pure-edit')}
+          title="仅编辑模式"
+        >
+          仅编辑
         </button>
         <button
           className={viewMode === 'preview' ? 'toolbar-button active' : 'toolbar-button'}
@@ -1561,6 +1568,20 @@ const styledHTML = `
               </div>
             </>
           )}
+
+
+    {/* 仅编辑模式：只显示编辑 */}
+              {viewMode === 'pure-edit' && (
+                <div className="editor-wrapper edit-only">
+                  <Editor
+                  ref={editorRef}
+                  value={content}
+                  onChange={setContent}
+                  onUploadingChange={(isUploading) => setEditorUploading(isUploading)}
+                />
+                </div>
+              )}
+            
 
           {/* 仅预览模式：只显示预览 */}
           {viewMode === 'preview' && (

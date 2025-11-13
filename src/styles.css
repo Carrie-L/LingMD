@@ -13,7 +13,6 @@
   --md-quote-bg: #fafafa;
   --md-quote-bar: #d1d5db;
   --md-table-stripe: #fafafa;
-
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -26,11 +25,11 @@ html, body {
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  
 }
 
 .app {
   height: 100vh;
-  
   font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing: border-box;
   overflow: hidden;
@@ -51,6 +50,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   /* 使用 vh 单位确保全屏 */
+  
 }
 
 
@@ -125,7 +125,7 @@ html, body {
   /* 卡片之间的间距 */
 
   /* ✅ 新增：为卡片提供一个柔和的背景底座 */
-  background: #f5f5f5;
+  background:  #ffffff;;
 
   /* ✅ 新增：限制 Grid 行的高度，防止子元素无限拉伸 */
   /* 1fr 表示占据所有剩余空间，minmax(0, 1fr) 是一种防止溢出的健壮写法 */
@@ -219,12 +219,12 @@ html, body {
   display: flex;
   justify-content: center; /* 居中显示 */
   align-items: stretch;
-  gap: 10px;
   height: 100%;
   margin: 0px auto;
-  max-width: 2400px; /* 限制最大宽度 */
+  max-width: 1800px; /* 限制最大宽度 */
   overflow: hidden;
 }
+  /* gap: 10px; */
 
 /* 编辑模式：编辑器和预览各占一半，贴在一起居中 */
 .mode-edit .content-area {
@@ -233,45 +233,59 @@ html, body {
 }
 
 .mode-edit .editor-wrapper {
-  flex: 1 1 0; /* 平均分配空间，不基于内容 */
-  min-width: 0;
-  max-width: 50%; /* 限制最大宽度为50% */
+  flex: 1 1 0; /* 从0开始平均分配，而不是基于内容 */
+  min-width: 0; /* 允许缩小 */
   height: 100%;
-  overflow: hidden; /* 防止内容撑大容器 */
+  overflow: hidden; /* 防止内容撑大 */
+  display: flex;
+  flex-direction: column;
 }
 
 .mode-edit .editor-wrapper .editor {
-  height: calc(100% - 20px);
-  margin: 10px;
-  width: calc(100% - 20px); /* 减去左右 margin */
+  height: 100%;
+  width: 100%; /* 占满wrapper */
+  margin: 0; /* 移除默认margin，防止宽度变化 */
+  padding-top: 20px;
 }
 
 .mode-edit .preview-wrapper {
-  flex: 1 1 0; /* 平均分配空间，不基于内容 */
-  min-width: 0;
-  max-width: 50%; /* 限制最大宽度为50% */
+  flex: 1 1 0; /* 从0开始平均分配，而不是基于内容 */
+  min-width: 0; /* 允许缩小 */
   height: 100%;
-  overflow: hidden; /* 防止内容撑大容器 */
+  overflow: hidden; /* 防止内容撑大 */
+  display: flex;
+  flex-direction: column;
 }
 
 .mode-edit .preview-wrapper .preview {
-  height: calc(100% - 20px);
-  margin: 10px;
-  width: calc(100% - 20px); /* 减去左右 margin */
+  height: 100%;
+  width: 100%; /* 占满wrapper */
+  margin: 0; /* 移除默认margin，防止宽度变化 */
 }
-
 
 
 /* 仅预览模式：预览居中 */
 .mode-preview .content-area {
   display: flex;
   justify-content: center;
+  height: 100%;
 }
 
 .mode-preview .preview-wrapper {
   width: 100%;
   max-width: 1100px;
   height: 100%;
+}
+
+.mode-preview .preview-wrapper .preview {
+  margin: 0 10px; /* 仅保留左右边距，移除上下边距 */
+}
+
+.mode-pure-edit .edit-wrapper{
+  width: 100%;
+  max-width: 1100px;
+  height: 100%;
+  margin: 0 10px;
 }
 
 
@@ -384,7 +398,6 @@ html, body {
 */
 .editor {
   line-height: 2em;
-  overflow: hidden;
   display: flex;
   height: 100%;
   flex-direction: column;
@@ -394,9 +407,8 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
   padding: 0;
-  margin: 10px;
   min-width: 0;
-  max-width: 100%; /* 防止内容撑大 */
+  max-width: 1000px; /* 防止内容撑大 */
   width: 100%; /* 强制占满父容器 */
   box-sizing: border-box; /* 确保 padding/border 不增加宽度 */
 }
@@ -407,7 +419,6 @@ html, body {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   padding: 0 ;       /* 我们把 padding 放到 markdown-body 内，避免影响高度计算 */
-  margin: 10px;
   min-width: 0;     /* 允许在 grid 中缩小 */
   max-width: 100%; /* 防止内容撑大 */
   width: 100%; /* 强制占满父容器 */
@@ -431,12 +442,13 @@ html, body {
   flex: 1 1 auto;       /* 占满剩余高度 */
   overflow: auto;       /* 重要：真正的滚动在这里发生 */
   box-sizing: border-box;
-  padding: 0px 32px;        /* 适中的内边距 */
+  
   width: 100%;
   max-width: none;      /* 允许宽度铺满列（不再强制 800px 居中） */
   margin: 0;            /* 取消居中 margin */
   font-size: 15px;
   line-height: 1.8;
+  padding: 20px 80px 80px 80px;
 }
 
 .wechat-export {
@@ -1519,70 +1531,89 @@ html, body {
 /*       CodeMirror 纯文本写作模式         */
 /* ========================================= */
 
+/* 1. 确保 CodeMirror 从外到内的每一层容器都严格遵守其父级的宽度 */
+.editor,
+.codemirror-editor,
+.cm-editor,
+.cm-scroller {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box; /* 添加这个属性，让 padding 和 border 不会影响宽度计算，更稳健 */
+}
+
+
+/* .editor, .codemirror-editor, .cm-editor {
+  height: 100%;
+} */
+
+
 /* CodeMirror 容器 - 极简黑白风格，继承 .editor 的卡片样式 */
-.editor .codemirror-editor {
+/* .editor .codemirror-editor {
   height: 100%;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
-}
+} */
 
 /* 隐藏所有代码感元素 */
-.editor .codemirror-editor .cm-gutters {
+.editor .cm-gutters {
   display: none !important;
 }
 
 /* 编辑器主体 - 透明背景，继承父容器的白色背景 */
-.editor .codemirror-editor .cm-editor {
+/* .editor .codemirror-editor .cm-editor {
   height: 100%;
   width: 100%;
   max-width: 100%;
   background: transparent;
   font-size: 15px;
   line-height: 2.5;
-  color: #de2a2a;
+  color: var(--md-text);
   box-sizing: border-box;
-}
+} */
 
-/* 滚动区域 */
-.editor .codemirror-editor .cm-editor .cm-scroller {
+/* 滚动区域 - 这是滚动发生的地方 */
+.editor .cm-scroller {
   font-family: inherit;
   line-height: inherit;
-  height: 100%;
+  height: 100% !important;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden !important; /* 禁止横向滚动 */
-  overflow-y: auto;
+  overflow-y: auto !important; /* 允许垂直滚动 */
   box-sizing: border-box;
 }
 
 /* 内容区 - 加大内边距 */
 .editor .cm-content {
-  padding: 40px 60px 80px 60px; 
-  caret-color: var(--md-accent) !important;  /* 光标颜色 */
-  font-family: inherit;
-  line-height: 2.5;
-  min-height: 100%;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  white-space: pre-wrap !important; /* 强制换行 */
-  word-break: break-word; /* 长单词也换行 */
+  padding: 40px 60px 80px 60px;
+  caret-color: var(--md-accent);
   font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
+  line-height: 2.5;
+  color: var(--md-text);
+  min-height: 100%;
+  min-width: 50px;
+  width: 800px;
+  box-sizing: border-box;
+  white-space: pre-wrap !important;
+  overflow-wrap: break-word;
+  word-break: break-all; 
 }
 
-
-/* 选中文本 - 淡灰色 */ /* 没用 */
-.editor .cm-editor {
-  &.cm-focused .cm-selectionBackground, .cm-selectionBackground {
-    background-color: #d7e7ff !important; /* A light blue selection color */
-  }
+/* 光标 */
+.editor .codemirror-editor .cm-cursor {
+  border-left-color: var(--md-accent);
+  border-left-width: 2px;
 }
 
+/* 选中文本 - 淡灰色 */
+.editor .codemirror-editor .cm-selectionBackground {
+  background-color: #e5e5e5 !important;
+}
 
 .editor .codemirror-editor.cm-focused .cm-selectionBackground {
-  background-color: #d91212 !important;
+  background-color: #e5e5e5 !important;
 }
 
 /* 占位符 */
@@ -1590,16 +1621,29 @@ html, body {
   color: #999;
   font-style: normal;
 }
- 
-/* 移除所有语法高亮 - 纯黑文字 */
-/* .editor .cm-line * {
-  color: #1616e8 !important;
+
+/* 每一行的文字颜色 */
+.editor .cm-line {
+  font-family: inherit;
+  color: var(--md-text) !important;
+  max-width: 100%;
+  text-decoration: none !important;
+  background: transparent !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: break-word;
+  word-break: break-all; 
+}
+
+/* 移除所有语法高亮 - 纯色文字 */
+/* .editor .codemirror-editor .cm-line * {
+  color: var(--md-text) !important;
   font-weight: inherit !important;
   font-style: inherit !important;
   text-decoration: none !important;
   background: transparent !important;
   font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
-  line-height: 2.5 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word;
 } */
 
 

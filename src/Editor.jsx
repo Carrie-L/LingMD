@@ -125,7 +125,7 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
     return () => {
       view.destroy();
     };
-  }); // 主题变化时重新创建编辑器
+  }, []); // 只在组件挂载时创建一次编辑器
 
   // 当外部 value 变化时更新编辑器
   useEffect(() => {

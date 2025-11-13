@@ -680,15 +680,24 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     let htmlWithBase64Images = rawHtml;
     // 注意：我们现在的 img 标签 src 属性可能被 DOMPurify 绕过后变成了 data-safe-src
     // 但在你最新的 useMarkdownRenderer.js 中，它被换回来了。我们假设它是 src
-    const imageTagsRegex = /<img src="(safe-file:\/\/[^"]+)"/g;
+    // 改进正则表达式：支持单引号和双引号，匹配 safe-file:// 或 file:// 协议
+    const imageTagsRegex = /<img\s+[^>]*src=["']((?:safe-file|file):\/\/[^"']+)["'][^>]*>/gi;
 
     // 使用一个异步的 replace 方法
     const replacements = [];
-    htmlWithBase64Images.replace(imageTagsRegex, (match, src) => {
-      replacements.push({ match, src });
-    });
+    let match;
+    // 重置正则表达式的 lastIndex，确保从头开始匹配
+    imageTagsRegex.lastIndex = 0;
+    while ((match = imageTagsRegex.exec(htmlWithBase64Images)) !== null) {
+      const fullMatch = match[0]; // 完整的 <img> 标签
+      const src = match[1]; // src 属性的值
+      const matchIndex = match.index; // 匹配位置
+      replacements.push({ fullMatch, src, index: matchIndex });
+    }
 
-    for (const item of replacements) {
+    // 从后往前替换，避免索引变化问题
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const item = replacements[i];
       try {
         const standardFileUrl = item.src.replace("safe-file:", "file:");
         const filePath = fileURLToPath(standardFileUrl);
@@ -700,11 +709,22 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
           mimeType = "image/jpeg";
         else if (extension === ".gif") mimeType = "image/gif";
         else if (extension === ".svg") mimeType = "image/svg+xml";
+        else if (extension === ".webp") mimeType = "image/webp";
 
         const base64String = fileBuffer.toString("base64");
         const dataUrl = `data:${mimeType};base64,${base64String}`;
 
-        htmlWithBase64Images = htmlWithBase64Images.replace(item.src, dataUrl);
+        // 替换整个 img 标签中的 src 属性值
+        const newImgTag = item.fullMatch.replace(
+          /src=["'][^"']+["']/i,
+          `src="${dataUrl}"`
+        );
+        
+        // 使用索引位置进行精确替换
+        htmlWithBase64Images = 
+          htmlWithBase64Images.substring(0, item.index) +
+          newImgTag +
+          htmlWithBase64Images.substring(item.index + item.fullMatch.length);
       } catch (e) {
         console.error(`Failed to convert image to Base64: ${item.src}`, e);
       }

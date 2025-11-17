@@ -1,7 +1,7 @@
 {
   "name": "lingmd",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.1",
   "main": "main/main.js",
   "author": "Ling",
   "license": "MIT",

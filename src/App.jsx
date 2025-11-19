@@ -1216,36 +1216,36 @@ function App() {
   };
 
   // 在 App 组件内部（和 handleCopyToWechat 同级）
-const handleExportHtml = async () => {
-  try {
-    if (!content || content.trim() === "") {
-      alert("内容为空，无法导出。");
-      return;
-    }
+  const handleExportHtml = async () => {
+    try {
+      if (!content || content.trim() === "") {
+        alert("内容为空，无法导出。");
+        return;
+      }
 
-    // 1. 构建主题 CSS（复用你已有的提取函数）
-    const extractedCSS = extractPreviewStyles(mdTheme) || "";
+      // 1. 构建主题 CSS（复用你已有的提取函数）
+      const extractedCSS = extractPreviewStyles(mdTheme) || "";
 
-    // 2. 取出用于导出的 preview DOM（复用 wechat-export 区域的结构）
-    const previewElement = document.querySelector(".preview");
-    if (!previewElement) {
-      alert("找不到导出区域（.preview .markdown-body），请先打开公众号预览或切换布局。");
-      return;
-    }
+      // 2. 取出用于导出的 preview DOM（复用 wechat-export 区域的结构）
+      const previewElement = document.querySelector(".preview");
+      if (!previewElement) {
+        alert("找不到导出区域（.preview .markdown-body），请先打开公众号预览或切换布局。");
+        return;
+      }
 
-    console.log("previewElement///", previewElement);
-    
+      console.log("previewElement///", previewElement);
+      
 
-    // 克隆并做同样的处理（去掉 H1/H2 是你在 copy 中的行为，按需保留或删除）
-    const cloned = previewElement.cloneNode(true);
-    // 如果想与复制到公众号一致，删除 h1/h2：
-    const headers = cloned.querySelectorAll("h1,h2");
-    headers.forEach(h => h.remove());
-    cloned.className = "markdown-body";
+      // 克隆并做同样的处理（去掉 H1/H2 是你在 copy 中的行为，按需保留或删除）
+      const cloned = previewElement.cloneNode(true);
+      // 如果想与复制到公众号一致，删除 h1/h2：
+      const headers = cloned.querySelectorAll("h1,h2");
+      headers.forEach(h => h.remove());
+      cloned.className = "markdown-body";
 
-    // 3. 生成要发到主进程处理的“裸 HTML”
-    // 生成导出 HTML（替换之前的 styledHTML）
-const exportWrapperCss = `
+      // 3. 生成要发到主进程处理的"裸 HTML"
+      // 生成导出 HTML（替换之前的 styledHTML）
+      const exportWrapperCss = `
 /* 导出时强制预览区宽度和居中 —— 覆盖应用中可能的全屏规则 */
 .preview-export {
   box-sizing: border-box;
@@ -1287,8 +1287,8 @@ const exportWrapperCss = `
 }
 `;
 
-// clonedHtml 是你 cloneNode 后取的 innerHTML
-const styledHTML = `
+      // clonedHtml 是你 cloneNode 后取的 innerHTML
+      const styledHTML = `
 <!doctype html>
 <html>
   <head>
@@ -1313,48 +1313,211 @@ const styledHTML = `
 </html>
 `;
 
+      // 4. 先让主进程做转换（图片 base64 / 样式内联 / 代码样式等）
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+        html: styledHTML,
+        codeThemeKey: themeKey,
+        css: extractedCSS,
+        themeCssValues: mdTheme,
+      });
 
-    // 4. 先让主进程做转换（图片 base64 / 样式内联 / 代码样式等）
-    const finalHtml = await window.electronAPI.convertHtmlForClipboard({
-      html: styledHTML,
-      codeThemeKey: themeKey,
-      css: extractedCSS,
-      themeCssValues: mdTheme,
-    });
+      if (!finalHtml || finalHtml.trim() === "") {
+        alert("导出失败：主进程返回空内容。");
+        return;
+      }
 
-    if (!finalHtml || finalHtml.trim() === "") {
-      alert("导出失败：主进程返回空内容。");
-      return;
+      // 5. 建议文件名：用第一行（sanitizeFileName 为你组件已有函数）
+      const firstLineName = sanitizeFileName(content || "");
+      const suggested = (firstLineName || "untitled") + ".html";
+
+      // 6. 弹出保存对话（使用已有 show-save-dialog）
+      const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggested });
+      if (!dlg || dlg.canceled || !dlg.filePath) {
+        // 用户取消
+        return;
+      }
+
+      let chosen = dlg.filePath;
+      // 强制 .html 后缀
+      if (!chosen.toLowerCase().endsWith(".html")) chosen += ".html";
+
+      // 7. 调用 save-file 把 finalHtml 写入磁盘
+      const res = await window.electronAPI.saveFile(finalHtml, chosen);
+      if (res && res.success) {
+        // 可选：把导出的 html 记为 lastFile（或只记 md 文件），这里不改 lastFile 行为
+        showToast("✅ 导出成功：" + (res.path || chosen));
+      } else {
+        showToast("导出失败：" + (res && res.error ? res.error : ""));
+      }
+    } catch (err) {
+      console.error("handleExportHtml error:", err);
+      alert("导出失败：" + (err && err.message ? err.message : String(err)));
     }
+  };
 
-    // 5. 建议文件名：用第一行（sanitizeFileName 为你组件已有函数）
-    const firstLineName = sanitizeFileName(content || "");
-    const suggested = (firstLineName || "untitled") + ".html";
+  // 导出为 PDF 的处理函数
+  const handleExportPdf = async () => {
+    console.log("handleExportPdf 被调用");
+    try {
+      if (!content || content.trim() === "") {
+        alert("内容为空，无法导出。");
+        return;
+      }
+      console.log("开始导出 PDF...");
 
-    // 6. 弹出保存对话（使用已有 show-save-dialog）
-    const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggested });
-    if (!dlg || dlg.canceled || !dlg.filePath) {
-      // 用户取消
-      return;
+      // 1. 构建主题 CSS（复用已有的提取函数）
+      const extractedCSS = extractPreviewStyles(mdTheme) || "";
+
+      // 2. 取出用于导出的 preview DOM
+      const previewElement = document.querySelector(".preview");
+      if (!previewElement) {
+        alert("找不到导出区域（.preview），请先打开预览或切换布局。");
+        return;
+      }
+
+      // 克隆并处理
+      const cloned = previewElement.cloneNode(true);
+      // 删除 h1/h2（可选，根据需求决定）
+      const headers = cloned.querySelectorAll("h1,h2");
+      headers.forEach(h => h.remove());
+      cloned.className = "markdown-body";
+
+      // 3. 生成导出 HTML（与 HTML 导出类似，但针对 PDF 优化）
+      const exportWrapperCss = `
+/* PDF 导出样式优化 */
+.preview-export {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--md-bg, #ffffff);
+  color: var(--md-fg, #000);
+  min-height: 100vh;
+}
+
+.preview-export .preview {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.preview-export .markdown-body {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 40px;
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* 保证图片/mermaid 等不超出 */
+.preview-export .markdown-body img,
+.preview-export .markdown-body svg,
+.preview-export .markdown-body .mermaid {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* PDF 分页优化 */
+.preview-export .markdown-body h1,
+.preview-export .markdown-body h2,
+.preview-export .markdown-body h3 {
+  page-break-after: avoid;
+}
+
+.preview-export .markdown-body pre,
+.preview-export .markdown-body blockquote {
+  page-break-inside: avoid;
+}
+`;
+
+      const styledHTML = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>
+      ${extractedCSS || ""}
+      ${exportWrapperCss}
+    </style>
+  </head>
+  <body>
+    <div class="preview-export">
+      <div class="preview">
+        <div class="preview-inner">
+          <div class="markdown-body">
+            ${cloned.innerHTML}
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+
+      // 4. 先让主进程做转换（图片 base64 / 样式内联 / 代码样式等）
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+        html: styledHTML,
+        codeThemeKey: themeKey,
+        css: extractedCSS,
+        themeCssValues: mdTheme,
+      });
+
+      if (!finalHtml || finalHtml.trim() === "") {
+        alert("导出失败：主进程返回空内容。");
+        return;
+      }
+
+      // 5. 建议文件名
+      const firstLineName = sanitizeFileName(content || "");
+      const suggested = (firstLineName || "untitled") + ".pdf";
+
+      // 6. 先弹出保存对话框（与导出 HTML 保持一致）
+      const dlg = await window.electronAPI.showSaveDialog({ 
+        defaultPath: suggested,
+        filters: [
+          { name: "PDF", extensions: ["pdf"] },
+          { name: "所有文件", extensions: ["*"] },
+        ]
+      });
+      
+      if (!dlg || dlg.canceled || !dlg.filePath) {
+        // 用户取消
+        return;
+      }
+      
+      const savePath = dlg.filePath;
+
+      // 7. 调用 PDF 导出，传入确定的路径
+      console.log("调用 window.electronAPI.exportToPdf, path:", savePath);
+      if (!window.electronAPI || !window.electronAPI.exportToPdf) {
+        console.error("window.electronAPI.exportToPdf 不存在！");
+        alert("PDF 导出功能不可用，请检查 Electron API 是否正确加载。");
+        return;
+      }
+      
+      const result = await window.electronAPI.exportToPdf({
+        html: finalHtml,
+        filePath: savePath, 
+      });
+      console.log("PDF 导出结果:", result);
+
+      if (result && result.success) {
+        showToast("✅ PDF 导出成功：" + (result.path || savePath));
+      } else {
+        showToast("PDF 导出失败：" + (result && result.error ? result.error : "未知错误"));
+      }
+    } catch (err) {
+      console.error("handleExportPdf error:", err);
+      alert("导出失败：" + (err && err.message ? err.message : String(err)));
     }
-
-    let chosen = dlg.filePath;
-    // 强制 .html 后缀
-    if (!chosen.toLowerCase().endsWith(".html")) chosen += ".html";
-
-    // 7. 调用 save-file 把 finalHtml 写入磁盘
-    const res = await window.electronAPI.saveFile(finalHtml, chosen);
-    if (res && res.success) {
-      // 可选：把导出的 html 记为 lastFile（或只记 md 文件），这里不改 lastFile 行为
-      showToast("✅ 导出成功：" + (res.path || chosen));
-    } else {
-      showToast("导出失败：" + (res && res.error ? res.error : ""));
-    }
-  } catch (err) {
-    console.error("handleExportHtml error:", err);
-    alert("导出失败：" + (err && err.message ? err.message : String(err)));
-  }
-};
+  };
 
 
   // 返回路径中的目录部分
@@ -1417,6 +1580,7 @@ const styledHTML = `
         </label>
         
         <label onClick={handleExportHtml} className="toolbar-button">导出 HTML</label>
+        <label onClick={handleExportPdf} className="toolbar-button">导出 PDF</label>
 
         {editorUploading && <span className="uploading">上传中...</span>}
 

@@ -7,7 +7,8 @@ const {
   dialog,
   protocol,
   shell,
-  net,clipboard
+  net,
+  clipboard
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -980,4 +981,193 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
 //   return out;
 // }
+
+// ===================================================================
+// ✅ 导出为 PDF 功能
+// ===================================================================
+ipcMain.handle("export-to-pdf", async (event, payload) => {
+  const { html, filePath } = payload;
+  console.log("[PDF Export] 收到导出请求, filePath:", filePath);
+  
+  if (!html || typeof html !== "string") {
+    console.error("export-to-pdf: Invalid HTML content");
+    return { success: false, error: "无效的 HTML 内容" };
+  }
+
+  try {
+    // 创建一个临时的隐藏窗口用于生成 PDF
+    const pdfWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    // 将 HTML 内容写入临时文件
+    const tempHtmlPath = path.join(os.tmpdir(), `lingmd-pdf-${Date.now()}.html`);
+    console.log("[PDF Export] 临时 HTML 路径:", tempHtmlPath);
+    await fs.promises.writeFile(tempHtmlPath, html, 'utf-8');
+    
+    // 确定最终保存路径
+    let finalPath = filePath;
+    if (!finalPath) {
+      console.log("[PDF Export] 未提供 filePath，准备弹出保存对话框...");
+      const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+      try {
+        const result = await dialog.showSaveDialog(win, {
+          title: "导出 PDF",
+          defaultPath: path.join(getDefaultDir(), "untitled.pdf"),
+          buttonLabel: "保存",
+          filters: [
+            { name: "PDF", extensions: ["pdf"] },
+            { name: "所有文件", extensions: ["*"] },
+          ],
+        });
+        console.log("[PDF Export] 保存对话框结果:", result);
+
+        if (result.canceled || !result.filePath) {
+          console.log("[PDF Export] 用户取消了保存对话框");
+          pdfWindow.close();
+          // 删除临时 HTML 文件
+          try {
+            await fs.promises.unlink(tempHtmlPath);
+          } catch (e) {}
+          return { success: false, canceled: true };
+        }
+        finalPath = result.filePath;
+        console.log("[PDF Export] 用户选择的路径:", finalPath);
+      } catch (dialogError) {
+        console.error("[PDF Export] 保存对话框出错:", dialogError);
+        pdfWindow.close();
+        try {
+          await fs.promises.unlink(tempHtmlPath);
+        } catch (e) {}
+        return { success: false, error: `保存对话框失败: ${dialogError.message || String(dialogError)}` };
+      }
+    } else {
+        console.log("[PDF Export] 使用提供的 filePath:", finalPath);
+    }
+
+    // 确保文件扩展名是 .pdf
+    if (!finalPath.toLowerCase().endsWith(".pdf")) {
+      finalPath += ".pdf";
+    }
+    console.log("[PDF Export] 最终保存路径:", finalPath);
+
+    // 加载临时 HTML 文件
+    console.log("[PDF Export] 开始加载临时 HTML 文件...");
+    try {
+        await pdfWindow.loadFile(tempHtmlPath);
+        console.log("[PDF Export] 临时 HTML 文件加载完成");
+    } catch (loadErr) {
+        console.error("[PDF Export] 加载 HTML 文件失败:", loadErr);
+        throw loadErr;
+    }
+
+    // 等待页面加载完成
+    // console.log("[PDF Export] 等待 did-finish-load...");
+    // await new Promise((resolve) => {
+    //   pdfWindow.webContents.once('did-finish-load', resolve);
+    // });
+    // console.log("[PDF Export] 页面加载完成 (did-finish-load)");
+
+    // 等待所有图片加载完成
+    console.log("[PDF Export] 开始检查图片加载状态...");
+    try {
+        await pdfWindow.webContents.executeJavaScript(`
+        new Promise((resolve) => {
+            console.log("开始检查图片...");
+            const images = document.querySelectorAll('img');
+            if (images.length === 0) {
+                console.log("没有图片，直接完成");
+                resolve();
+                return;
+            }
+            console.log("找到 " + images.length + " 张图片");
+            let loadedCount = 0;
+            const checkComplete = () => {
+                loadedCount++;
+                // console.log("图片加载进度: " + loadedCount + "/" + images.length);
+                if (loadedCount === images.length) {
+                    console.log("所有图片加载完成");
+                    resolve();
+                }
+            };
+            images.forEach((img) => {
+                if (img.complete) {
+                    checkComplete();
+                } else {
+                    img.onload = checkComplete;
+                    img.onerror = checkComplete; // 即使加载失败也继续
+                }
+            });
+            // 超时保护：5秒后强制完成
+            setTimeout(() => {
+                console.log("图片加载超时，强制完成");
+                resolve();
+            }, 5000);
+        });
+        `).catch((e) => {
+            console.warn("[PDF Export] 等待图片加载脚本出错:", e);
+        });
+        console.log("[PDF Export] 图片加载检查结束");
+    } catch (jsErr) {
+        console.error("[PDF Export] 执行 JS 失败:", jsErr);
+    }
+
+    // 额外等待一下，确保所有样式都应用完成
+    console.log("[PDF Export] 等待样式渲染 (500ms)...");
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log("[PDF Export] 等待结束");
+
+    console.log("[PDF Export] 开始生成 PDF 数据...");
+    // 生成 PDF
+    let pdfData;
+    try {
+      pdfData = await pdfWindow.webContents.printToPDF({
+        marginsType: 1, // 0 = default, 1 = none, 2 = minimum
+        pageSize: 'A4',
+        printBackground: true, // 重要：保留背景色和样式
+        displayHeaderFooter: false,
+        landscape: false,
+      });
+      console.log("[PDF Export] PDF 生成成功，数据类型:", typeof pdfData, "长度:", pdfData.length);
+    } catch (pdfError) {
+      console.error("[PDF Export] 生成 PDF 失败:", pdfError);
+      pdfWindow.close();
+      try {
+        await fs.promises.unlink(tempHtmlPath);
+      } catch (e) {}
+      return { success: false, error: `生成 PDF 失败: ${pdfError.message || String(pdfError)}` };
+    }
+
+    // 关闭临时窗口
+    pdfWindow.close();
+    console.log("[PDF Export] 临时窗口已关闭");
+
+    // 删除临时 HTML 文件
+    try {
+      await fs.promises.unlink(tempHtmlPath);
+      console.log("[PDF Export] 临时 HTML 文件已删除");
+    } catch (e) {
+      console.warn("Failed to delete temp HTML file:", e);
+    }
+
+    // 保存 PDF 文件
+    console.log("[PDF Export] 正在写入文件:", finalPath);
+    try {
+        await fs.promises.writeFile(finalPath, Buffer.from(pdfData));
+        console.log("[PDF Export] 文件写入成功");
+    } catch (writeError) {
+        console.error("[PDF Export] 文件写入失败:", writeError);
+        return { success: false, error: `文件写入失败: ${writeError.message}` };
+    }
+
+    return { success: true, path: finalPath };
+  } catch (error) {
+    console.error("Failed to export PDF:", error);
+    return { success: false, error: error.message || String(error) };
+  }
+});
 

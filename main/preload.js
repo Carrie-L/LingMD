@@ -47,4 +47,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   cleanupUnusedImages: (data) =>
     ipcRenderer.invoke("cleanup-unused-images", data),
   exitFullScreen: () => ipcRenderer.invoke('exit-fullscreen'),
+  // 导出为 PDF
+  exportToPdf: (payload) => ipcRenderer.invoke('export-to-pdf', payload),
 });

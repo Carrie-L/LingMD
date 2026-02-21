@@ -1871,6 +1871,27 @@ body {
   overflow: visible !important;
 }
 
+/* 隐藏滚动条，避免分段截图拼接后出现多个滚动条滑块 */
+html,
+body,
+.image-export,
+.image-export .markdown-body,
+.image-export * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.image-export::-webkit-scrollbar,
+.image-export .markdown-body::-webkit-scrollbar,
+.image-export *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
 .app {
   display: block !important;
   width: 100% !important;
@@ -1884,7 +1905,7 @@ body {
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-  padding: 20px 10px;
+  padding: 20px 10px 56px;
   background: var(--md-bg, #ffffff);
   color: var(--md-fg, #000);
   height: auto !important;

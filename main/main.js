@@ -400,8 +400,10 @@ function createWindow() {
 
   mainWindow.webContents.once("did-finish-load", () => {
     const lastFile = store.get("lastFile");
-    if (lastFile && fs.existsSync(lastFile)) {
+    if (isMarkdownFile(lastFile)) {
       mainWindow.webContents.send("load-last-file", lastFile);
+    } else if (lastFile) {
+      try { store.delete("lastFile"); } catch (e) { }
     }
   });
 
@@ -532,9 +534,12 @@ ipcMain.handle("save-file", async (event, content, filePath) => {
     // 3) 写入文件（使用 promises 版本）
     await fs.promises.writeFile(finalPath, content || '', 'utf-8');
 
-    // 可选：将当前保存路径存为 lastFile
+    // 仅把 Markdown 文档记录为 lastFile，避免导出 html/pdf 等覆盖启动文件
     try {
-      store.set('lastFile', finalPath);
+      const ext = path.extname(finalPath || '').toLowerCase();
+      if (ext === '.md' || ext === '.markdown') {
+        store.set('lastFile', finalPath);
+      }
     } catch (e) { /* ignore */ }
 
     return { path: finalPath, success: true };
@@ -638,8 +643,8 @@ ipcMain.on('renderer-ready', async (event) => {
   try {
     let lastFile = store.get('lastFile'); // 从 store 读取上次打开的文件路径
 
-    // 如果 store 有 lastFile 且文件存在且为文件，则直接读取并返回
-    if (lastFile && fs.existsSync(lastFile) && fs.statSync(lastFile).isFile()) {
+    // 如果 store 有 markdown lastFile，则直接读取并返回
+    if (isMarkdownFile(lastFile)) {
       let initialContent = '';
       try {
         initialContent = await fs.promises.readFile(lastFile, 'utf8');
@@ -649,6 +654,8 @@ ipcMain.on('renderer-ready', async (event) => {
       }
       win.webContents.send('initial-data', { lastFile, initialContent });
       return;
+    } else if (lastFile) {
+      try { store.delete('lastFile'); } catch (e) { }
     }
 
     // 否则：在 **默认目录（getDefaultDir）** 创建一个未命名文件（只在这里创建一次）
@@ -739,7 +746,7 @@ ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
 
 // === 状态 & 窗口管理 ===
 ipcMain.on("set-last-file", (event, filePath) =>
-  store.set("lastFile", filePath)
+  (isMarkdownFile(filePath) ? store.set("lastFile", filePath) : null)
 );
 
 ipcMain.handle(
@@ -1395,33 +1402,96 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     // 等待页面加载完成
     console.log("[Image Export] 开始检查资源加载状态...");
     try {
-      await imageWindow.webContents.executeJavaScript(`
-        new Promise((resolve) => {
-            // 等待图片加载
-            const images = document.querySelectorAll('img');
-            let loadedCount = 0;
-            const checkComplete = () => {
-                loadedCount++;
-                if (loadedCount === images.length) {
-                    resolve();
-                }
-            };
-            if (images.length === 0) {
-                resolve();
-                return;
+      const resourcePrepResult = await imageWindow.webContents.executeJavaScript(`
+        (async () => {
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const getAllImages = () => Array.from(document.querySelectorAll('img'));
+          const readDocHeight = () => {
+            const body = document.body;
+            const doc = document.documentElement;
+            return Math.max(
+              body ? body.scrollHeight || 0 : 0,
+              doc ? doc.scrollHeight || 0 : 0,
+              body ? body.offsetHeight || 0 : 0,
+              doc ? doc.offsetHeight || 0 : 0,
+              1
+            );
+          };
+
+          const normalizeImage = (img) => {
+            try { img.loading = 'eager'; } catch (_e) {}
+            try { img.decoding = 'sync'; } catch (_e) {}
+
+            if (!img.getAttribute('src') || img.getAttribute('src') === '') {
+              const lazySrc =
+                img.getAttribute('data-src') ||
+                img.getAttribute('data-original') ||
+                img.getAttribute('data-url') ||
+                img.getAttribute('data-lazy-src');
+              if (lazySrc) {
+                img.setAttribute('src', lazySrc);
+              }
             }
-            images.forEach((img) => {
-                if (img.complete) {
-                    checkComplete();
-                } else {
-                    img.onload = checkComplete;
-                    img.onerror = checkComplete;
-                }
-            });
-            // 超时保护
-            setTimeout(() => resolve(), 5000);
-        });
+          };
+
+          const waitImageReady = async (img, timeoutMs = 12000) => {
+            normalizeImage(img);
+            const loaded = () => img.complete || img.naturalWidth > 0 || img.naturalHeight > 0;
+            if (loaded()) {
+              if (typeof img.decode === 'function') {
+                await Promise.race([
+                  img.decode().catch(() => {}),
+                  sleep(1200),
+                ]);
+              }
+              return;
+            }
+
+            await Promise.race([
+              new Promise((resolve) => {
+                const onDone = () => resolve();
+                img.addEventListener('load', onDone, { once: true });
+                img.addEventListener('error', onDone, { once: true });
+              }),
+              sleep(timeoutMs),
+            ]);
+
+            if (typeof img.decode === 'function') {
+              await Promise.race([
+                img.decode().catch(() => {}),
+                sleep(1200),
+              ]);
+            }
+          };
+
+          // Multi-pass sweep to trigger lazy-loading resources on long pages.
+          for (let pass = 0; pass < 3; pass++) {
+            const images = getAllImages();
+            await Promise.all(images.map((img) => waitImageReady(img, 12000)));
+
+            const viewport = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0, 1);
+            const totalHeight = readDocHeight();
+            const step = Math.max(260, Math.floor(viewport * 0.9));
+            for (let y = 0; y < totalHeight; y += step) {
+              window.scrollTo(0, y);
+              await sleep(35);
+            }
+            window.scrollTo(0, totalHeight);
+            await sleep(120);
+            window.scrollTo(0, 0);
+            await sleep(120);
+          }
+
+          await sleep(400);
+          const finalImages = getAllImages();
+          return {
+            totalImages: finalImages.length,
+            pendingImages: finalImages.filter((img) => !img.complete).length,
+            finalDocHeight: readDocHeight(),
+          };
+        })();
       `);
+      console.log("[Image Export] 资源预处理结果:", resourcePrepResult);
     } catch (jsErr) {
       console.warn("[Image Export] 等待资源加载脚本出错:", jsErr);
     }
@@ -1429,6 +1499,63 @@ ipcMain.handle("export-to-image", async (event, payload) => {
 
     // 额外等待一下，确保所有样式都应用完成
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 再等待高度稳定，避免字体/异步渲染导致高度波动引发“偶发截断”
+    let stableHeight = null;
+    try {
+      stableHeight = await imageWindow.webContents.executeJavaScript(`
+        new Promise((resolve) => {
+          const target = document.querySelector('.image-export') || document.body;
+          const body = document.body;
+          const html = document.documentElement;
+          let lastHeight = -1;
+          let stableTicks = 0;
+          let tickCount = 0;
+          const maxTicks = 90;
+          const needStable = 6;
+
+          const measure = () => {
+            const rect = target.getBoundingClientRect();
+            return Math.ceil(Math.max(
+              rect.height || 0,
+              target.scrollHeight || 0,
+              body.scrollHeight || 0,
+              html.scrollHeight || 0,
+              1
+            ));
+          };
+
+          const loop = () => {
+            const h = measure();
+            if (h === lastHeight) {
+              stableTicks += 1;
+            } else {
+              lastHeight = h;
+              stableTicks = 0;
+            }
+
+            tickCount += 1;
+            if (stableTicks >= needStable || tickCount >= maxTicks) {
+              resolve(h);
+              return;
+            }
+            setTimeout(loop, 80);
+          };
+
+          // 字体加载会影响换行和总高度；在支持时等待字体就绪再开始稳定检测
+          if (document.fonts && document.fonts.ready) {
+            Promise.race([
+              document.fonts.ready,
+              new Promise((r) => setTimeout(r, 2500)),
+            ]).finally(loop);
+          } else {
+            loop();
+          }
+        });
+      `);
+    } catch (stableErr) {
+      console.warn("[Image Export] 等待高度稳定失败，继续使用当前尺寸:", stableErr);
+    }
 
     // 获取页面内容的实际尺寸（优先按导出容器计算）
     console.log("[Image Export] 开始获取页面尺寸...");
@@ -1443,6 +1570,9 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         return { width, height };
       })();
     `);
+    if (typeof stableHeight === 'number' && Number.isFinite(stableHeight)) {
+      dimensions.height = Math.max(dimensions.height, Math.ceil(stableHeight));
+    }
     console.log("[Image Export] 页面尺寸:", dimensions);
     sendExportProgress(sender, { type: 'image', progress: 50, message: `尺寸 ${dimensions.width}x${dimensions.height}，开始分段截图...` });
 
@@ -1576,8 +1706,8 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     if (!pngBuffer || pngBuffer.length === 0) {
       sendExportProgress(sender, { type: 'image', progress: 74, message: '主方案失败，正在使用兼容截图模式...' });
       const fallbackViewportHeight = preferFallbackForLongPage
-        ? Math.max(800, Math.min(1600, finalHeight))
-        : Math.max(900, Math.min(2200, finalHeight));
+        ? Math.max(800, Math.min(1400, finalHeight))
+        : Math.max(900, Math.min(2000, finalHeight));
       if (typeof imageWindow.setContentSize === "function") {
         imageWindow.setContentSize(finalWidth, fallbackViewportHeight);
       } else {
@@ -1585,18 +1715,99 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       }
       await new Promise(resolve => setTimeout(resolve, 250));
 
-      const expectedSegments = Math.ceil(finalHeight / fallbackViewportHeight);
+      let knownScrollHeight = finalHeight;
       let cssOffsetY = 0;
-      let outputOffsetY = 0;
       let segmentCount = 0;
       let outputWidth = 0;
       let outputHeight = 0;
       let outputBitmap = null;
+      let bitmapScale = 1;
 
-      while (cssOffsetY < finalHeight) {
-        const cssChunkHeight = Math.min(fallbackViewportHeight, finalHeight - cssOffsetY);
-        await imageWindow.webContents.executeJavaScript(`window.scrollTo(0, ${cssOffsetY});`);
-        await new Promise(resolve => setTimeout(resolve, 80));
+      const getScrollMetrics = async () => {
+        return await imageWindow.webContents.executeJavaScript(`
+          (() => {
+            const doc = document.documentElement;
+            const body = document.body;
+            const scrollTop = Math.max(window.scrollY || 0, doc.scrollTop || 0, body.scrollTop || 0);
+            const clientHeight = Math.max(window.innerHeight || 0, doc.clientHeight || 0);
+            const scrollHeight = Math.max(
+              doc.scrollHeight || 0,
+              body.scrollHeight || 0,
+              doc.offsetHeight || 0,
+              body.offsetHeight || 0,
+              clientHeight
+            );
+            return { scrollTop, clientHeight, scrollHeight };
+          })();
+        `);
+      };
+
+      const ensureOutputBuffer = (requiredHeight) => {
+        const safeRequiredHeight = Math.max(1, Math.ceil(requiredHeight));
+        const totalPixels = outputWidth * safeRequiredHeight;
+        if (totalPixels > IMAGE_EXPORT_MAX_PIXELS) {
+          throw new Error(`兼容截图尺寸过大: ${outputWidth}x${safeRequiredHeight}`);
+        }
+
+        if (!outputBitmap) {
+          outputBitmap = Buffer.alloc(outputWidth * safeRequiredHeight * 4, 255);
+          outputHeight = safeRequiredHeight;
+          return;
+        }
+
+        if (safeRequiredHeight <= outputHeight) return;
+        const nextBitmap = Buffer.alloc(outputWidth * safeRequiredHeight * 4, 255);
+        outputBitmap.copy(nextBitmap, 0, 0, outputBitmap.length);
+        outputBitmap = nextBitmap;
+        outputHeight = safeRequiredHeight;
+      };
+
+      // 关闭平滑滚动，避免 scrollTo 过渡动画导致分段数异常膨胀
+      try {
+        const scrollSetup = await imageWindow.webContents.executeJavaScript(`
+          (() => {
+            try { document.documentElement.style.scrollBehavior = 'auto'; } catch (_e) {}
+            try { document.body.style.scrollBehavior = 'auto'; } catch (_e) {}
+            return {
+              htmlBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+              bodyBehavior: getComputedStyle(document.body).scrollBehavior,
+              viewport: Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0),
+            };
+          })();
+        `);
+        console.log("[Image Export] 兼容模式滚动设置:", scrollSetup);
+      } catch (scrollSetupErr) {
+        console.warn("[Image Export] 兼容模式滚动设置失败:", scrollSetupErr);
+      }
+
+      const MAX_SEGMENTS = 300;
+      while (segmentCount < MAX_SEGMENTS) {
+        await imageWindow.webContents.executeJavaScript(`
+          (() => {
+            const y = ${Math.max(0, Math.floor(cssOffsetY))};
+            try {
+              window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+            } catch (_e) {
+              window.scrollTo(0, y);
+            }
+            try { document.documentElement.scrollTop = y; } catch (_e) {}
+            try { document.body.scrollTop = y; } catch (_e) {}
+            return Math.max(
+              window.scrollY || 0,
+              document.documentElement.scrollTop || 0,
+              document.body.scrollTop || 0
+            );
+          })();
+        `);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        const metrics = await getScrollMetrics();
+        knownScrollHeight = Math.max(knownScrollHeight, metrics.scrollHeight);
+
+        const cssTop = Math.max(0, Math.floor(metrics.scrollTop));
+        const effectiveViewportHeight = Math.max(1, Math.floor(metrics.clientHeight || fallbackViewportHeight));
+        const cssRemaining = Math.max(1, Math.ceil(knownScrollHeight - cssTop));
+        const cssChunkHeight = Math.max(1, Math.min(effectiveViewportHeight, cssRemaining));
 
         const image = await imageWindow.webContents.capturePage({
           x: 0,
@@ -1611,46 +1822,118 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         const shotSize = image.getSize();
         if (segmentCount === 0) {
           const scale = shotSize.width / finalWidth;
+          bitmapScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
           outputWidth = shotSize.width;
-          outputHeight = Math.max(1, Math.ceil(finalHeight * scale));
-          const totalPixels = outputWidth * outputHeight;
-          if (totalPixels > IMAGE_EXPORT_MAX_PIXELS) {
-            throw new Error(`兼容截图尺寸过大: ${outputWidth}x${outputHeight}`);
-          }
-          outputBitmap = Buffer.alloc(outputWidth * outputHeight * 4, 255);
+          ensureOutputBuffer(Math.ceil(knownScrollHeight * bitmapScale) + 4);
         }
+
+        const outputTop = Math.max(0, Math.floor(cssTop * bitmapScale));
+        ensureOutputBuffer(Math.max(outputHeight, Math.ceil(knownScrollHeight * bitmapScale) + 4, outputTop + shotSize.height + 1));
 
         const shotBitmap = image.toBitmap();
         const copyWidth = Math.min(outputWidth, shotSize.width);
-        const copyHeight = Math.min(shotSize.height, outputHeight - outputOffsetY);
+        const copyHeight = Math.min(shotSize.height, outputHeight - outputTop);
         if (copyWidth <= 0 || copyHeight <= 0) {
           throw new Error(`兼容截图失败：第 ${segmentCount + 1} 段尺寸异常 (${shotSize.width}x${shotSize.height})`);
         }
 
         for (let row = 0; row < copyHeight; row++) {
           const srcStart = row * shotSize.width * 4;
-          const dstStart = (outputOffsetY + row) * outputWidth * 4;
+          const dstStart = (outputTop + row) * outputWidth * 4;
           shotBitmap.copy(outputBitmap, dstStart, srcStart, srcStart + copyWidth * 4);
         }
 
-        outputOffsetY += copyHeight;
-        cssOffsetY += cssChunkHeight;
         segmentCount++;
-
+        const expectedSegments = Math.max(segmentCount, Math.ceil(knownScrollHeight / effectiveViewportHeight));
         const segProgress = 74 + Math.min(18, Math.round((segmentCount / expectedSegments) * 18));
         sendExportProgress(sender, {
           type: 'image',
           progress: segProgress,
           message: `兼容截图拼接 ${segmentCount}/${expectedSegments}...`,
         });
+
+        const nextCssOffset = cssTop + cssChunkHeight;
+        const nearBottom = nextCssOffset >= knownScrollHeight - 1;
+        if (nearBottom) {
+          // 最后一屏给资源更多时间稳定，避免尾图晚到导致截断
+          let hasGrowth = false;
+          for (let retry = 0; retry < 6; retry++) {
+            await new Promise(resolve => setTimeout(resolve, 260));
+            const postMetrics = await getScrollMetrics();
+            if (postMetrics.scrollHeight > knownScrollHeight + 1) {
+              knownScrollHeight = postMetrics.scrollHeight;
+              cssOffsetY = Math.max(nextCssOffset, cssTop + 1);
+              hasGrowth = true;
+              break;
+            }
+          }
+          if (hasGrowth) {
+            continue;
+          }
+          break;
+        }
+
+        cssOffsetY = nextCssOffset;
       }
 
-      const mergedImage = createNativeImageFromRawBitmap(outputBitmap, outputWidth, outputHeight);
+      if (segmentCount >= MAX_SEGMENTS) {
+        throw new Error(`兼容截图失败：分段次数超过上限(${MAX_SEGMENTS})`);
+      }
+
+      // 底部补抓：防止最后一屏图片延迟渲染，覆盖一次真实底部视图
+      if (segmentCount > 0) {
+        await imageWindow.webContents.executeJavaScript(`window.scrollTo(0, document.documentElement.scrollHeight || document.body.scrollHeight || 0);`);
+        await new Promise(resolve => setTimeout(resolve, 320));
+
+        const bottomMetrics = await getScrollMetrics();
+        knownScrollHeight = Math.max(knownScrollHeight, bottomMetrics.scrollHeight);
+
+        const bottomCssTop = Math.max(0, Math.floor(bottomMetrics.scrollTop));
+        const bottomCaptureHeight = Math.max(
+          1,
+          Math.min(fallbackViewportHeight, Math.ceil(bottomMetrics.clientHeight || fallbackViewportHeight))
+        );
+        const bottomImage = await imageWindow.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: finalWidth,
+          height: bottomCaptureHeight,
+        });
+        if (!bottomImage.isEmpty()) {
+          const bottomShotSize = bottomImage.getSize();
+          const bottomOutputTop = Math.max(0, Math.floor(bottomCssTop * bitmapScale));
+          ensureOutputBuffer(
+            Math.max(
+              outputHeight,
+              Math.ceil(knownScrollHeight * bitmapScale) + 8,
+              bottomOutputTop + bottomShotSize.height + 1
+            )
+          );
+
+          const bottomBitmap = bottomImage.toBitmap();
+          const bottomCopyWidth = Math.min(outputWidth, bottomShotSize.width);
+          const bottomCopyHeight = Math.min(bottomShotSize.height, outputHeight - bottomOutputTop);
+          for (let row = 0; row < bottomCopyHeight; row++) {
+            const srcStart = row * bottomShotSize.width * 4;
+            const dstStart = (bottomOutputTop + row) * outputWidth * 4;
+            bottomBitmap.copy(outputBitmap, dstStart, srcStart, srcStart + bottomCopyWidth * 4);
+          }
+          console.log("[Image Export] 兼容模式底部补抓完成:", {
+            cssTop: bottomCssTop,
+            captureHeight: bottomCaptureHeight,
+            bitmapHeight: bottomShotSize.height,
+          });
+        }
+      }
+
+      const finalOutputHeight = Math.max(1, Math.min(outputHeight, Math.ceil(knownScrollHeight * bitmapScale) + 8));
+      const finalBitmap = outputBitmap.subarray(0, outputWidth * finalOutputHeight * 4);
+      const mergedImage = createNativeImageFromRawBitmap(finalBitmap, outputWidth, finalOutputHeight);
       if (mergedImage.isEmpty()) {
         throw new Error("兼容截图拼接失败：生成图像为空");
       }
       pngBuffer = mergedImage.toPNG();
-      console.log("[Image Export] 回退分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length, "尺寸:", { width: outputWidth, height: outputHeight });
+      console.log("[Image Export] 回退分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length, "尺寸:", { width: outputWidth, height: finalOutputHeight });
       sendExportProgress(sender, { type: 'image', progress: 90, message: '截图完成，正在写入文件...' });
     }
 

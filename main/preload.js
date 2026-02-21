@@ -49,4 +49,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   exitFullScreen: () => ipcRenderer.invoke('exit-fullscreen'),
   // 导出为 PDF
   exportToPdf: (payload) => ipcRenderer.invoke('export-to-pdf', payload),
+  // 导出为图片（朋友圈）
+  exportToImage: (payload) => ipcRenderer.invoke('export-to-image', payload),
+
+  // 自定义主题
+  getCustomThemes: () => ipcRenderer.invoke('get-custom-themes'),
+  saveCustomThemes: (themes) => ipcRenderer.invoke('save-custom-themes', themes),
 });

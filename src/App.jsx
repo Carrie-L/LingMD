@@ -7,6 +7,7 @@ import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
+import ThemeEditor from "./ThemeEditor.jsx";
 import { useMarkdownRenderer } from './useMarkdownRenderer';
 import { PreviewWithMermaid } from './PreviewWithMermaid';
 import './styles.css';
@@ -62,7 +63,6 @@ const MD_THEMES = {
   executive: { name: "Executive Suite" },
   mintBreeze: { name: "Mint Breeze" },
   digitalWave: { name: "Digital Wave" },
-  sunsetGlow: { name: "Sunset Glow" },
   lavenderMist: { name: "Lavender Mist" },
   forestWhisper: { name: "Forest Whisper" },
   roseGold: { name: "Rose Gold Elegance" },
@@ -151,8 +151,36 @@ const extractPreviewStyles = (mdTheme) => {
   return generateCompleteCSS(cssVariables, mdTheme);
 };
 
-const extractWechatPreviewStyles = (mdTheme) => {
+const extractWechatPreviewStyles = (mdTheme, customThemeData) => {
   console.log("333mdTheme", mdTheme);
+
+  // 自定义主题处理逻辑同上
+  if (customThemeData) {
+    const cssVariables = { ...customThemeData.variables };
+    if (customThemeData.settings) {
+        cssVariables['--md-font-size'] = customThemeData.settings.fontSize;
+        cssVariables['--md-line-height'] = customThemeData.settings.lineHeight;
+    }
+    let css = generateCompleteCSS(cssVariables, mdTheme);
+    if (customThemeData.customCss) {
+        css += `\n${customThemeData.customCss}`;
+    }
+    
+    const settings = customThemeData.settings || {};
+    const headingScale = parseFloat(settings.headingScale || '1.2');
+    const scales = [1, headingScale, headingScale**2, headingScale**3, headingScale**4, headingScale**5];
+    
+    css += `
+      .markdown-body h6 { font-size: ${scales[0]}em; }
+      .markdown-body h5 { font-size: ${scales[1]}em; }
+      .markdown-body h4 { font-size: ${scales[2]}em; }
+      .markdown-body h3 { font-size: ${scales[3]}em; }
+      .markdown-body h2 { font-size: ${scales[4]}em; }
+      .markdown-body h1 { font-size: ${scales[5]}em; }
+      .markdown-body { font-size: ${settings.fontSize || '16px'}; line-height: ${settings.lineHeight || '1.8'}; }
+    `;
+    return css;
+  }
 
   const previewElement = document.querySelector('.wechat-export');
   console.log("previewElement", previewElement);
@@ -603,6 +631,11 @@ function App() {
   const [defaultDir, setDefaultDir] = useState("");
   const [lastSaveDir, setLastSaveDir] = useState(null);
 
+  // 自定义主题状态
+  const [customThemes, setCustomThemes] = useState({});
+  const [isThemeEditorOpen, setIsThemeEditorOpen] = useState(false);
+  const [editingTheme, setEditingTheme] = useState(null);
+
   // 主题状态（Markdown 主题）
   const [mdTheme, setMdTheme] = useState(
     localStorage.getItem("mdTheme") || DEFAULT_MD_THEME
@@ -610,6 +643,85 @@ function App() {
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认CODE主题
 
   // 动态加载和卸载 CSS 主题
+  useEffect(() => {
+    const loadCustomThemes = async () => {
+      try {
+        const themes = await window.electronAPI.getCustomThemes();
+        setCustomThemes(themes || {});
+      } catch (error) {
+        console.error("Failed to load custom themes:", error);
+      }
+    };
+    loadCustomThemes();
+  }, []);
+
+  // 生成自定义主题 CSS 的辅助函数
+  const generateCustomThemeCSS = (theme) => {
+    if (!theme) return '';
+    const vars = Object.entries(theme.variables || {})
+      .map(([k, v]) => `${k}: ${v};`)
+      .join('\n');
+    
+    const settings = theme.settings || {};
+    const fontSize = settings.fontSize || '16px';
+    const lineHeight = settings.lineHeight || '1.8';
+    const headingScale = parseFloat(settings.headingScale || '1.2');
+
+    // 基础样式
+    let css = `
+      .app[data-mdtheme="${theme.id}"] {
+        ${vars}
+        --md-font-size: ${fontSize};
+        --md-line-height: ${lineHeight};
+      }
+      
+      /* 微信预览区特定的字体和行高覆盖 */
+      .app[data-mdtheme="${theme.id}"] .markdown-body {
+        font-size: var(--md-font-size);
+        line-height: var(--md-line-height);
+      }
+    `;
+
+    // 标题大小逻辑
+    const scales = [1, headingScale, headingScale**2, headingScale**3, headingScale**4, headingScale**5]; 
+    // h6 -> h1
+    
+    css += `
+      .app[data-mdtheme="${theme.id}"] h6 { font-size: ${scales[0]}em; }
+      .app[data-mdtheme="${theme.id}"] h5 { font-size: ${scales[1]}em; }
+      .app[data-mdtheme="${theme.id}"] h4 { font-size: ${scales[2]}em; }
+      .app[data-mdtheme="${theme.id}"] h3 { font-size: ${scales[3]}em; }
+      .app[data-mdtheme="${theme.id}"] h2 { font-size: ${scales[4]}em; }
+      .app[data-mdtheme="${theme.id}"] h1 { font-size: ${scales[5]}em; }
+    `;
+
+    if (theme.customCss) {
+       css += `
+       /* Custom CSS for ${theme.name} */
+       ${theme.customCss}
+       `;
+    }
+
+    return css;
+  };
+
+  // 注入自定义主题 CSS
+  useEffect(() => {
+    const styleId = 'custom-theme-styles';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+
+    // 仅生成当前选中的自定义主题的 CSS，或者生成所有自定义主题的 CSS
+    // 为了性能和 simplicity，我们生成所有的，因为 data-mdtheme 选择器会隔离它们
+    const allCss = Object.values(customThemes).map(generateCustomThemeCSS).join('\n');
+    styleEl.textContent = allCss;
+
+  }, [customThemes]);
+
   useEffect(() => {
     // 1. 创建一个新的 <link> 元素 
     const linkElement = document.createElement('link');
@@ -1223,10 +1335,10 @@ function App() {
         return;
       }
 
-      // 1. 构建主题 CSS（复用你已有的提取函数）
-      const extractedCSS = extractPreviewStyles(mdTheme) || "";
+    // 1. 构建主题 CSS（复用你已有的提取函数）
+    const extractedCSS = extractPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
 
-      // 2. 取出用于导出的 preview DOM（复用 wechat-export 区域的结构）
+    // 2. 取出用于导出的 preview DOM（复用 wechat-export 区域的结构）
       const previewElement = document.querySelector(".preview");
       if (!previewElement) {
         alert("找不到导出区域（.preview .markdown-body），请先打开公众号预览或切换布局。");
@@ -1355,6 +1467,22 @@ function App() {
     }
   };
 
+  // 获取页面所有 CSS 规则的辅助函数
+  const getAllStyles = () => {
+    let css = '';
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      try {
+        const sheet = document.styleSheets[i];
+        for (let j = 0; j < sheet.cssRules.length; j++) {
+          css += sheet.cssRules[j].cssText + '\n';
+        }
+      } catch (e) {
+        console.warn("Failed to get css rules", e);
+      }
+    }
+    return css;
+  };
+
   // 导出为 PDF 的处理函数
   const handleExportPdf = async () => {
     console.log("handleExportPdf 被调用");
@@ -1365,13 +1493,13 @@ function App() {
       }
       console.log("开始导出 PDF...");
 
-      // 1. 构建主题 CSS（复用已有的提取函数）
-      const extractedCSS = extractPreviewStyles(mdTheme) || "";
+      // 1. 获取页面全量样式
+      const allStyles = getAllStyles();
 
-      // 2. 取出用于导出的 preview DOM
-      const previewElement = document.querySelector(".preview");
+      // 2. 取出用于导出的正文 DOM（只拿真实内容，避免带入滚动容器）
+      const previewElement = document.querySelector(".preview .markdown-body");
       if (!previewElement) {
-        alert("找不到导出区域（.preview），请先打开预览或切换布局。");
+        alert("找不到导出区域（.preview .markdown-body），请先打开预览或切换布局。");
         return;
       }
 
@@ -1379,60 +1507,94 @@ function App() {
       const cloned = previewElement.cloneNode(true);
       // 删除 h1/h2（可选，根据需求决定）
       const headers = cloned.querySelectorAll("h1,h2");
-      headers.forEach(h => h.remove());
-      cloned.className = "markdown-body";
+      headers.forEach((h) => h.remove());
 
-      // 3. 生成导出 HTML（与 HTML 导出类似，但针对 PDF 优化）
+      // 3. 生成导出 HTML
+      // 关键：包裹在 .app[data-mdtheme] 容器中，以确保 CSS 选择器匹配
       const exportWrapperCss = `
-/* PDF 导出样式优化 */
-.preview-export {
-  box-sizing: border-box;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 40px 20px;
-  background: var(--md-bg, #ffffff);
-  color: var(--md-fg, #000);
-  min-height: 100vh;
+/* PDF 导出样式：重置应用布局中的 100vh/overflow，避免导出成“一屏带滚动条” */
+html,
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
 }
 
-.preview-export .preview {
+.app {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+.pdf-export {
+  box-sizing: border-box;
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  padding: 0;
-  box-sizing: border-box;
+  padding: 18mm 16mm;
+  background: var(--md-bg, #ffffff);
+  color: var(--md-fg, #000);
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
 }
 
-.preview-export .markdown-body {
+.pdf-export .markdown-body {
   width: 100%;
   max-width: 100%;
-  padding: 0 40px;
+  padding: 0;
   box-sizing: border-box;
   margin: 0;
-  font-size: 14px;
-  line-height: 1.8;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+@media print {
+  html,
+  body,
+  .app,
+  .pdf-export,
+  .pdf-export .markdown-body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 0;
 }
 
 /* 保证图片/mermaid 等不超出 */
-.preview-export .markdown-body img,
-.preview-export .markdown-body svg,
-.preview-export .markdown-body .mermaid {
+.pdf-export .markdown-body img,
+.pdf-export .markdown-body svg,
+.pdf-export .markdown-body .mermaid {
   max-width: 100% !important;
   width: auto !important;
   height: auto !important;
 }
 
 /* PDF 分页优化 */
-.preview-export .markdown-body h1,
-.preview-export .markdown-body h2,
-.preview-export .markdown-body h3 {
+.pdf-export .markdown-body h1,
+.pdf-export .markdown-body h2,
+.pdf-export .markdown-body h3 {
   page-break-after: avoid;
+  break-after: avoid-page;
 }
 
-.preview-export .markdown-body pre,
-.preview-export .markdown-body blockquote {
+.pdf-export .markdown-body pre,
+.pdf-export .markdown-body blockquote {
   page-break-inside: avoid;
+  break-inside: avoid-page;
 }
 `;
 
@@ -1443,17 +1605,15 @@ function App() {
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <style>
-      ${extractedCSS || ""}
+      ${allStyles}
       ${exportWrapperCss}
     </style>
   </head>
   <body>
-    <div class="preview-export">
-      <div class="preview">
-        <div class="preview-inner">
-          <div class="markdown-body">
-            ${cloned.innerHTML}
-          </div>
+    <div class="app" data-mdtheme="${mdTheme}">
+      <div class="pdf-export">
+        <div class="markdown-body">
+          ${cloned.innerHTML}
         </div>
       </div>
     </div>
@@ -1461,12 +1621,10 @@ function App() {
 </html>
 `;
 
-      // 4. 先让主进程做转换（图片 base64 / 样式内联 / 代码样式等）
+      // 4. 先让主进程做转换（只做图片 base64 转换，跳过 Juice 内联）
       const finalHtml = await window.electronAPI.convertHtmlForClipboard({
         html: styledHTML,
-        codeThemeKey: themeKey,
-        css: extractedCSS,
-        themeCssValues: mdTheme,
+        skipJuice: true, // 新增参数：跳过样式内联，使用全量 CSS
       });
 
       if (!finalHtml || finalHtml.trim() === "") {
@@ -1516,6 +1674,195 @@ function App() {
     } catch (err) {
       console.error("handleExportPdf error:", err);
       alert("导出失败：" + (err && err.message ? err.message : String(err)));
+    }
+  };
+
+  // 导出为图片（朋友圈）
+  const handleExportImage = async () => {
+    console.log("handleExportImage 被调用");
+    try {
+      if (!content || content.trim() === "") {
+        alert("内容为空，无法导出。");
+        return;
+      }
+      console.log("开始导出朋友圈图片...");
+
+      // 1. 获取页面全量样式
+      const allStyles = getAllStyles();
+
+      // 2. 取出用于导出的 preview DOM
+      const previewElement = document.querySelector(".preview");
+      if (!previewElement) {
+        alert("找不到导出区域（.preview），请先打开预览或切换布局。");
+        return;
+      }
+
+      // 克隆并处理
+      const cloned = previewElement.cloneNode(true);
+      // 删除 h1/h2（可选，根据需求决定）
+      const headers = cloned.querySelectorAll("h1,h2");
+      headers.forEach(h => h.remove());
+      cloned.className = "markdown-body";
+
+      // 3. 生成导出 HTML
+      // 朋友圈适配样式：宽度固定，内容居中，字体较大便于阅读
+      const exportWrapperCss = `
+/* 朋友圈图片导出样式 - 适配手机屏幕 */
+.preview-export {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 20px 10px;
+  background: var(--md-bg, #ffffff);
+  color: var(--md-fg, #000);
+  min-height: 100vh;
+}
+
+.preview-export .preview {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.preview-export .markdown-body {
+  width: 100%;
+  max-width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.preview-export .markdown-body p {
+  margin: 1em 0;
+  line-height: 1.8;
+}
+
+.preview-export .markdown-body h1,
+.preview-export .markdown-body h2,
+.preview-export .markdown-body h3 {
+  font-size: 16px;
+  margin: 1.5em 0 0.5em 0;
+}
+
+.preview-export .markdown-body h4,
+.preview-export .markdown-body h5 {
+  font-size: 15px;
+  margin: 1.2em 0 0.4em 0;
+}
+
+/* 保证图片/mermaid 等不超出 */
+.preview-export .markdown-body img,
+.preview-export .markdown-body svg,
+.preview-export .markdown-body .mermaid {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.preview-export .markdown-body pre {
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.preview-export .markdown-body blockquote {
+  font-size: 14px;
+  padding: 0.5em 1em;
+}
+`;
+
+      const styledHTML = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>
+      /* 防止滚动，确保内容完全展示 */
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+      ${allStyles}
+      ${exportWrapperCss}
+    </style>
+  </head>
+  <body>
+    <div class="app" data-mdtheme="${mdTheme}">
+      <div class="preview-export">
+        <div class="preview">
+          <div class="preview-inner">
+            <div class="markdown-body">
+              ${cloned.innerHTML}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+
+      // 4. 先让主进程做转换（只做图片 base64 转换，跳过 Juice 内联）
+      const finalHtml = await window.electronAPI.convertHtmlForClipboard({
+        html: styledHTML,
+        skipJuice: true,
+      });
+
+      if (!finalHtml || finalHtml.trim() === "") {
+        alert("导出失败：主进程返回空内容。");
+        return;
+      }
+
+      // 5. 建议文件名
+      const firstLineName = sanitizeFileName(content || "");
+      const suggested = (firstLineName || "untitled") + ".png";
+
+      // 6. 先弹出保存对话框
+      const dlg = await window.electronAPI.showSaveDialog({
+        defaultPath: suggested,
+        filters: [
+          { name: "PNG 图片", extensions: ["png"] },
+          { name: "JPG 图片", extensions: ["jpg", "jpeg"] },
+        ]
+      });
+
+      if (!dlg || dlg.canceled || !dlg.filePath) {
+        return;
+      }
+
+      const savePath = dlg.filePath;
+
+      // 7. 调用图片导出，传入确定的路径
+      console.log("调用 window.electronAPI.exportToImage, path:", savePath);
+      if (!window.electronAPI || !window.electronAPI.exportToImage) {
+        console.error("window.electronAPI.exportToImage 不存在！");
+        alert("图片导出功能不可用，请检查 Electron API 是否正确加载。");
+        return;
+      }
+
+      const result = await window.electronAPI.exportToImage({
+        html: finalHtml,
+        filePath: savePath,
+      });
+      console.log("图片导出结果:", result);
+
+      if (result && result.success) {
+        showToast("✅ 图片导出成功：" + (result.path || savePath));
+      } else if (result && result.canceled) {
+        showToast("导出已取消");
+      } else {
+        showToast("图片导出失败：" + (result && result.error ? result.error : "未知错误"));
+      }
+    } catch (err) {
+      console.error("handleExportImage error:", err);
+      alert("导出失败：" + (err && err.message ? err.message.toString() : String(err)));
     }
   };
 
@@ -1581,6 +1928,7 @@ function App() {
         
         <label onClick={handleExportHtml} className="toolbar-button">导出 HTML</label>
         <label onClick={handleExportPdf} className="toolbar-button">导出 PDF</label>
+        <label onClick={handleExportImage} className="toolbar-button">📷 导出图片</label>
 
         {editorUploading && <span className="uploading">上传中...</span>}
 

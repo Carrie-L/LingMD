@@ -707,8 +707,8 @@ html, body {
 
 .app .markdown-body {
   background: transparent;
-  line-height: 2em;
-  font-size: 16px;
+  line-height:1.7em;
+  font-size: 14px;
   word-wrap: break-word;
   color: var(--md-text);
 }
@@ -748,8 +748,8 @@ html, body {
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
-  line-height: 1.8;
-  margin: 2em 0 0 0;
+  line-height: 1;
+  margin: 1em 0 0 0;
   font-weight: 600;
 }
 
@@ -791,14 +791,14 @@ html, body {
 
 /* 段落与列表 */
 .markdown-body p {
-  margin: 2em 0;
+  margin: 1em 0;
   overflow-wrap: break-word !important;
 }
 
 .markdown-body ul,
 .markdown-body ol {
   padding-left: 1.4em;
-  margin: .8em 0;
+  margin: .3em 0;
 }
 
 .markdown-body li {
@@ -1224,11 +1224,12 @@ html, body {
 .app[data-mdtheme="magazine"] h1,
 .app[data-mdtheme="magazine"] h2,
 .app[data-mdtheme="magazine"] h3 {
-  text-align: center;
-  font-weight: 700;
+  text-align: left;
+  font-weight: 600;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--md-accent);
-  padding-bottom: 8px;
+  border-bottom: 1px solid var(--md-accent);
+  padding-bottom: 2px;
+  font-size: 16px;
 }
 
 /* 2. City Pop风 - Neon Dreams */

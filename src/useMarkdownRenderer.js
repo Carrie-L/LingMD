@@ -37,6 +37,8 @@ hljs.registerLanguage("kotlin", kotlin);
 // Mermaid 初始化将在 App.jsx 中统一处理
 
 
+import mdFrontMatter from "markdown-it-front-matter";
+
 // 自定义扩展：支持 Obsidian 的 ![[xxx.png]]
 const obsidianImageExtension = {
   name: "obsidian-image",
@@ -70,13 +72,11 @@ function createMarkdownIt() {
     highlight: (str, lang) => {
       try {
         if (lang && hljs.getLanguage(lang)) {
-          return `<pre><code class="hljs language-${lang}">${
-            hljs.highlight(str, { language: lang }).value
-          }</code></pre>`;
+          return `<pre><code class="hljs language-${lang}">${hljs.highlight(str, { language: lang }).value
+            }</code></pre>`;
         } else {
-          return `<pre><code class="hljs">${
-            hljs.highlightAuto(str).value
-          }</code></pre>`;
+          return `<pre><code class="hljs">${hljs.highlightAuto(str).value
+            }</code></pre>`;
         }
       } catch (e) {
         const esc = str
@@ -92,6 +92,9 @@ function createMarkdownIt() {
   md.use(mdTaskLists, { enabled: true, label: true });
   md.use(mdKatex);
   md.use(mdAttrs);
+  md.use(mdFrontMatter, () => {
+    // 忽略 front matter 的回调，只为了不破坏页面渲染
+  });
 
   // 重要：重写 fence 规则来处理 mermaid
   const defaultFence =

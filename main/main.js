@@ -23,6 +23,12 @@ const os = require('os');
 let mainWindow;
 let pendingFileToOpen = null; // 外部传入的文件路径优先级最高
 
+function openFileInWindow(filePath) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("load-last-file", filePath);
+  }
+}
+
 // helper: 判定是否是 markdown 文件（按需扩展）
 function isMarkdownFile(p) {
   if (!p || typeof p !== 'string') return false;
@@ -59,7 +65,7 @@ if (!gotTheLock) {
     //   }
     // }
 
-     // argv 在 Windows/Linux 下包含新打开的文件路径
+    // argv 在 Windows/Linux 下包含新打开的文件路径
     const file = getFileFromArgv(argv);
     if (file) {
       // 如果窗口已经存在，立刻打开并激活窗口
@@ -86,7 +92,7 @@ if (!gotTheLock) {
 // -------------------------------------------------------------------
 // 1) 定义一个计算/返回默认附件目录的函数（可按需修改逻辑）
 function getDefaultImageDir() {
-let folder = store.get('attachmentFolder');
+  let folder = store.get('attachmentFolder');
   if (!folder) {
     return getDefaultDir();
   }
@@ -168,21 +174,21 @@ ipcMain.handle('save-image', async (event, { fileName, buffer, originalName }) =
   try {
     // 确保图片目录存在
     const imageDir = await getDefaultImageDir();
-    console.log("-imageDir-",imageDir);
-    
+    console.log("-imageDir-", imageDir);
+
     const fullPath = path.join(imageDir, fileName);
-     console.log("-fullPath-",fullPath);
-    
+    console.log("-fullPath-", fullPath);
+
     // 将数组转换回Buffer并保存文件
     const fileBuffer = Buffer.from(buffer);
-await fs.promises.writeFile(fullPath, fileBuffer);
-    
+    await fs.promises.writeFile(fullPath, fileBuffer);
+
     // 返回相对路径（用于Markdown）
     const relativePath = `${fileName}`;
-    console.log("-relativePath-",relativePath);
-    
+    console.log("-relativePath-", relativePath);
+
     console.log(`图片已保存: ${fullPath}`);
-    
+
     return {
       success: true,
       fullPath,
@@ -202,8 +208,8 @@ await fs.promises.writeFile(fullPath, fileBuffer);
 ipcMain.handle('get-image-dir', async () => {
   try {
     const imageDir = await getDefaultImageDir();
-    console.log("imageDir",imageDir);
-    
+    console.log("imageDir", imageDir);
+
     return { success: true, path: imageDir };
   } catch (error) {
     return { success: false, error: error.message };
@@ -241,11 +247,11 @@ const LOGFILE = path.join(app.getPath('userData'), 'electron.log');
 function safeLog(...args) {
   try {
     const line = `[${new Date().toISOString()}] ${args.map(a => {
-      try { return typeof a === 'string' ? a : JSON.stringify(a); } catch(e){ return String(a); }
+      try { return typeof a === 'string' ? a : JSON.stringify(a); } catch (e) { return String(a); }
     }).join(' ')}\n`;
     fs.appendFileSync(LOGFILE, line);
   } catch (e) { console.error('写日志失败', e); }
-  try { console.log(...args); } catch (e) {}
+  try { console.log(...args); } catch (e) { }
 }
 
 // 一次性保护，避免重复声明
@@ -275,9 +281,9 @@ function createWindow() {
       webSecurity: false,
     },
   });
- 
 
- // 将渲染器 console 输出写入日志（方便定位前端错误）
+
+  // 将渲染器 console 输出写入日志（方便定位前端错误）
   mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
     log('Renderer console:', { level, message, line, sourceId });
   });
@@ -294,7 +300,7 @@ function createWindow() {
 
   // 打开 DevTools：开发时自动打开，生产环境默认不打开
   // if (!app.isPackaged) {
-    // mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // mainWindow.webContents.openDevTools({ mode: 'detach' });
   // }
   // 根据是否打包加载不同资源
   if (app.isPackaged) {
@@ -358,7 +364,7 @@ function createWindow() {
 // 应用生命周期
 // -------------------------------------------------------------------
 app.whenReady().then(() => {
-  
+
   // 注册自定义协议，用于安全加载本地图片（保留你原有实现）
   protocol.handle("safe-file", (request) => {
     try {
@@ -446,8 +452,8 @@ ipcMain.handle("show-save-dialog", async (event, { defaultPath }) => {
 ipcMain.handle("save-file", async (event, content, filePath) => {
   try {
     let finalPath = filePath;
-    console.log("save-file: finalPath",finalPath);
-    
+    console.log("save-file: finalPath", finalPath);
+
 
     // 1) 如果没有传入 filePath，创建一个新文件（使用 new-file 的逻辑）
     if (!finalPath) {
@@ -455,14 +461,14 @@ ipcMain.handle("save-file", async (event, content, filePath) => {
       const defaultDir = getDefaultDir();
       const fileName = `未命名_${Date.now()}.md`;
       finalPath = path.join(defaultDir, fileName);
-      console.log("save-file: !finalPath",finalPath);
+      console.log("save-file: !finalPath", finalPath);
     } else {
       // 2) 如果传入的是存在的目录，在目录内创建新文件
       try {
         if (fs.existsSync(finalPath) && fs.statSync(finalPath).isDirectory()) {
           const fileName = `未命名_${Date.now()}.md`;
           finalPath = path.join(finalPath, fileName);
-          console.log("save-file: 传入目录> finalPath",finalPath);
+          console.log("save-file: 传入目录> finalPath", finalPath);
         } else {
           // 确保目标文件所在目录存在
           fs.mkdirSync(path.dirname(finalPath), { recursive: true });
@@ -511,7 +517,7 @@ ipcMain.handle("set-default-dir", async () => {
   // store.set("defaultDir", dir);
   // return dir;
 
-   // 弹出目录选择对话框，返回所选路径或 null
+  // 弹出目录选择对话框，返回所选路径或 null
   const win = BrowserWindow.getFocusedWindow();
   const res = await require('electron').dialog.showOpenDialog(win, {
     properties: ['openDirectory']
@@ -527,6 +533,16 @@ ipcMain.handle("set-default-dir", async () => {
 });
 
 ipcMain.handle("get-default-dir", async () => getDefaultDir());
+
+// === 自定义主题管理 ===
+ipcMain.handle("get-custom-themes", async () => {
+  return store.get("customThemes") || {};
+});
+
+ipcMain.handle("save-custom-themes", async (event, themes) => {
+  store.set("customThemes", themes);
+  return true;
+});
 
 ipcMain.handle("open-default-dir", async () => {
   const dir = getDefaultDir();
@@ -586,7 +602,7 @@ ipcMain.on('renderer-ready', async (event) => {
     win.webContents.send('initial-data', { lastFile: fullPath, initialContent });
   } catch (err) {
     console.error('renderer-ready handler error:', err);
-    try { win.webContents.send('initial-data', { lastFile: null, initialContent: '' }); } catch (e) {}
+    try { win.webContents.send('initial-data', { lastFile: null, initialContent: '' }); } catch (e) { }
   }
 });
 
@@ -600,8 +616,8 @@ ipcMain.handle("resolve-image-path", (event, { fileDir, src }) => {
     const relativePath = path.resolve(fileDir, src);
     if (fs.existsSync(relativePath)) {
       finalPath = relativePath;
-      console.log("resolve-image-path finalPath",finalPath);
-      
+      console.log("resolve-image-path finalPath", finalPath);
+
     }
   }
 
@@ -654,7 +670,7 @@ ipcMain.handle(
 // ✅ (终极版) 为公众号复制功能转换 HTML
 // ===================================================================
 ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
-  const { html: rawHtml, codeThemeKey,css, themeCssValues } = payload;
+  const { html: rawHtml, codeThemeKey, css, themeCssValues, skipJuice } = payload;
   // 2. 预先检查输入
   if (typeof rawHtml !== "string") {
     console.error(
@@ -664,11 +680,13 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     return ""; // 如果 html 部分不是字符串，返回空
   }
   console.error(
-      "convertHtmlForClipboard rawHtml:",
-      rawHtml
-    );
+    "convertHtmlForClipboard rawHtml length:",
+    rawHtml.length
+  );
   if (!rawHtml) return "";
-  if (!themeCssValues) {
+
+  // 如果 skipJuice 为 true，themeCssValues 不是必须的（可能只是为了图片转换）
+  if (!skipJuice && !themeCssValues) {
     console.error("Theme CSS values are missing!");
     return ""; // 关键数据缺失，直接返回
   }
@@ -677,7 +695,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     // === Step 1: 转换图片为 Base64 ===
     // let pHtml = await sanitizeForWechat(rawHtml);
     // console.log("pHtml",pHtml);
-    
+
     let htmlWithBase64Images = rawHtml;
     // 注意：我们现在的 img 标签 src 属性可能被 DOMPurify 绕过后变成了 data-safe-src
     // 但在你最新的 useMarkdownRenderer.js 中，它被换回来了。我们假设它是 src
@@ -720,15 +738,21 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
           /src=["'][^"']+["']/i,
           `src="${dataUrl}"`
         );
-        
+
         // 使用索引位置进行精确替换
-        htmlWithBase64Images = 
+        htmlWithBase64Images =
           htmlWithBase64Images.substring(0, item.index) +
           newImgTag +
           htmlWithBase64Images.substring(item.index + item.fullMatch.length);
       } catch (e) {
         console.error(`Failed to convert image to Base64: ${item.src}`, e);
       }
+    }
+
+    // 如果跳过 juice，直接返回带 base64 图片的 html
+    if (skipJuice) {
+      console.log("Skipping CSS generation and juice inlining...");
+      return htmlWithBase64Images;
     }
 
     // === Step 2: ✅ 动态生成文章主题的 CSS 字符串 ===
@@ -883,14 +907,21 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 
     // 将HTML内容复制到剪贴板
     // clipboard.writeHTML(rawHtml);
-    
-    const inlinedHtml = juice(
-     htmlWithBase64Images,
-      {
-        extraCss:  highlightCss + extraCss, 
-      }
-    );
-    
+
+    let inlinedHtml = htmlWithBase64Images;
+
+    if (!skipJuice) {
+      inlinedHtml = juice(
+        htmlWithBase64Images,
+        {
+          extraCss: highlightCss + extraCss,
+        }
+      );
+      console.log("extraCSS:", highlightCss + extraCss);
+    } else {
+      console.log("Skipping juice (CSS inlining)...");
+    }
+
     // 可选：保存CSS到文件或进行其他处理
     // console.log(`复制了主题 ${theme} 的样式内容`);
 
@@ -903,7 +934,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
     //   }
     // );
 
-    console.log("extraCSS:",  highlightCss + extraCss);
+    console.log("extraCSS:", highlightCss + extraCss);
 
     // ✅ 5. (可选但推荐) 对标题进行最后的降级处理，以获得最佳兼容性
     let finalHtml = inlinedHtml;
@@ -988,7 +1019,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 ipcMain.handle("export-to-pdf", async (event, payload) => {
   const { html, filePath } = payload;
   console.log("[PDF Export] 收到导出请求, filePath:", filePath);
-  
+
   if (!html || typeof html !== "string") {
     console.error("export-to-pdf: Invalid HTML content");
     return { success: false, error: "无效的 HTML 内容" };
@@ -1008,7 +1039,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     const tempHtmlPath = path.join(os.tmpdir(), `lingmd-pdf-${Date.now()}.html`);
     console.log("[PDF Export] 临时 HTML 路径:", tempHtmlPath);
     await fs.promises.writeFile(tempHtmlPath, html, 'utf-8');
-    
+
     // 确定最终保存路径
     let finalPath = filePath;
     if (!finalPath) {
@@ -1032,7 +1063,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
           // 删除临时 HTML 文件
           try {
             await fs.promises.unlink(tempHtmlPath);
-          } catch (e) {}
+          } catch (e) { }
           return { success: false, canceled: true };
         }
         finalPath = result.filePath;
@@ -1042,11 +1073,11 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
         pdfWindow.close();
         try {
           await fs.promises.unlink(tempHtmlPath);
-        } catch (e) {}
+        } catch (e) { }
         return { success: false, error: `保存对话框失败: ${dialogError.message || String(dialogError)}` };
       }
     } else {
-        console.log("[PDF Export] 使用提供的 filePath:", finalPath);
+      console.log("[PDF Export] 使用提供的 filePath:", finalPath);
     }
 
     // 确保文件扩展名是 .pdf
@@ -1058,11 +1089,11 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     // 加载临时 HTML 文件
     console.log("[PDF Export] 开始加载临时 HTML 文件...");
     try {
-        await pdfWindow.loadFile(tempHtmlPath);
-        console.log("[PDF Export] 临时 HTML 文件加载完成");
+      await pdfWindow.loadFile(tempHtmlPath);
+      console.log("[PDF Export] 临时 HTML 文件加载完成");
     } catch (loadErr) {
-        console.error("[PDF Export] 加载 HTML 文件失败:", loadErr);
-        throw loadErr;
+      console.error("[PDF Export] 加载 HTML 文件失败:", loadErr);
+      throw loadErr;
     }
 
     // 等待页面加载完成
@@ -1075,7 +1106,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     // 等待所有图片加载完成
     console.log("[PDF Export] 开始检查图片加载状态...");
     try {
-        await pdfWindow.webContents.executeJavaScript(`
+      await pdfWindow.webContents.executeJavaScript(`
         new Promise((resolve) => {
             console.log("开始检查图片...");
             const images = document.querySelectorAll('img');
@@ -1109,11 +1140,11 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
             }, 5000);
         });
         `).catch((e) => {
-            console.warn("[PDF Export] 等待图片加载脚本出错:", e);
-        });
-        console.log("[PDF Export] 图片加载检查结束");
+        console.warn("[PDF Export] 等待图片加载脚本出错:", e);
+      });
+      console.log("[PDF Export] 图片加载检查结束");
     } catch (jsErr) {
-        console.error("[PDF Export] 执行 JS 失败:", jsErr);
+      console.error("[PDF Export] 执行 JS 失败:", jsErr);
     }
 
     // 额外等待一下，确保所有样式都应用完成
@@ -1131,6 +1162,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
         printBackground: true, // 重要：保留背景色和样式
         displayHeaderFooter: false,
         landscape: false,
+        preferCSSPageSize: true,
       });
       console.log("[PDF Export] PDF 生成成功，数据类型:", typeof pdfData, "长度:", pdfData.length);
     } catch (pdfError) {
@@ -1138,7 +1170,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
       pdfWindow.close();
       try {
         await fs.promises.unlink(tempHtmlPath);
-      } catch (e) {}
+      } catch (e) { }
       return { success: false, error: `生成 PDF 失败: ${pdfError.message || String(pdfError)}` };
     }
 
@@ -1157,11 +1189,11 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     // 保存 PDF 文件
     console.log("[PDF Export] 正在写入文件:", finalPath);
     try {
-        await fs.promises.writeFile(finalPath, Buffer.from(pdfData));
-        console.log("[PDF Export] 文件写入成功");
+      await fs.promises.writeFile(finalPath, Buffer.from(pdfData));
+      console.log("[PDF Export] 文件写入成功");
     } catch (writeError) {
-        console.error("[PDF Export] 文件写入失败:", writeError);
-        return { success: false, error: `文件写入失败: ${writeError.message}` };
+      console.error("[PDF Export] 文件写入失败:", writeError);
+      return { success: false, error: `文件写入失败: ${writeError.message}` };
     }
 
     return { success: true, path: finalPath };
@@ -1171,3 +1203,191 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
   }
 });
 
+// ===================================================================
+// ✅ 导出为图片（朋友圈）功能
+// ===================================================================
+ipcMain.handle("export-to-image", async (event, payload) => {
+  const { html, filePath } = payload;
+  console.log("[Image Export] 收到导出请求, filePath:", filePath);
+
+  if (!html || typeof html !== "string") {
+    console.error("export-to-image: Invalid HTML content");
+    return { success: false, error: "无效的 HTML 内容" };
+  }
+
+  try {
+    // 创建临时的隐藏窗口用于生成图片
+    // 朋友圈宽度约 375-428px，这里使用 400px 宽度
+    // 初始使用一个非常大的高度，让内容可以完全展示
+    const imageWindow = new BrowserWindow({
+      width: 400,
+      height: 10000,  // 使用非常大的高度，让内容完全展示
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    // 将 HTML 内容写入临时文件
+    const tempHtmlPath = path.join(os.tmpdir(), `lingmd-image-${Date.now()}.html`);
+    console.log("[Image Export] 临时 HTML 路径:", tempHtmlPath);
+    await fs.promises.writeFile(tempHtmlPath, html, 'utf-8');
+
+    // 确定最终保存路径
+    let finalPath = filePath;
+    if (!finalPath) {
+      console.log("[Image Export] 未提供 filePath，准备弹出保存对话框...");
+      const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+      try {
+        const result = await dialog.showSaveDialog(win, {
+          title: "导出朋友圈图片",
+          defaultPath: path.join(getDefaultDir(), "moments.png"),
+          buttonLabel: "保存",
+          filters: [
+            { name: "PNG 图片", extensions: ["png"] },
+            { name: "JPG 图片", extensions: ["jpg", "jpeg"] },
+          ],
+        });
+        console.log("[Image Export] 保存对话框结果:", result);
+
+        if (result.canceled || !result.filePath) {
+          console.log("[Image Export] 用户取消了保存对话框");
+          imageWindow.close();
+          try {
+            await fs.promises.unlink(tempHtmlPath);
+          } catch (e) { }
+          return { success: false, canceled: true };
+        }
+        finalPath = result.filePath;
+        console.log("[Image Export] 用户选择的路径:", finalPath);
+      } catch (dialogError) {
+        console.error("[Image Export] 保存对话框出错:", dialogError);
+        imageWindow.close();
+        try {
+          await fs.promises.unlink(tempHtmlPath);
+        } catch (e) { }
+        return { success: false, error: `保存对话框失败: ${dialogError.message || String(dialogError)}` };
+      }
+    } else {
+      console.log("[Image Export] 使用提供的 filePath:", finalPath);
+    }
+
+    // 确保文件扩展名是图片格式
+    const ext = finalPath.toLowerCase().split('.').pop();
+    if (!['png', 'jpg', 'jpeg'].includes(ext)) {
+      finalPath += ".png";
+    }
+    console.log("[Image Export] 最终保存路径:", finalPath);
+
+    // 加载临时 HTML 文件
+    console.log("[Image Export] 开始加载临时 HTML 文件...");
+    try {
+      await imageWindow.loadFile(tempHtmlPath);
+      console.log("[Image Export] 临时 HTML 文件加载完成");
+    } catch (loadErr) {
+      console.error("[Image Export] 加载 HTML 文件失败:", loadErr);
+      throw loadErr;
+    }
+
+    // 等待页面加载完成
+    console.log("[Image Export] 开始检查资源加载状态...");
+    try {
+      await imageWindow.webContents.executeJavaScript(`
+        new Promise((resolve) => {
+            // 等待图片加载
+            const images = document.querySelectorAll('img');
+            let loadedCount = 0;
+            const checkComplete = () => {
+                loadedCount++;
+                if (loadedCount === images.length) {
+                    resolve();
+                }
+            };
+            if (images.length === 0) {
+                resolve();
+                return;
+            }
+            images.forEach((img) => {
+                if (img.complete) {
+                    checkComplete();
+                } else {
+                    img.onload = checkComplete;
+                    img.onerror = checkComplete;
+                }
+            });
+            // 超时保护
+            setTimeout(() => resolve(), 5000);
+        });
+      `);
+    } catch (jsErr) {
+      console.warn("[Image Export] 等待资源加载脚本出错:", jsErr);
+    }
+
+    // 额外等待一下，确保所有样式都应用完成
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 获取页面内容的实际高度
+    console.log("[Image Export] 开始获取页面尺寸...");
+    const dimensions = await imageWindow.webContents.executeJavaScript(`
+      new Promise((resolve) => {
+        // 等待一小段时间确保所有内容渲染完成
+        setTimeout(() => {
+          const body = document.body;
+          const html = document.documentElement;
+          // 获取内容的实际高度
+          const height = Math.max(body.scrollHeight, html.scrollHeight);
+          const width = body.scrollWidth || 400;
+          console.log("实际尺寸 - width:", width, "height:", height);
+          resolve({ width, height });
+        }, 500);
+      });
+    `);
+    console.log("[Image Export] 页面尺寸:", dimensions);
+
+    // 调整窗口大小以适应内容（不留额外padding，确保正好截取）
+    const finalWidth = Math.max(400, dimensions.width + 20);
+    const finalHeight = dimensions.height + 20;
+    imageWindow.setSize(finalWidth, finalHeight);
+
+    // 等待窗口调整完成
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // 截取页面图片
+    console.log("[Image Export] 开始截取图片...");
+    const image = await imageWindow.webContents.capturePage();
+    console.log("[Image Export] 图片截取完成，尺寸:", image.getSize());
+
+    // 关闭临时窗口
+    imageWindow.close();
+    console.log("[Image Export] 临时窗口已关闭");
+
+    // 删除临时 HTML 文件
+    try {
+      await fs.promises.unlink(tempHtmlPath);
+      console.log("[Image Export] 临时 HTML 文件已删除");
+    } catch (e) {
+      console.warn("Failed to delete temp HTML file:", e);
+    }
+
+    // 保存图片文件
+    console.log("[Image Export] 正在写入文件:", finalPath);
+    try {
+      const ext = finalPath.toLowerCase().split('.').pop();
+      if (ext === 'jpg' || ext === 'jpeg') {
+        await fs.promises.writeFile(finalPath, image.toJPEG(90));
+      } else {
+        await fs.promises.writeFile(finalPath, image.toPNG());
+      }
+      console.log("[Image Export] 文件写入成功");
+    } catch (writeError) {
+      console.error("[Image Export] 文件写入失败:", writeError);
+      return { success: false, error: `文件写入失败: ${writeError.message}` };
+    }
+
+    return { success: true, path: finalPath };
+  } catch (error) {
+    console.error("Failed to export image:", error);
+    return { success: false, error: error.message || String(error) };
+  }
+});

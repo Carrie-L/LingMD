@@ -1669,6 +1669,7 @@ body {
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
+  background: #ffffff !important;
 }
 
 .app {
@@ -1677,6 +1678,7 @@ body {
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
+  background: #ffffff !important;
 }
 
 .pdf-export {
@@ -1947,8 +1949,8 @@ body::-webkit-scrollbar,
   max-width: 390px;
   margin: 0 auto;
   padding: 20px 10px 24px;
-  background: var(--md-bg, #ffffff);
-  color: var(--md-fg, #000);
+  background: #ffffff !important;
+  color: #111111 !important;
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
@@ -1961,7 +1963,9 @@ body::-webkit-scrollbar,
   box-sizing: border-box;
   margin: 0;
   font-size: 17px;
+  font-weight: 500;
   line-height: 1.8;
+  color: #111111 !important;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

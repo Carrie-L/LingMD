@@ -775,7 +775,8 @@ function App() {
   const [editorUploading, setEditorUploading] = useState(false);
   const [filePath, setFilePath] = useState(null);
   const [status, setStatus] = useState("未保存");
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
   // 获取当前选中的主题对象
@@ -1029,9 +1030,84 @@ function App() {
     }
   };
 
-  const showToast = (message, duration = 3000) => {
-    setToast(message);
-    setTimeout(() => setToast(""), duration);
+  const showToast = (message, duration = 3000, pathLink = "") => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+
+    setToast({
+      message,
+      pathLink: pathLink || "",
+    });
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, duration);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  // 获取导出默认文件名：忽略开头 YAML，优先取后续第一个 Markdown 标题
+  const getExportDefaultBaseName = (markdownText) => {
+    const text = (markdownText || "").replace(/^\uFEFF/, "");
+    const lines = text.split(/\r?\n/);
+
+    let startIndex = 0;
+    while (startIndex < lines.length && lines[startIndex].trim() === "") {
+      startIndex++;
+    }
+
+    if (startIndex < lines.length && lines[startIndex].trim() === "---") {
+      startIndex++;
+      while (startIndex < lines.length) {
+        const line = lines[startIndex].trim();
+        if (line === "---" || line === "...") {
+          startIndex++;
+          break;
+        }
+        startIndex++;
+      }
+    }
+
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const headingMatch = line.match(/^#{1,6}\s+(.+?)\s*#*$/);
+      if (headingMatch && headingMatch[1]) {
+        return sanitizeFileName(headingMatch[1]);
+      }
+    }
+
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line) return sanitizeFileName(line);
+    }
+
+    return sanitizeFileName(text || "untitled");
+  };
+
+  const handleOpenInFolder = async (targetPath) => {
+    if (!targetPath) return;
+    try {
+      if (!window.electronAPI || typeof window.electronAPI.openInFolder !== "function") {
+        showToast("当前环境不支持打开目录。");
+        return;
+      }
+      const res = await window.electronAPI.openInFolder(targetPath);
+      if (!res || !res.success) {
+        showToast("打开目录失败：" + (res && res.error ? res.error : "未知错误"));
+      }
+    } catch (err) {
+      showToast("打开目录失败：" + (err && err.message ? err.message : String(err)));
+    }
   };
 
   // 自动保存
@@ -1438,9 +1514,9 @@ function App() {
         return;
       }
 
-      // 5. 建议文件名：用第一行（sanitizeFileName 为你组件已有函数）
-      const firstLineName = sanitizeFileName(content || "");
-      const suggested = (firstLineName || "untitled") + ".html";
+      // 5. 建议文件名：忽略 YAML，优先使用第一个 Markdown 标题
+      const exportBaseName = getExportDefaultBaseName(content || "");
+      const suggested = (exportBaseName || "untitled") + ".html";
 
       // 6. 弹出保存对话（使用已有 show-save-dialog）
       const dlg = await window.electronAPI.showSaveDialog({ defaultPath: suggested });
@@ -1456,8 +1532,8 @@ function App() {
       // 7. 调用 save-file 把 finalHtml 写入磁盘
       const res = await window.electronAPI.saveFile(finalHtml, chosen);
       if (res && res.success) {
-        // 可选：把导出的 html 记为 lastFile（或只记 md 文件），这里不改 lastFile 行为
-        showToast("✅ 导出成功：" + (res.path || chosen));
+        const finalPath = res.path || chosen;
+        showToast("✅ 导出成功：", 6000, finalPath);
       } else {
         showToast("导出失败：" + (res && res.error ? res.error : ""));
       }
@@ -1536,7 +1612,7 @@ body {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  padding: 18mm 16mm;
+  padding: 12mm 9mm;
   background: var(--md-bg, #ffffff);
   color: var(--md-fg, #000);
   height: auto !important;
@@ -1571,7 +1647,7 @@ body {
 
 @page {
   size: A4;
-  margin: 0;
+  margin: 9mm 7mm;
 }
 
 /* 保证图片/mermaid 等不超出 */
@@ -1632,9 +1708,9 @@ body {
         return;
       }
 
-      // 5. 建议文件名
-      const firstLineName = sanitizeFileName(content || "");
-      const suggested = (firstLineName || "untitled") + ".pdf";
+      // 5. 建议文件名：忽略 YAML，优先使用第一个 Markdown 标题
+      const exportBaseName = getExportDefaultBaseName(content || "");
+      const suggested = (exportBaseName || "untitled") + ".pdf";
 
       // 6. 先弹出保存对话框（与导出 HTML 保持一致）
       const dlg = await window.electronAPI.showSaveDialog({ 
@@ -1667,7 +1743,8 @@ body {
       console.log("PDF 导出结果:", result);
 
       if (result && result.success) {
-        showToast("✅ PDF 导出成功：" + (result.path || savePath));
+        const finalPath = result.path || savePath;
+        showToast("✅ PDF 导出成功：", 6000, finalPath);
       } else {
         showToast("PDF 导出失败：" + (result && result.error ? result.error : "未知错误"));
       }
@@ -1690,10 +1767,10 @@ body {
       // 1. 获取页面全量样式
       const allStyles = getAllStyles();
 
-      // 2. 取出用于导出的 preview DOM
-      const previewElement = document.querySelector(".preview");
+      // 2. 取出用于导出的正文 DOM（只拿内容，避免滚动容器）
+      const previewElement = document.querySelector(".preview .markdown-body");
       if (!previewElement) {
-        alert("找不到导出区域（.preview），请先打开预览或切换布局。");
+        alert("找不到导出区域（.preview .markdown-body），请先打开预览或切换布局。");
         return;
       }
 
@@ -1701,75 +1778,92 @@ body {
       const cloned = previewElement.cloneNode(true);
       // 删除 h1/h2（可选，根据需求决定）
       const headers = cloned.querySelectorAll("h1,h2");
-      headers.forEach(h => h.remove());
-      cloned.className = "markdown-body";
+      headers.forEach((h) => h.remove());
 
       // 3. 生成导出 HTML
       // 朋友圈适配样式：宽度固定，内容居中，字体较大便于阅读
       const exportWrapperCss = `
-/* 朋友圈图片导出样式 - 适配手机屏幕 */
-.preview-export {
+/* 朋友圈图片导出样式 - 生成长图（无滚动条，内容完整展开） */
+html,
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+.app {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+.image-export {
   box-sizing: border-box;
   width: 100%;
-  display: flex;
-  justify-content: center;
+  max-width: 390px;
+  margin: 0 auto;
   padding: 20px 10px;
   background: var(--md-bg, #ffffff);
   color: var(--md-fg, #000);
-  min-height: 100vh;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
 }
 
-.preview-export .preview {
-  width: 100%;
-  max-width: 360px;
-  margin: 0 auto;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.preview-export .markdown-body {
+.image-export .markdown-body {
   width: 100%;
   max-width: 100%;
-  padding: 0 16px;
+  padding: 0 6px;
   box-sizing: border-box;
   margin: 0;
   font-size: 15px;
   line-height: 1.8;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
-.preview-export .markdown-body p {
+.image-export .markdown-body p {
   margin: 1em 0;
   line-height: 1.8;
 }
 
-.preview-export .markdown-body h1,
-.preview-export .markdown-body h2,
-.preview-export .markdown-body h3 {
+.image-export .markdown-body h1,
+.image-export .markdown-body h2,
+.image-export .markdown-body h3 {
   font-size: 16px;
   margin: 1.5em 0 0.5em 0;
 }
 
-.preview-export .markdown-body h4,
-.preview-export .markdown-body h5 {
+.image-export .markdown-body h4,
+.image-export .markdown-body h5 {
   font-size: 15px;
   margin: 1.2em 0 0.4em 0;
 }
 
 /* 保证图片/mermaid 等不超出 */
-.preview-export .markdown-body img,
-.preview-export .markdown-body svg,
-.preview-export .markdown-body .mermaid {
+.image-export .markdown-body img,
+.image-export .markdown-body svg,
+.image-export .markdown-body .mermaid {
   max-width: 100% !important;
   width: auto !important;
   height: auto !important;
 }
 
-.preview-export .markdown-body pre {
+.image-export .markdown-body pre {
   font-size: 13px;
-  overflow-x: auto;
+  overflow: visible !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
 }
 
-.preview-export .markdown-body blockquote {
+.image-export .markdown-body blockquote {
   font-size: 14px;
   padding: 0.5em 1em;
 }
@@ -1782,26 +1876,15 @@ body {
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <style>
-      /* 防止滚动，确保内容完全展示 */
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        height: auto !important;
-      }
       ${allStyles}
       ${exportWrapperCss}
     </style>
   </head>
   <body>
     <div class="app" data-mdtheme="${mdTheme}">
-      <div class="preview-export">
-        <div class="preview">
-          <div class="preview-inner">
-            <div class="markdown-body">
-              ${cloned.innerHTML}
-            </div>
-          </div>
+      <div class="image-export">
+        <div class="markdown-body">
+          ${cloned.innerHTML}
         </div>
       </div>
     </div>
@@ -1820,9 +1903,9 @@ body {
         return;
       }
 
-      // 5. 建议文件名
-      const firstLineName = sanitizeFileName(content || "");
-      const suggested = (firstLineName || "untitled") + ".png";
+      // 5. 建议文件名：忽略 YAML，优先使用第一个 Markdown 标题
+      const exportBaseName = getExportDefaultBaseName(content || "");
+      const suggested = (exportBaseName || "untitled") + ".png";
 
       // 6. 先弹出保存对话框
       const dlg = await window.electronAPI.showSaveDialog({
@@ -1854,7 +1937,8 @@ body {
       console.log("图片导出结果:", result);
 
       if (result && result.success) {
-        showToast("✅ 图片导出成功：" + (result.path || savePath));
+        const finalPath = result.path || savePath;
+        showToast("✅ 图片导出成功：", 6000, finalPath);
       } else if (result && result.canceled) {
         showToast("导出已取消");
       } else {
@@ -2144,7 +2228,20 @@ body {
         </span>
       </div>
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className="toast">
+          <span>{toast.message}</span>
+          {toast.pathLink ? (
+            <span
+              className="toast-path-link"
+              title="点击打开所在目录"
+              onClick={() => handleOpenInFolder(toast.pathLink)}
+            >
+              {toast.pathLink}
+            </span>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

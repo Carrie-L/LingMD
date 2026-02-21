@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setDefaultDir: () => ipcRenderer.invoke("set-default-dir"),
   getDefaultDir: () => ipcRenderer.invoke("get-default-dir"),
   openDefaultDir: () => ipcRenderer.invoke("open-default-dir"),
+  openInFolder: (targetPath) => ipcRenderer.invoke("open-in-folder", targetPath),
   // togglePin: () => ipcRenderer.invoke("toggle-pin"), // 你的 main.js 中没有这个，先注释掉
   setLastFile: (filePath) => ipcRenderer.send("set-last-file", filePath),
   openPreview: () => ipcRenderer.send("open-preview"),

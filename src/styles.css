@@ -701,6 +701,13 @@ html, body {
   font-size: 14px;
 }
 
+.toast-path-link {
+  margin-left: 8px;
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+
 /* ========================================= */
 /*       Markdown 基础排版（使用 CSS 变量）        */
 /* ========================================= */

@@ -550,6 +550,38 @@ ipcMain.handle("open-default-dir", async () => {
   return dir;
 });
 
+ipcMain.handle("open-in-folder", async (_event, targetPath) => {
+  try {
+    if (!targetPath || typeof targetPath !== "string") {
+      return { success: false, error: "路径无效" };
+    }
+
+    const normalizedPath = path.normalize(targetPath);
+    let dirToOpen = path.dirname(normalizedPath);
+
+    if (fs.existsSync(normalizedPath)) {
+      const stats = fs.statSync(normalizedPath);
+      if (stats.isFile()) {
+        shell.showItemInFolder(normalizedPath);
+        return { success: true, path: path.dirname(normalizedPath) };
+      }
+      if (stats.isDirectory()) {
+        dirToOpen = normalizedPath;
+      }
+    }
+
+    if (!dirToOpen || !fs.existsSync(dirToOpen)) {
+      return { success: false, error: "目录不存在" };
+    }
+
+    await shell.openPath(dirToOpen);
+    return { success: true, path: dirToOpen };
+  } catch (error) {
+    console.error("open-in-folder error:", error);
+    return { success: false, error: error.message || String(error) };
+  }
+});
+
 ipcMain.on('renderer-ready', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   try {

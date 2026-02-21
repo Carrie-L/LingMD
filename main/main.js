@@ -1708,10 +1708,24 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       const fallbackViewportHeight = preferFallbackForLongPage
         ? Math.max(800, Math.min(1400, finalHeight))
         : Math.max(900, Math.min(2000, finalHeight));
+      const desiredRenderScale = 2;
+      const maxScaleByPixels = Math.sqrt(IMAGE_EXPORT_MAX_PIXELS / Math.max(1, finalWidth * finalHeight));
+      let actualRenderScale = Math.max(1, Math.min(desiredRenderScale, Math.floor(maxScaleByPixels)));
+      if (actualRenderScale > 1) {
+        try {
+          await imageWindow.webContents.setZoomFactor(actualRenderScale);
+          console.log("[Image Export] 兼容模式启用高清渲染倍率:", actualRenderScale);
+        } catch (zoomErr) {
+          console.warn("[Image Export] 设置高清渲染倍率失败，回退 1x:", zoomErr);
+          actualRenderScale = 1;
+        }
+      }
+      const dipWidth = Math.max(1, Math.ceil(finalWidth * actualRenderScale));
+      const dipViewportHeight = Math.max(1, Math.ceil(fallbackViewportHeight * actualRenderScale));
       if (typeof imageWindow.setContentSize === "function") {
-        imageWindow.setContentSize(finalWidth, fallbackViewportHeight);
+        imageWindow.setContentSize(dipWidth, dipViewportHeight);
       } else {
-        imageWindow.setSize(finalWidth, fallbackViewportHeight);
+        imageWindow.setSize(dipWidth, dipViewportHeight);
       }
       await new Promise(resolve => setTimeout(resolve, 250));
 
@@ -1812,8 +1826,8 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         const image = await imageWindow.webContents.capturePage({
           x: 0,
           y: 0,
-          width: finalWidth,
-          height: cssChunkHeight,
+          width: dipWidth,
+          height: Math.max(1, Math.ceil(cssChunkHeight * actualRenderScale)),
         });
         if (image.isEmpty()) {
           throw new Error(`兼容截图失败：第 ${segmentCount + 1} 段为空`);
@@ -1896,8 +1910,8 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         const bottomImage = await imageWindow.webContents.capturePage({
           x: 0,
           y: 0,
-          width: finalWidth,
-          height: bottomCaptureHeight,
+          width: dipWidth,
+          height: Math.max(1, Math.ceil(bottomCaptureHeight * actualRenderScale)),
         });
         if (!bottomImage.isEmpty()) {
           const bottomShotSize = bottomImage.getSize();

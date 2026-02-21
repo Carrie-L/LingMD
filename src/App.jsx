@@ -1960,8 +1960,11 @@ body::-webkit-scrollbar,
   padding: 0 6px;
   box-sizing: border-box;
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.8;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   height: auto !important;
   min-height: auto !important;
   max-height: none !important;

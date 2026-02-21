@@ -4,6 +4,7 @@ const {
   app,
   BrowserWindow,
   ipcMain,
+  Menu,
   dialog,
   protocol,
   shell,
@@ -275,6 +276,43 @@ ipcMain.handle("window-close", (event) => {
   const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
   if (!win) return { success: false, error: "no-window" };
   win.close();
+  return { success: true };
+});
+
+ipcMain.handle("show-native-file-menu", (event, payload = {}) => {
+  const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  if (!win) return { success: false, error: "no-window" };
+
+  const sender = event.sender;
+  const emitCommand = (command) => {
+    try {
+      if (sender && !sender.isDestroyed()) {
+        sender.send("file-menu-command", command);
+      }
+    } catch (err) {
+      console.warn("file-menu-command send failed:", err);
+    }
+  };
+
+  const menu = Menu.buildFromTemplate([
+    { label: "新建", click: () => emitCommand("new") },
+    { label: "打开", click: () => emitCommand("open") },
+    { label: "保存", click: () => emitCommand("save") },
+    { type: "separator" },
+    { label: "导出 HTML", click: () => emitCommand("export-html") },
+    { label: "导出 PDF", click: () => emitCommand("export-pdf") },
+    { label: "导出图片", click: () => emitCommand("export-image") },
+  ]);
+
+  const x = Number(payload.x);
+  const y = Number(payload.y);
+  const popupOptions = { window: win };
+  if (Number.isFinite(x) && Number.isFinite(y)) {
+    popupOptions.x = Math.max(0, Math.round(x));
+    popupOptions.y = Math.max(0, Math.round(y));
+  }
+
+  menu.popup(popupOptions);
   return { success: true };
 });
 

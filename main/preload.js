@@ -50,6 +50,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowToggleMaximize: () => ipcRenderer.invoke("window-toggle-maximize"),
   windowIsMaximized: () => ipcRenderer.invoke("window-is-maximized"),
   windowClose: () => ipcRenderer.invoke("window-close"),
+  showNativeFileMenu: (payload) => ipcRenderer.invoke("show-native-file-menu", payload || {}),
+  onFileMenuCommand: (callback) => {
+    const listener = (_event, command) => callback(command);
+    ipcRenderer.on("file-menu-command", listener);
+    return () => ipcRenderer.removeListener("file-menu-command", listener);
+  },
 
   getCustomThemes: () => ipcRenderer.invoke("get-custom-themes"),
   saveCustomThemes: (themes) => ipcRenderer.invoke("save-custom-themes", themes),

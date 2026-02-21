@@ -156,9 +156,24 @@ html, body {
   -webkit-backdrop-filter: blur(12px) saturate(120%);
   box-shadow: 0 8px 24px rgba(31, 49, 77, 0.08);
   z-index: 100;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: visible;
   -webkit-app-region: drag;
+}
+
+.toolbar-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+}
+
+.toolbar-main::-webkit-scrollbar {
+  display: none;
 }
 
 .toolbar button,
@@ -196,6 +211,11 @@ html, body {
 .file-menu {
   position: relative;
   flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.file-menu * {
+  -webkit-app-region: no-drag;
 }
 
 .file-menu-trigger {
@@ -247,11 +267,14 @@ html, body {
 }
 
 .window-controls {
-  margin-left: auto;
+  margin-left: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  padding-left: 8px;
+  border-left: 1px solid var(--ui-toolbar-border);
+  background: var(--ui-toolbar-bg);
   -webkit-app-region: no-drag;
 }
 
@@ -326,10 +349,10 @@ html, body {
 
 .main {
   flex: 1;
-  margin-top: 70px;
-  margin-bottom: 30px;
-  padding: 0;
-  height: calc(100vh - 100px);
+  margin-top: 82px;
+  margin-bottom: 42px;
+  padding: 8px 0;
+  height: calc(100vh - 124px);
   /* 瑙嗗彛楂樺害鍑忓幓 toolbar/status-bar 绛?*/
   box-sizing: border-box;
   display: grid;
@@ -433,7 +456,7 @@ html, body {
   align-items: stretch;
   height: 100%;
   margin: 0 auto;
-  padding: 8px 10px;
+  padding: 12px 10px;
   max-width: 1800px; /* 闄愬埗鏈€澶у搴?*/
   overflow: hidden;
 }
@@ -587,7 +610,7 @@ html, body {
 /* 瀹為檯瀵艰埅鍖哄煙 */
 .outline {
   padding: 12px;
-  height: calc(100vh - 120px); /* 椤堕儴 toolbar + 搴曢儴 status-bar 棰勭暀锛堜笌浣?project 淇濇寔涓€鑷达級*/
+  height: calc(100vh - 144px); /* 与 main 上下间距同步，避免贴边 */
   overflow-y: auto;
   box-sizing: border-box;
   font-size: 12px;
@@ -1479,51 +1502,50 @@ html, body {
   --md-fg: #4f5963;
   --md-text: #5e6972;
   --md-muted: #8b928f;
-  --md-accent: #6da598;
-  --md-accent-soft: #ebf4f1;
-  --md-border: #dfe6df;
-  --md-code-bg: #f3f6f3;
+  --md-accent: #2d9f8f;
+  --md-accent-soft: #dff1eb;
+  --md-border: #d5ded6;
+  --md-code-bg: #eef4ef;
   --md-code-fg: #4f5d67;
   --md-quote-bg: #f9faf6;
-  --md-quote-bar: #b7d7ce;
-  --md-table-stripe: #f8faf7;
+  --md-quote-bar: #9acdbf;
+  --md-table-stripe: #f5f7f3;
 }
 
 .app[data-mdtheme="campfireMidnight"] {
-  --md-bg: #262a3b;
-  --md-fg: #e5e2d8;
-  --md-text: #d6d2c8;
-  --md-muted: #aaa69d;
-  --md-accent: #c8ac8a;
-  --md-accent-soft: #3f4357;
-  --md-border: #676d82;
-  --md-code-bg: #31364b;
-  --md-code-fg: #e7e3da;
-  --md-quote-bg: #363b50;
-  --md-quote-bar: #b79a79;
-  --md-table-stripe: #2c3043;
-  --ui-app-bg: #34384b;
-  --ui-toolbar-bg: #3b4054;
-  --ui-toolbar-border: #636a82;
-  --ui-status-bg: #3b4054;
-  --ui-status-border: #636a82;
-  --ui-status-text: #d7d2c6;
-  --ui-panel-bg: #41465b;
-  --ui-panel-border: #6b7289;
-  --ui-button-bg: #474d63;
-  --ui-button-border: #707991;
-  --ui-button-text: #eee9de;
-  --ui-button-hover-bg: #4e556d;
-  --ui-input-bg: #444b61;
-  --ui-input-border: #6e7891;
-  --ui-input-text: #eee9de;
-  --ui-outline-bg: #42485e;
-  --ui-book-cover: #3f4459;
-  --ui-book-cover-border: #6b728a;
-  --ui-book-cover-shadow: rgba(12, 14, 24, 0.38);
-  --ui-book-page: #3a3f54;
-  --ui-book-page-border: #697186;
-  --ui-book-spine: #5d657d;
+  --md-bg: #1e2236;
+  --md-fg: #ece8da;
+  --md-text: #ded9ca;
+  --md-muted: #aba79a;
+  --md-accent: #e2b579;
+  --md-accent-soft: #33384d;
+  --md-border: #4f556b;
+  --md-code-bg: #282d44;
+  --md-code-fg: #ece7d8;
+  --md-quote-bg: #2c3148;
+  --md-quote-bar: #c89d66;
+  --md-table-stripe: #24283d;
+  --ui-app-bg: #24283d;
+  --ui-toolbar-bg: #2a2f46;
+  --ui-toolbar-border: #4d556e;
+  --ui-status-bg: #2a2f46;
+  --ui-status-border: #4d556e;
+  --ui-status-text: #c9c3b4;
+  --ui-panel-bg: #2d334c;
+  --ui-panel-border: #57607b;
+  --ui-button-bg: #343b56;
+  --ui-button-border: #616b88;
+  --ui-button-text: #ece6d8;
+  --ui-button-hover-bg: #3b4361;
+  --ui-input-bg: #323853;
+  --ui-input-border: #5e6884;
+  --ui-input-text: #ece6d8;
+  --ui-book-cover: #2b3048;
+  --ui-book-cover-border: #59627d;
+  --ui-book-cover-shadow: rgba(7, 10, 20, 0.72);
+  --ui-book-page: #23283d;
+  --ui-book-page-border: #4f5972;
+  --ui-book-spine: #414a67;
 }
 
 .app[data-mdtheme="magazine"] {
@@ -2333,32 +2355,32 @@ html, body {
 }
 
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) {
-  --ui-app-bg: color-mix(in srgb, var(--md-accent-soft) 34%, var(--md-bg) 66%);
-  --ui-toolbar-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
-  --ui-toolbar-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
-  --ui-status-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
-  --ui-status-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
+  --ui-app-bg: color-mix(in srgb, var(--md-accent-soft) 58%, var(--md-bg) 42%);
+  --ui-toolbar-bg: color-mix(in srgb, var(--md-bg) 94%, #ffffff 6%);
+  --ui-toolbar-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-status-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
+  --ui-status-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
   --ui-status-text: color-mix(in srgb, var(--md-muted) 90%, var(--md-fg) 10%);
-  --ui-panel-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
-  --ui-panel-border: color-mix(in srgb, var(--md-border) 93%, var(--md-accent-soft) 7%);
-  --ui-shadow: 0 8px 20px rgba(31, 49, 77, 0.08);
-  --ui-hover-shadow: 0 12px 26px rgba(31, 49, 77, 0.12);
-  --ui-button-bg: color-mix(in srgb, var(--md-bg) 92%, var(--md-accent-soft) 8%);
-  --ui-button-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
+  --ui-panel-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
+  --ui-panel-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
+  --ui-shadow: 0 12px 28px rgba(31, 49, 77, 0.12);
+  --ui-hover-shadow: 0 16px 34px rgba(31, 49, 77, 0.16);
+  --ui-button-bg: color-mix(in srgb, var(--md-bg) 86%, var(--md-accent-soft) 14%);
+  --ui-button-border: color-mix(in srgb, var(--md-border) 82%, var(--md-accent-soft) 18%);
   --ui-button-text: color-mix(in srgb, var(--md-fg) 90%, #1b2430 10%);
-  --ui-button-hover-bg: color-mix(in srgb, var(--md-accent-soft) 42%, #ffffff 58%);
+  --ui-button-hover-bg: color-mix(in srgb, var(--md-accent-soft) 66%, #ffffff 34%);
   --ui-button-active-bg: var(--md-accent);
   --ui-button-active-text: #ffffff;
-  --ui-input-bg: color-mix(in srgb, var(--md-bg) 94%, var(--md-accent-soft) 6%);
-  --ui-input-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
+  --ui-input-bg: color-mix(in srgb, var(--md-bg) 90%, var(--md-accent-soft) 10%);
+  --ui-input-border: color-mix(in srgb, var(--md-border) 84%, var(--md-accent-soft) 16%);
   --ui-input-text: var(--md-fg);
   --ui-outline-bg: var(--ui-panel-bg);
-  --ui-book-cover: color-mix(in srgb, var(--md-accent-soft) 42%, var(--md-bg) 58%);
-  --ui-book-cover-border: color-mix(in srgb, var(--md-accent) 14%, var(--md-border) 86%);
-  --ui-book-cover-shadow: color-mix(in srgb, var(--md-fg) 12%, transparent);
-  --ui-book-page: color-mix(in srgb, var(--md-bg) 99%, #ffffff 1%);
-  --ui-book-page-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
-  --ui-book-spine: color-mix(in srgb, var(--md-accent) 16%, var(--md-border) 84%);
+  --ui-book-cover: color-mix(in srgb, var(--md-accent-soft) 78%, var(--md-bg) 22%);
+  --ui-book-cover-border: color-mix(in srgb, var(--md-accent) 26%, var(--md-border) 74%);
+  --ui-book-cover-shadow: color-mix(in srgb, var(--md-fg) 20%, transparent);
+  --ui-book-page: color-mix(in srgb, var(--md-bg) 98%, #ffffff 2%);
+  --ui-book-page-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-book-spine: color-mix(in srgb, var(--md-accent) 28%, var(--md-border) 72%);
 }
 
 /* Top and bottom bars intentionally use the original base layout rules. */
@@ -2380,7 +2402,7 @@ html, body {
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export {
-  border: 1px solid var(--ui-panel-border);
+  border: 2px solid var(--ui-panel-border);
   border-radius: 22px;
   background: var(--ui-panel-bg);
   box-shadow: var(--ui-shadow);
@@ -2465,18 +2487,22 @@ html, body {
 }
 
 /* Open planner book: shell + inner pages */
-.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area {
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area {
   position: relative;
   gap: 0;
   padding: 20px 22px;
-  border: 1px solid var(--ui-book-cover-border);
+  border: 2px solid var(--ui-book-cover-border);
   border-radius: 30px;
   background: var(--ui-book-cover);
-  box-shadow: 0 10px 20px color-mix(in srgb, var(--ui-book-cover-shadow) 16%, transparent);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--ui-book-cover-shadow) 24%, transparent);
   overflow: hidden;
 }
 
-.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::before {
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::before,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area::before,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area::before {
   content: "";
   position: absolute;
   inset: 12px;
@@ -2490,29 +2516,63 @@ html, body {
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::after {
   content: "";
   position: absolute;
-  top: 22px;
-  bottom: 22px;
-  left: 50%;
-  width: 20px;
-  transform: translateX(-50%);
-  background:
+  top: 20px;
+  bottom: 20px;
+  left: calc(50% - 9px);
+  width: 18px;
+  transform: none;
+  background-image:
     radial-gradient(
       circle at 50% 10px,
-      color-mix(in srgb, var(--ui-book-page) 96%, #ffffff 4%) 0 2.4px,
-      color-mix(in srgb, var(--ui-book-page-border) 58%, transparent) 2.5px 4.7px,
-      transparent 4.8px
-    ) center top / 100% 20px repeat-y,
+      color-mix(in srgb, var(--ui-book-page) 94%, #ffffff 6%) 0 2px,
+      color-mix(in srgb, var(--ui-book-cover-border) 68%, var(--ui-book-page) 32%) 2px 4px,
+      transparent 4px
+    ),
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--ui-book-spine) 62%, transparent) 0 20%,
-      color-mix(in srgb, var(--ui-book-spine) 56%, transparent) 20% 80%,
-      color-mix(in srgb, var(--ui-book-spine) 62%, transparent) 80% 100%
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 0 20%,
+      color-mix(in srgb, var(--ui-book-spine) 84%, var(--ui-book-page) 16%) 20% 80%,
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%
     );
-  border-radius: 12px;
+  background-repeat: repeat-y, no-repeat;
+  background-size: 100% 20px, 100% 100%;
+  background-position: center top, center;
+  border-radius: 10px;
   box-shadow:
-    inset 1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 40%, transparent),
-    inset -1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 40%, transparent);
-  opacity: 0.72;
+    inset 1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 74%, #ffffff 26%),
+    inset -1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 74%, #ffffff 26%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area::after,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  right: 14px;
+  width: 18px;
+  background-image:
+    radial-gradient(
+      circle at 50% 10px,
+      color-mix(in srgb, var(--ui-book-page) 94%, #ffffff 6%) 0 2px,
+      color-mix(in srgb, var(--ui-book-cover-border) 68%, var(--ui-book-page) 32%) 2px 4px,
+      transparent 4px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 0 20%,
+      color-mix(in srgb, var(--ui-book-spine) 84%, var(--ui-book-page) 16%) 20% 80%,
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%
+    );
+  background-repeat: repeat-y, no-repeat;
+  background-size: 100% 20px, 100% 100%;
+  background-position: center top, center;
+  border-radius: 10px;
+  box-shadow:
+    inset 1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 74%, #ffffff 26%),
+    inset -1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 74%, #ffffff 26%);
   pointer-events: none;
   z-index: 2;
 }
@@ -2533,7 +2593,26 @@ html, body {
   padding: 8px 8px 8px 18px;
 }
 
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor-wrapper,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  height: 100%;
+  z-index: 1;
+  padding: 8px 24px 8px 8px;
+}
+
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor {
   height: 100%;
   border: none;
   border-radius: 0;
@@ -2549,8 +2628,22 @@ html, body {
   background: transparent;
 }
 
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview {
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor .cm-scroller,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview .markdown-body {
+  background: transparent;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor .cm-scroller,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview .markdown-body {
   background: transparent;
 }
 
@@ -2560,8 +2653,16 @@ html, body {
   transform: none;
 }
 
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor:hover,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview:hover {
+  box-shadow: none;
+  transform: none;
+}
+
 @media (max-width: 1100px) {
-  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area {
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area {
     gap: 14px;
     padding: 10px 12px;
     border-radius: 20px;
@@ -2569,18 +2670,24 @@ html, body {
 
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::before,
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::after,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area::after,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area::after,
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper::before,
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper::before {
     content: none;
   }
 
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper,
-  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper {
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor-wrapper,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview-wrapper {
     padding: 0;
   }
 
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor,
-  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview {
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview {
     border: none;
     border-radius: 18px;
   }

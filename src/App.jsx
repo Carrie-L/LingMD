@@ -659,9 +659,16 @@ function App() {
   });
   const exportProgressHideTimerRef = useRef(null);
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
-  const [showFileMenu, setShowFileMenu] = useState(false);
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
-  const fileMenuRef = useRef(null);
+  const fileMenuButtonRef = useRef(null);
+  const fileMenuActionsRef = useRef({
+    newFile: async () => {},
+    open: async () => {},
+    save: async () => {},
+    exportHtml: async () => {},
+    exportPdf: async () => {},
+    exportImage: async () => {},
+  });
 
   // 获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
@@ -699,16 +706,6 @@ function App() {
   const editorRef = useRef(null);
   const previewRef = useRef(null);
   const wechatRef = useRef(null);
-
-  useEffect(() => {
-    const handleGlobalPointerDown = (event) => {
-      if (fileMenuRef.current && !fileMenuRef.current.contains(event.target)) {
-        setShowFileMenu(false);
-      }
-    };
-    window.addEventListener("mousedown", handleGlobalPointerDown);
-    return () => window.removeEventListener("mousedown", handleGlobalPointerDown);
-  }, []);
 
   useEffect(() => {
     const syncWindowState = async () => {
@@ -2085,13 +2082,20 @@ body::-webkit-scrollbar,
     return dir.endsWith(sep) ? dir + name : dir + sep + name;
   }
 
-  const handleFileMenuAction = async (action) => {
-    setShowFileMenu(false);
-    if (typeof action !== "function") return;
+  const handleOpenNativeFileMenu = async (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!window.electronAPI || typeof window.electronAPI.showNativeFileMenu !== "function") return;
     try {
-      await action();
+      const rect = fileMenuButtonRef.current?.getBoundingClientRect();
+      const payload = rect
+        ? { x: Math.round(rect.left), y: Math.round(rect.bottom + 2) }
+        : {};
+      await window.electronAPI.showNativeFileMenu(payload);
     } catch (err) {
-      console.error("file menu action failed:", err);
+      console.error("showNativeFileMenu failed:", err);
     }
   };
 
@@ -2128,36 +2132,81 @@ body::-webkit-scrollbar,
     }
   };
 
+  fileMenuActionsRef.current = {
+    newFile: handleNewFile,
+    open: handleOpen,
+    save: handleSave,
+    exportHtml: handleExportHtml,
+    exportPdf: handleExportPdf,
+    exportImage: handleExportImage,
+  };
+
+  useEffect(() => {
+    if (!window.electronAPI || typeof window.electronAPI.onFileMenuCommand !== "function") return undefined;
+    const unsubscribe = window.electronAPI.onFileMenuCommand(async (command) => {
+      const actions = fileMenuActionsRef.current;
+      try {
+        switch (command) {
+          case "new":
+            await actions.newFile();
+            break;
+          case "open":
+            await actions.open();
+            break;
+          case "save":
+            await actions.save();
+            break;
+          case "export-html":
+            await actions.exportHtml();
+            break;
+          case "export-pdf":
+            await actions.exportPdf();
+            break;
+          case "export-image":
+            await actions.exportImage();
+            break;
+          default:
+            break;
+        }
+      } catch (err) {
+        console.error("native file menu command failed:", command, err);
+      }
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, []);
+
 
   // 默认编辑模式
   return (
     <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
+        <div className="toolbar-main">
         <div className="app-brand" title="LingMD">
           <img src="/favicon.ico" alt="LingMD" />
           <span>LingMD</span>
         </div>
 
-        <div className={`file-menu ${showFileMenu ? "open" : ""}`} ref={fileMenuRef}>
+        <div className="file-menu">
           <button
+            ref={fileMenuButtonRef}
             type="button"
             className="toolbar-button file-menu-trigger"
-            onClick={() => setShowFileMenu((v) => !v)}
+            onClick={handleOpenNativeFileMenu}
           >
             File
           </button>
-          {showFileMenu && (
-            <div className="file-menu-dropdown">
-              <button type="button" onClick={() => handleFileMenuAction(handleNewFile)}>新建</button>
-              <button type="button" onClick={() => handleFileMenuAction(handleOpen)}>打开</button>
-              <button type="button" onClick={() => handleFileMenuAction(handleSave)}>保存</button>
-              <div className="file-menu-sep" />
-              <button type="button" onClick={() => handleFileMenuAction(handleExportHtml)}>导出 HTML</button>
-              <button type="button" onClick={() => handleFileMenuAction(handleExportPdf)}>导出 PDF</button>
-              <button type="button" onClick={() => handleFileMenuAction(handleExportImage)}>导出图片</button>
-            </div>
-          )}
         </div>
+        <button type="button" className="toolbar-button" onClick={handleNewFile}>
+          新建
+        </button>
+        <button type="button" className="toolbar-button" onClick={handleOpen}>
+          打开
+        </button>
+        <button type="button" className="toolbar-button" onClick={handleSave}>
+          保存
+        </button>
 
         {/* 视图切换按钮 */}
       <button
@@ -2221,6 +2270,7 @@ body::-webkit-scrollbar,
         {showWechat && (
           <label className="toolbar-button" onClick={handleCopyToWechat}>复制到公众号</label>
         )}
+        </div>
         <div className="window-controls" aria-label="window-controls">
           <button
             type="button"

@@ -8,7 +8,8 @@ const {
   protocol,
   shell,
   net,
-  clipboard
+  clipboard,
+  nativeImage
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -1359,36 +1360,156 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     // 额外等待一下，确保所有样式都应用完成
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // 获取页面内容的实际高度
+    // 获取页面内容的实际尺寸（优先按导出容器计算）
     console.log("[Image Export] 开始获取页面尺寸...");
     const dimensions = await imageWindow.webContents.executeJavaScript(`
-      new Promise((resolve) => {
-        // 等待一小段时间确保所有内容渲染完成
-        setTimeout(() => {
-          const body = document.body;
-          const html = document.documentElement;
-          // 获取内容的实际高度
-          const height = Math.max(body.scrollHeight, html.scrollHeight);
-          const width = body.scrollWidth || 400;
-          console.log("实际尺寸 - width:", width, "height:", height);
-          resolve({ width, height });
-        }, 500);
-      });
+      (() => {
+        const target = document.querySelector('.image-export') || document.body;
+        const body = document.body;
+        const html = document.documentElement;
+        const rect = target.getBoundingClientRect();
+        const width = Math.ceil(Math.max(rect.width || 0, target.scrollWidth || 0, body.scrollWidth || 0, html.scrollWidth || 0, 360));
+        const height = Math.ceil(Math.max(rect.height || 0, target.scrollHeight || 0, body.scrollHeight || 0, html.scrollHeight || 0, 1));
+        return { width, height };
+      })();
     `);
     console.log("[Image Export] 页面尺寸:", dimensions);
 
-    // 调整窗口大小以适应内容（不留额外padding，确保正好截取）
-    const finalWidth = Math.max(400, dimensions.width + 20);
-    const finalHeight = dimensions.height + 20;
-    imageWindow.setSize(finalWidth, finalHeight);
+    const finalWidth = Math.max(360, Math.min(2000, Math.ceil(dimensions.width)));
+    const finalHeight = Math.max(1, Math.ceil(dimensions.height));
+    let pngBuffer = null;
 
-    // 等待窗口调整完成
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // 优先使用 Chromium 全页截图能力；超长内容使用分段截图再拼接，避免单次截图卡住
+    try {
+      const maxPixels = 80_000_000; // 约 320MB RGBA，防止内存爆炸
+      const totalPixels = finalWidth * finalHeight;
+      if (totalPixels > maxPixels) {
+        throw new Error(`截图尺寸过大: ${finalWidth}x${finalHeight}`);
+      }
 
-    // 截取页面图片
-    console.log("[Image Export] 开始截取图片...");
-    const image = await imageWindow.webContents.capturePage();
-    console.log("[Image Export] 图片截取完成，尺寸:", image.getSize());
+      const wc = imageWindow.webContents;
+      const dbg = wc.debugger;
+      const needDetach = !dbg.isAttached();
+      if (needDetach) {
+        dbg.attach('1.3');
+      }
+
+      const cdpCommand = async (command, params = {}, timeoutMs = 30000) => {
+        let timer = null;
+        try {
+          const timeoutPromise = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`${command} timeout (${timeoutMs}ms)`)), timeoutMs);
+          });
+          return await Promise.race([dbg.sendCommand(command, params), timeoutPromise]);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      };
+
+      const viewportHeight = Math.max(900, Math.min(4000, finalHeight));
+      await cdpCommand('Emulation.setDeviceMetricsOverride', {
+        mobile: false,
+        width: finalWidth,
+        height: viewportHeight,
+        deviceScaleFactor: 1,
+        screenWidth: finalWidth,
+        screenHeight: viewportHeight,
+      }, 15000);
+
+      const maxChunkHeight = 3000;
+      const finalBitmap = Buffer.alloc(finalWidth * finalHeight * 4, 255);
+      let offsetY = 0;
+      let segmentCount = 0;
+
+      while (offsetY < finalHeight) {
+        const chunkHeight = Math.min(maxChunkHeight, finalHeight - offsetY);
+        console.log(`[Image Export] CDP 分段截图 ${segmentCount + 1}: y=${offsetY}, h=${chunkHeight}`);
+
+        const shot = await cdpCommand('Page.captureScreenshot', {
+          format: 'png',
+          fromSurface: true,
+          captureBeyondViewport: true,
+          clip: {
+            x: 0,
+            y: offsetY,
+            width: finalWidth,
+            height: chunkHeight,
+            scale: 1,
+          },
+        }, 30000);
+
+        const chunkPng = Buffer.from(shot.data, 'base64');
+        const chunkImage = nativeImage.createFromBuffer(chunkPng);
+        if (chunkImage.isEmpty()) {
+          throw new Error(`分段截图失败：第 ${segmentCount + 1} 段图像为空`);
+        }
+
+        const chunkSize = chunkImage.getSize();
+        const chunkBitmap = chunkImage.toBitmap();
+        const copyWidth = Math.min(finalWidth, chunkSize.width);
+        const copyHeight = Math.min(chunkSize.height, finalHeight - offsetY);
+
+        for (let row = 0; row < copyHeight; row++) {
+          const srcStart = row * chunkSize.width * 4;
+          const dstStart = (offsetY + row) * finalWidth * 4;
+          chunkBitmap.copy(finalBitmap, dstStart, srcStart, srcStart + copyWidth * 4);
+        }
+
+        offsetY += chunkHeight;
+        segmentCount++;
+      }
+
+      await cdpCommand('Emulation.clearDeviceMetricsOverride', {}, 10000).catch(() => { });
+      if (needDetach && dbg.isAttached()) {
+        dbg.detach();
+      }
+
+      const mergedImage = nativeImage.createFromBitmap({
+        buffer: finalBitmap,
+        width: finalWidth,
+        height: finalHeight,
+        scaleFactor: 1,
+      });
+      if (mergedImage.isEmpty()) {
+        throw new Error("分段拼接失败：生成图像为空");
+      }
+
+      pngBuffer = mergedImage.toPNG();
+      console.log("[Image Export] CDP 分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length);
+    } catch (cdpErr) {
+      try {
+        const dbg = imageWindow.webContents.debugger;
+        if (dbg.isAttached()) {
+          await dbg.sendCommand('Emulation.clearDeviceMetricsOverride').catch(() => { });
+          dbg.detach();
+        }
+      } catch (detachErr) {
+        console.warn("[Image Export] CDP 清理失败:", detachErr);
+      }
+      console.warn("[Image Export] CDP 截图失败，回退 capturePage:", cdpErr);
+    }
+
+    // 回退方案：使用 capturePage（限制窗口高度，避免超大位图损坏）
+    if (!pngBuffer || pngBuffer.length === 0) {
+      const fallbackHeight = Math.min(Math.max(800, finalHeight), 8000);
+      imageWindow.setSize(finalWidth, fallbackHeight);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const image = await imageWindow.webContents.capturePage({
+        x: 0,
+        y: 0,
+        width: finalWidth,
+        height: fallbackHeight,
+      });
+      if (image.isEmpty()) {
+        throw new Error("截图失败：生成了空图像");
+      }
+      pngBuffer = image.toPNG();
+      console.log("[Image Export] 回退截图完成，字节数:", pngBuffer.length, "尺寸:", image.getSize());
+    }
+
+    if (!pngBuffer || pngBuffer.length < 16) {
+      throw new Error("截图失败：图像数据无效");
+    }
 
     // 关闭临时窗口
     imageWindow.close();
@@ -1407,9 +1528,17 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     try {
       const ext = finalPath.toLowerCase().split('.').pop();
       if (ext === 'jpg' || ext === 'jpeg') {
-        await fs.promises.writeFile(finalPath, image.toJPEG(90));
+        const jpgImage = nativeImage.createFromBuffer(pngBuffer);
+        if (jpgImage.isEmpty()) {
+          throw new Error("图片编码失败：无法从 PNG 转为 JPEG");
+        }
+        const jpgBuffer = jpgImage.toJPEG(90);
+        if (!jpgBuffer || jpgBuffer.length < 16) {
+          throw new Error("图片编码失败：JPEG 数据无效");
+        }
+        await fs.promises.writeFile(finalPath, jpgBuffer);
       } else {
-        await fs.promises.writeFile(finalPath, image.toPNG());
+        await fs.promises.writeFile(finalPath, pngBuffer);
       }
       console.log("[Image Export] 文件写入成功");
     } catch (writeError) {

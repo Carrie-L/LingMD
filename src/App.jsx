@@ -1744,6 +1744,43 @@ body {
   page-break-inside: avoid;
   break-inside: avoid-page;
 }
+
+/* Export watermark */
+.pdf-export .app-watermark {
+  margin: 28px auto 0;
+  text-align: center;
+  user-select: none;
+}
+
+.pdf-export .app-watermark-divider {
+  width: min(260px, 62%);
+  height: 16px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  opacity: 0.42;
+  background:
+    radial-gradient(circle at 8px 8px, rgba(132, 220, 198, 0.48) 0 3px, transparent 3.6px) 0 2px / 16px 12px repeat-x,
+    radial-gradient(circle at 8px 8px, rgba(177, 236, 220, 0.34) 0 2px, transparent 2.8px) 8px 8px / 16px 12px repeat-x,
+    linear-gradient(
+      90deg,
+      rgba(140, 222, 203, 0),
+      rgba(140, 222, 203, 0.35) 16%,
+      rgba(140, 222, 203, 0.44) 50%,
+      rgba(140, 222, 203, 0.35) 84%,
+      rgba(140, 222, 203, 0)
+    );
+  filter: drop-shadow(0 0 6px rgba(137, 220, 202, 0.26));
+}
+
+.pdf-export .app-watermark-title {
+  font-family: "STKaiti", "KaiTi", "DFKai-SB", "Segoe Script", "Brush Script MT", cursive;
+  font-size: 30px;
+  line-height: 1.12;
+  letter-spacing: 1px;
+  font-weight: 500;
+  color: rgba(92, 185, 163, 0.5);
+  text-shadow: 0 0 1px rgba(165, 232, 215, 0.33), 0 0 10px rgba(136, 220, 201, 0.14);
+}
 `;
 
       const styledHTML = `
@@ -1762,6 +1799,10 @@ body {
       <div class="pdf-export">
         <div class="markdown-body">
           ${cloned.innerHTML}
+        </div>
+        <div class="app-watermark" aria-hidden="true">
+          <div class="app-watermark-divider"></div>
+          <div class="app-watermark-title">简·泠 MD</div>
         </div>
       </div>
     </div>
@@ -1905,7 +1946,7 @@ body::-webkit-scrollbar,
   width: 100%;
   max-width: 390px;
   margin: 0 auto;
-  padding: 20px 10px 56px;
+  padding: 20px 10px 24px;
   background: var(--md-bg, #ffffff);
   color: var(--md-fg, #000);
   height: auto !important;
@@ -1965,6 +2006,43 @@ body::-webkit-scrollbar,
   font-size: 14px;
   padding: 0.5em 1em;
 }
+
+/* Export watermark */
+.image-export .app-watermark {
+  margin: 60px auto 0;
+  text-align: center;
+  user-select: none;
+}
+
+.image-export .app-watermark-divider {
+  width: min(250px, 68%);
+  height: 18px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  opacity: 0.44;
+  background:
+    radial-gradient(circle at 8px 8px, rgba(129, 221, 198, 0.52) 0 3px, transparent 3.6px) 0 2px / 16px 12px repeat-x,
+    radial-gradient(circle at 8px 8px, rgba(184, 238, 223, 0.34) 0 2px, transparent 2.8px) 8px 8px / 16px 12px repeat-x,
+    linear-gradient(
+      90deg,
+      rgba(140, 223, 204, 0),
+      rgba(140, 223, 204, 0.36) 16%,
+      rgba(140, 223, 204, 0.46) 50%,
+      rgba(140, 223, 204, 0.36) 84%,
+      rgba(140, 223, 204, 0)
+    );
+  filter: drop-shadow(0 0 6px rgba(133, 219, 199, 0.3));
+}
+
+.image-export .app-watermark-title {
+  font-family: "STKaiti", "KaiTi", "DFKai-SB", "Segoe Script", "Brush Script MT", cursive;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: 1px;
+  font-weight: 500;
+  color: rgba(88, 181, 158, 0.54);
+  text-shadow: 0 0 1px rgba(166, 234, 217, 0.35), 0 0 10px rgba(136, 220, 201, 0.16);
+}
 `;
 
       const styledHTML = `
@@ -1983,6 +2061,10 @@ body::-webkit-scrollbar,
       <div class="image-export">
         <div class="markdown-body">
           ${cloned.innerHTML}
+        </div>
+        <div class="app-watermark" aria-hidden="true">
+          <div class="app-watermark-divider"></div>
+          <div class="app-watermark-title">简·泠 MD</div>
         </div>
       </div>
     </div>

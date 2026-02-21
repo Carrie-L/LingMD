@@ -52,6 +52,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   exportToPdf: (payload) => ipcRenderer.invoke('export-to-pdf', payload),
   // 导出为图片（朋友圈）
   exportToImage: (payload) => ipcRenderer.invoke('export-to-image', payload),
+  onExportProgress: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('export-progress', listener);
+    return () => ipcRenderer.removeListener('export-progress', listener);
+  },
 
   // 自定义主题
   getCustomThemes: () => ipcRenderer.invoke('get-custom-themes'),

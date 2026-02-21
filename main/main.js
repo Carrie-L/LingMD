@@ -20,6 +20,8 @@ const juice = require("juice");
 const { log } = require("console");
 const os = require('os');
 
+const IMAGE_EXPORT_MAX_PIXELS = 80_000_000; // 约 320MB RGBA，防止超长截图内存爆炸
+
 
 let mainWindow;
 let pendingFileToOpen = null; // 外部传入的文件路径优先级最高
@@ -253,6 +255,54 @@ function safeLog(...args) {
     fs.appendFileSync(LOGFILE, line);
   } catch (e) { console.error('写日志失败', e); }
   try { console.log(...args); } catch (e) { }
+}
+
+function sendExportProgress(sender, payload) {
+  try {
+    if (!sender || sender.isDestroyed()) return;
+    sender.send('export-progress', {
+      type: 'unknown',
+      progress: 0,
+      message: '',
+      done: false,
+      ts: Date.now(),
+      ...payload,
+    });
+  } catch (err) {
+    console.warn('[Export Progress] 发送失败:', err);
+  }
+}
+
+function createNativeImageFromRawBitmap(rawBuffer, width, height) {
+  if (!rawBuffer || !Buffer.isBuffer(rawBuffer)) {
+    throw new Error("无效的位图缓冲区");
+  }
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    throw new Error(`无效的位图尺寸: ${width}x${height}`);
+  }
+
+  // Electron API 在不同版本上可能对 createFromBitmap 参数签名有差异
+  // 先尝试官方常见签名 (buffer, options)，失败后回退旧签名 ({buffer,...})
+  try {
+    const img = nativeImage.createFromBitmap(rawBuffer, {
+      width,
+      height,
+      scaleFactor: 1,
+    });
+    if (img && !img.isEmpty()) return img;
+  } catch (_e) { }
+
+  try {
+    const img = nativeImage.createFromBitmap({
+      buffer: rawBuffer,
+      width,
+      height,
+      scaleFactor: 1,
+    });
+    if (img && !img.isEmpty()) return img;
+  } catch (_e) { }
+
+  throw new Error(`createFromBitmap 失败: ${width}x${height}`);
 }
 
 // 一次性保护，避免重复声明
@@ -1050,6 +1100,7 @@ ipcMain.handle("convert-html-for-clipboard", async (event, payload) => {
 // ✅ 导出为 PDF 功能
 // ===================================================================
 ipcMain.handle("export-to-pdf", async (event, payload) => {
+  const sender = event && event.sender ? event.sender : null;
   const { html, filePath } = payload;
   console.log("[PDF Export] 收到导出请求, filePath:", filePath);
 
@@ -1097,6 +1148,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
           try {
             await fs.promises.unlink(tempHtmlPath);
           } catch (e) { }
+          sendExportProgress(sender, { type: 'pdf', progress: 100, message: '已取消导出', done: true, canceled: true });
           return { success: false, canceled: true };
         }
         finalPath = result.filePath;
@@ -1107,6 +1159,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
         try {
           await fs.promises.unlink(tempHtmlPath);
         } catch (e) { }
+        sendExportProgress(sender, { type: 'pdf', progress: 100, message: `导出失败：${dialogError.message || String(dialogError)}`, done: true, error: true });
         return { success: false, error: `保存对话框失败: ${dialogError.message || String(dialogError)}` };
       }
     } else {
@@ -1118,14 +1171,17 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
       finalPath += ".pdf";
     }
     console.log("[PDF Export] 最终保存路径:", finalPath);
+    sendExportProgress(sender, { type: 'pdf', progress: 20, message: '正在加载导出页面...' });
 
     // 加载临时 HTML 文件
     console.log("[PDF Export] 开始加载临时 HTML 文件...");
     try {
       await pdfWindow.loadFile(tempHtmlPath);
       console.log("[PDF Export] 临时 HTML 文件加载完成");
+      sendExportProgress(sender, { type: 'pdf', progress: 40, message: '页面已加载，正在处理资源...' });
     } catch (loadErr) {
       console.error("[PDF Export] 加载 HTML 文件失败:", loadErr);
+      sendExportProgress(sender, { type: 'pdf', progress: 100, message: `导出失败：${loadErr.message || String(loadErr)}`, done: true, error: true });
       throw loadErr;
     }
 
@@ -1176,6 +1232,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
         console.warn("[PDF Export] 等待图片加载脚本出错:", e);
       });
       console.log("[PDF Export] 图片加载检查结束");
+      sendExportProgress(sender, { type: 'pdf', progress: 58, message: '资源处理完成，正在排版...' });
     } catch (jsErr) {
       console.error("[PDF Export] 执行 JS 失败:", jsErr);
     }
@@ -1184,6 +1241,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     console.log("[PDF Export] 等待样式渲染 (500ms)...");
     await new Promise(resolve => setTimeout(resolve, 500));
     console.log("[PDF Export] 等待结束");
+    sendExportProgress(sender, { type: 'pdf', progress: 70, message: '正在生成 PDF...' });
 
     console.log("[PDF Export] 开始生成 PDF 数据...");
     // 生成 PDF
@@ -1198,12 +1256,14 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
         preferCSSPageSize: true,
       });
       console.log("[PDF Export] PDF 生成成功，数据类型:", typeof pdfData, "长度:", pdfData.length);
+      sendExportProgress(sender, { type: 'pdf', progress: 88, message: 'PDF 已生成，正在写入文件...' });
     } catch (pdfError) {
       console.error("[PDF Export] 生成 PDF 失败:", pdfError);
       pdfWindow.close();
       try {
         await fs.promises.unlink(tempHtmlPath);
       } catch (e) { }
+      sendExportProgress(sender, { type: 'pdf', progress: 100, message: `导出失败：${pdfError.message || String(pdfError)}`, done: true, error: true });
       return { success: false, error: `生成 PDF 失败: ${pdfError.message || String(pdfError)}` };
     }
 
@@ -1226,12 +1286,15 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
       console.log("[PDF Export] 文件写入成功");
     } catch (writeError) {
       console.error("[PDF Export] 文件写入失败:", writeError);
+      sendExportProgress(sender, { type: 'pdf', progress: 100, message: `导出失败：${writeError.message || String(writeError)}`, done: true, error: true });
       return { success: false, error: `文件写入失败: ${writeError.message}` };
     }
 
+    sendExportProgress(sender, { type: 'pdf', progress: 100, message: 'PDF 导出完成', done: true });
     return { success: true, path: finalPath };
   } catch (error) {
     console.error("Failed to export PDF:", error);
+    sendExportProgress(sender, { type: 'pdf', progress: 100, message: `导出失败：${error.message || String(error)}`, done: true, error: true });
     return { success: false, error: error.message || String(error) };
   }
 });
@@ -1240,6 +1303,7 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
 // ✅ 导出为图片（朋友圈）功能
 // ===================================================================
 ipcMain.handle("export-to-image", async (event, payload) => {
+  const sender = event && event.sender ? event.sender : null;
   const { html, filePath } = payload;
   console.log("[Image Export] 收到导出请求, filePath:", filePath);
 
@@ -1290,6 +1354,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
           try {
             await fs.promises.unlink(tempHtmlPath);
           } catch (e) { }
+          sendExportProgress(sender, { type: 'image', progress: 100, message: '已取消导出', done: true, canceled: true });
           return { success: false, canceled: true };
         }
         finalPath = result.filePath;
@@ -1300,6 +1365,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         try {
           await fs.promises.unlink(tempHtmlPath);
         } catch (e) { }
+        sendExportProgress(sender, { type: 'image', progress: 100, message: `导出失败：${dialogError.message || String(dialogError)}`, done: true, error: true });
         return { success: false, error: `保存对话框失败: ${dialogError.message || String(dialogError)}` };
       }
     } else {
@@ -1312,14 +1378,17 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       finalPath += ".png";
     }
     console.log("[Image Export] 最终保存路径:", finalPath);
+    sendExportProgress(sender, { type: 'image', progress: 18, message: '正在加载导出页面...' });
 
     // 加载临时 HTML 文件
     console.log("[Image Export] 开始加载临时 HTML 文件...");
     try {
       await imageWindow.loadFile(tempHtmlPath);
       console.log("[Image Export] 临时 HTML 文件加载完成");
+      sendExportProgress(sender, { type: 'image', progress: 32, message: '页面已加载，正在处理资源...' });
     } catch (loadErr) {
       console.error("[Image Export] 加载 HTML 文件失败:", loadErr);
+      sendExportProgress(sender, { type: 'image', progress: 100, message: `导出失败：${loadErr.message || String(loadErr)}`, done: true, error: true });
       throw loadErr;
     }
 
@@ -1356,6 +1425,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     } catch (jsErr) {
       console.warn("[Image Export] 等待资源加载脚本出错:", jsErr);
     }
+    sendExportProgress(sender, { type: 'image', progress: 42, message: '资源处理完成，正在计算尺寸...' });
 
     // 额外等待一下，确保所有样式都应用完成
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1374,137 +1444,214 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       })();
     `);
     console.log("[Image Export] 页面尺寸:", dimensions);
+    sendExportProgress(sender, { type: 'image', progress: 50, message: `尺寸 ${dimensions.width}x${dimensions.height}，开始分段截图...` });
 
     const finalWidth = Math.max(360, Math.min(2000, Math.ceil(dimensions.width)));
     const finalHeight = Math.max(1, Math.ceil(dimensions.height));
+    const maxPixels = IMAGE_EXPORT_MAX_PIXELS;
+    const preferFallbackForLongPage = finalHeight > 20_000;
     let pngBuffer = null;
 
-    // 优先使用 Chromium 全页截图能力；超长内容使用分段截图再拼接，避免单次截图卡住
-    try {
-      const maxPixels = 80_000_000; // 约 320MB RGBA，防止内存爆炸
-      const totalPixels = finalWidth * finalHeight;
-      if (totalPixels > maxPixels) {
-        throw new Error(`截图尺寸过大: ${finalWidth}x${finalHeight}`);
-      }
-
-      const wc = imageWindow.webContents;
-      const dbg = wc.debugger;
-      const needDetach = !dbg.isAttached();
-      if (needDetach) {
-        dbg.attach('1.3');
-      }
-
-      const cdpCommand = async (command, params = {}, timeoutMs = 30000) => {
-        let timer = null;
-        try {
-          const timeoutPromise = new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error(`${command} timeout (${timeoutMs}ms)`)), timeoutMs);
-          });
-          return await Promise.race([dbg.sendCommand(command, params), timeoutPromise]);
-        } finally {
-          if (timer) clearTimeout(timer);
-        }
-      };
-
-      const viewportHeight = Math.max(900, Math.min(4000, finalHeight));
-      await cdpCommand('Emulation.setDeviceMetricsOverride', {
-        mobile: false,
-        width: finalWidth,
-        height: viewportHeight,
-        deviceScaleFactor: 1,
-        screenWidth: finalWidth,
-        screenHeight: viewportHeight,
-      }, 15000);
-
-      const maxChunkHeight = 3000;
-      const finalBitmap = Buffer.alloc(finalWidth * finalHeight * 4, 255);
-      let offsetY = 0;
-      let segmentCount = 0;
-
-      while (offsetY < finalHeight) {
-        const chunkHeight = Math.min(maxChunkHeight, finalHeight - offsetY);
-        console.log(`[Image Export] CDP 分段截图 ${segmentCount + 1}: y=${offsetY}, h=${chunkHeight}`);
-
-        const shot = await cdpCommand('Page.captureScreenshot', {
-          format: 'png',
-          fromSurface: true,
-          captureBeyondViewport: true,
-          clip: {
-            x: 0,
-            y: offsetY,
-            width: finalWidth,
-            height: chunkHeight,
-            scale: 1,
-          },
-        }, 30000);
-
-        const chunkPng = Buffer.from(shot.data, 'base64');
-        const chunkImage = nativeImage.createFromBuffer(chunkPng);
-        if (chunkImage.isEmpty()) {
-          throw new Error(`分段截图失败：第 ${segmentCount + 1} 段图像为空`);
-        }
-
-        const chunkSize = chunkImage.getSize();
-        const chunkBitmap = chunkImage.toBitmap();
-        const copyWidth = Math.min(finalWidth, chunkSize.width);
-        const copyHeight = Math.min(chunkSize.height, finalHeight - offsetY);
-
-        for (let row = 0; row < copyHeight; row++) {
-          const srcStart = row * chunkSize.width * 4;
-          const dstStart = (offsetY + row) * finalWidth * 4;
-          chunkBitmap.copy(finalBitmap, dstStart, srcStart, srcStart + copyWidth * 4);
-        }
-
-        offsetY += chunkHeight;
-        segmentCount++;
-      }
-
-      await cdpCommand('Emulation.clearDeviceMetricsOverride', {}, 10000).catch(() => { });
-      if (needDetach && dbg.isAttached()) {
-        dbg.detach();
-      }
-
-      const mergedImage = nativeImage.createFromBitmap({
-        buffer: finalBitmap,
-        width: finalWidth,
-        height: finalHeight,
-        scaleFactor: 1,
-      });
-      if (mergedImage.isEmpty()) {
-        throw new Error("分段拼接失败：生成图像为空");
-      }
-
-      pngBuffer = mergedImage.toPNG();
-      console.log("[Image Export] CDP 分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length);
-    } catch (cdpErr) {
+    // 优先使用 Chromium 全页截图能力；超长内容优先走兼容分段模式，避免 CDP 长时间超时。
+    if (!preferFallbackForLongPage) {
       try {
-        const dbg = imageWindow.webContents.debugger;
-        if (dbg.isAttached()) {
-          await dbg.sendCommand('Emulation.clearDeviceMetricsOverride').catch(() => { });
+        const totalPixels = finalWidth * finalHeight;
+        if (totalPixels > maxPixels) {
+          throw new Error(`截图尺寸过大: ${finalWidth}x${finalHeight}`);
+        }
+
+        const wc = imageWindow.webContents;
+        const dbg = wc.debugger;
+        const needDetach = !dbg.isAttached();
+        if (needDetach) {
+          dbg.attach('1.3');
+        }
+
+        const cdpCommand = async (command, params = {}, timeoutMs = 15000) => {
+          let timer = null;
+          try {
+            const timeoutPromise = new Promise((_, reject) => {
+              timer = setTimeout(() => reject(new Error(`${command} timeout (${timeoutMs}ms)`)), timeoutMs);
+            });
+            return await Promise.race([dbg.sendCommand(command, params), timeoutPromise]);
+          } finally {
+            if (timer) clearTimeout(timer);
+          }
+        };
+
+        const viewportHeight = Math.max(900, Math.min(4000, finalHeight));
+        await cdpCommand('Emulation.setDeviceMetricsOverride', {
+          mobile: false,
+          width: finalWidth,
+          height: viewportHeight,
+          deviceScaleFactor: 1,
+          screenWidth: finalWidth,
+          screenHeight: viewportHeight,
+        }, 15000);
+
+        const maxChunkHeight = 1500;
+        const finalBitmap = Buffer.alloc(finalWidth * finalHeight * 4, 255);
+        let offsetY = 0;
+        let segmentCount = 0;
+
+        const totalSegments = Math.ceil(finalHeight / maxChunkHeight);
+        while (offsetY < finalHeight) {
+          const chunkHeight = Math.min(maxChunkHeight, finalHeight - offsetY);
+          console.log(`[Image Export] CDP 分段截图 ${segmentCount + 1}: y=${offsetY}, h=${chunkHeight}`);
+
+          const shot = await cdpCommand('Page.captureScreenshot', {
+            format: 'png',
+            fromSurface: true,
+            captureBeyondViewport: true,
+            clip: {
+              x: 0,
+              y: offsetY,
+              width: finalWidth,
+              height: chunkHeight,
+              scale: 1,
+            },
+          }, 15000);
+
+          const chunkPng = Buffer.from(shot.data, 'base64');
+          const chunkImage = nativeImage.createFromBuffer(chunkPng);
+          if (chunkImage.isEmpty()) {
+            throw new Error(`分段截图失败：第 ${segmentCount + 1} 段图像为空`);
+          }
+
+          const chunkSize = chunkImage.getSize();
+          const chunkBitmap = chunkImage.toBitmap();
+          const copyWidth = Math.min(finalWidth, chunkSize.width);
+          const copyHeight = Math.min(chunkSize.height, finalHeight - offsetY);
+          if (copyHeight <= 0 || copyWidth <= 0) {
+            throw new Error(`分段截图失败：第 ${segmentCount + 1} 段尺寸异常 (${chunkSize.width}x${chunkSize.height})`);
+          }
+
+          for (let row = 0; row < copyHeight; row++) {
+            const srcStart = row * chunkSize.width * 4;
+            const dstStart = (offsetY + row) * finalWidth * 4;
+            chunkBitmap.copy(finalBitmap, dstStart, srcStart, srcStart + copyWidth * 4);
+          }
+
+          offsetY += copyHeight;
+          segmentCount++;
+          const segProgress = 50 + Math.min(38, Math.round((segmentCount / totalSegments) * 38));
+          sendExportProgress(sender, {
+            type: 'image',
+            progress: segProgress,
+            message: `正在拼接图片片段 ${segmentCount}/${totalSegments}...`,
+          });
+        }
+
+        await cdpCommand('Emulation.clearDeviceMetricsOverride', {}, 10000).catch(() => { });
+        if (needDetach && dbg.isAttached()) {
           dbg.detach();
         }
-      } catch (detachErr) {
-        console.warn("[Image Export] CDP 清理失败:", detachErr);
+
+        const mergedImage = createNativeImageFromRawBitmap(finalBitmap, finalWidth, finalHeight);
+        if (mergedImage.isEmpty()) {
+          throw new Error("分段拼接失败：生成图像为空");
+        }
+
+        pngBuffer = mergedImage.toPNG();
+        console.log("[Image Export] CDP 分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length);
+        sendExportProgress(sender, { type: 'image', progress: 90, message: '截图完成，正在写入文件...' });
+      } catch (cdpErr) {
+        try {
+          const dbg = imageWindow.webContents.debugger;
+          if (dbg.isAttached()) {
+            await dbg.sendCommand('Emulation.clearDeviceMetricsOverride').catch(() => { });
+            dbg.detach();
+          }
+        } catch (detachErr) {
+          console.warn("[Image Export] CDP 清理失败:", detachErr);
+        }
+        console.warn("[Image Export] CDP 截图失败，回退 capturePage:", cdpErr);
       }
-      console.warn("[Image Export] CDP 截图失败，回退 capturePage:", cdpErr);
+    } else {
+      console.log("[Image Export] 页面过长，跳过 CDP 主方案，直接使用兼容截图模式:", { finalWidth, finalHeight });
+      sendExportProgress(sender, { type: 'image', progress: 60, message: '文档较长，切换到兼容分段截图模式...' });
     }
 
-    // 回退方案：使用 capturePage（限制窗口高度，避免超大位图损坏）
+    // 回退方案：分段滚动 + capturePage，再拼接，确保超长文档也能完整导出
     if (!pngBuffer || pngBuffer.length === 0) {
-      const fallbackHeight = Math.min(Math.max(800, finalHeight), 8000);
-      imageWindow.setSize(finalWidth, fallbackHeight);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const image = await imageWindow.webContents.capturePage({
-        x: 0,
-        y: 0,
-        width: finalWidth,
-        height: fallbackHeight,
-      });
-      if (image.isEmpty()) {
-        throw new Error("截图失败：生成了空图像");
+      sendExportProgress(sender, { type: 'image', progress: 74, message: '主方案失败，正在使用兼容截图模式...' });
+      const fallbackViewportHeight = preferFallbackForLongPage
+        ? Math.max(800, Math.min(1600, finalHeight))
+        : Math.max(900, Math.min(2200, finalHeight));
+      if (typeof imageWindow.setContentSize === "function") {
+        imageWindow.setContentSize(finalWidth, fallbackViewportHeight);
+      } else {
+        imageWindow.setSize(finalWidth, fallbackViewportHeight);
       }
-      pngBuffer = image.toPNG();
-      console.log("[Image Export] 回退截图完成，字节数:", pngBuffer.length, "尺寸:", image.getSize());
+      await new Promise(resolve => setTimeout(resolve, 250));
+
+      const expectedSegments = Math.ceil(finalHeight / fallbackViewportHeight);
+      let cssOffsetY = 0;
+      let outputOffsetY = 0;
+      let segmentCount = 0;
+      let outputWidth = 0;
+      let outputHeight = 0;
+      let outputBitmap = null;
+
+      while (cssOffsetY < finalHeight) {
+        const cssChunkHeight = Math.min(fallbackViewportHeight, finalHeight - cssOffsetY);
+        await imageWindow.webContents.executeJavaScript(`window.scrollTo(0, ${cssOffsetY});`);
+        await new Promise(resolve => setTimeout(resolve, 80));
+
+        const image = await imageWindow.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: finalWidth,
+          height: cssChunkHeight,
+        });
+        if (image.isEmpty()) {
+          throw new Error(`兼容截图失败：第 ${segmentCount + 1} 段为空`);
+        }
+
+        const shotSize = image.getSize();
+        if (segmentCount === 0) {
+          const scale = shotSize.width / finalWidth;
+          outputWidth = shotSize.width;
+          outputHeight = Math.max(1, Math.ceil(finalHeight * scale));
+          const totalPixels = outputWidth * outputHeight;
+          if (totalPixels > IMAGE_EXPORT_MAX_PIXELS) {
+            throw new Error(`兼容截图尺寸过大: ${outputWidth}x${outputHeight}`);
+          }
+          outputBitmap = Buffer.alloc(outputWidth * outputHeight * 4, 255);
+        }
+
+        const shotBitmap = image.toBitmap();
+        const copyWidth = Math.min(outputWidth, shotSize.width);
+        const copyHeight = Math.min(shotSize.height, outputHeight - outputOffsetY);
+        if (copyWidth <= 0 || copyHeight <= 0) {
+          throw new Error(`兼容截图失败：第 ${segmentCount + 1} 段尺寸异常 (${shotSize.width}x${shotSize.height})`);
+        }
+
+        for (let row = 0; row < copyHeight; row++) {
+          const srcStart = row * shotSize.width * 4;
+          const dstStart = (outputOffsetY + row) * outputWidth * 4;
+          shotBitmap.copy(outputBitmap, dstStart, srcStart, srcStart + copyWidth * 4);
+        }
+
+        outputOffsetY += copyHeight;
+        cssOffsetY += cssChunkHeight;
+        segmentCount++;
+
+        const segProgress = 74 + Math.min(18, Math.round((segmentCount / expectedSegments) * 18));
+        sendExportProgress(sender, {
+          type: 'image',
+          progress: segProgress,
+          message: `兼容截图拼接 ${segmentCount}/${expectedSegments}...`,
+        });
+      }
+
+      const mergedImage = createNativeImageFromRawBitmap(outputBitmap, outputWidth, outputHeight);
+      if (mergedImage.isEmpty()) {
+        throw new Error("兼容截图拼接失败：生成图像为空");
+      }
+      pngBuffer = mergedImage.toPNG();
+      console.log("[Image Export] 回退分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length, "尺寸:", { width: outputWidth, height: outputHeight });
+      sendExportProgress(sender, { type: 'image', progress: 90, message: '截图完成，正在写入文件...' });
     }
 
     if (!pngBuffer || pngBuffer.length < 16) {
@@ -1525,6 +1672,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
 
     // 保存图片文件
     console.log("[Image Export] 正在写入文件:", finalPath);
+    sendExportProgress(sender, { type: 'image', progress: 96, message: '正在写入图片文件...' });
     try {
       const ext = finalPath.toLowerCase().split('.').pop();
       if (ext === 'jpg' || ext === 'jpeg') {
@@ -1543,12 +1691,15 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       console.log("[Image Export] 文件写入成功");
     } catch (writeError) {
       console.error("[Image Export] 文件写入失败:", writeError);
+      sendExportProgress(sender, { type: 'image', progress: 100, message: `导出失败：${writeError.message || String(writeError)}`, done: true, error: true });
       return { success: false, error: `文件写入失败: ${writeError.message}` };
     }
 
+    sendExportProgress(sender, { type: 'image', progress: 100, message: '图片导出完成', done: true });
     return { success: true, path: finalPath };
   } catch (error) {
     console.error("Failed to export image:", error);
+    sendExportProgress(sender, { type: 'image', progress: 100, message: `导出失败：${error.message || String(error)}`, done: true, error: true });
     return { success: false, error: error.message || String(error) };
   }
 });

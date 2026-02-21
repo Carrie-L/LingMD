@@ -708,6 +708,59 @@ html, body {
   word-break: break-all;
 }
 
+.export-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-progress-card {
+  width: min(420px, 88vw);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  padding: 14px 16px 12px;
+}
+
+.export-progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.export-progress-message {
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.export-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #eef2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.export-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  transition: width 0.22s ease;
+}
+
+.export-progress-percent {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  color: #4b5563;
+}
+
 /* ========================================= */
 /*       Markdown 基础排版（使用 CSS 变量）        */
 /* ========================================= */

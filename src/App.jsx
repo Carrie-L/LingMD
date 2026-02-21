@@ -777,6 +777,13 @@ function App() {
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
+  const [exportProgress, setExportProgress] = useState({
+    visible: false,
+    type: "",
+    progress: 0,
+    message: "",
+  });
+  const exportProgressHideTimerRef = useRef(null);
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
 
   // 获取当前选中的主题对象
@@ -1051,6 +1058,70 @@ function App() {
     return () => {
       if (toastTimerRef.current) {
         clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const startExportProgress = (type, message, progress = 2) => {
+    if (exportProgressHideTimerRef.current) {
+      clearTimeout(exportProgressHideTimerRef.current);
+      exportProgressHideTimerRef.current = null;
+    }
+    setExportProgress({
+      visible: true,
+      type,
+      progress: Math.max(0, Math.min(100, progress)),
+      message: message || "正在导出...",
+    });
+  };
+
+  const finishExportProgress = () => {
+    if (exportProgressHideTimerRef.current) {
+      clearTimeout(exportProgressHideTimerRef.current);
+    }
+    exportProgressHideTimerRef.current = setTimeout(() => {
+      setExportProgress({
+        visible: false,
+        type: "",
+        progress: 0,
+        message: "",
+      });
+      exportProgressHideTimerRef.current = null;
+    }, 500);
+  };
+
+  useEffect(() => {
+    if (!window.electronAPI || typeof window.electronAPI.onExportProgress !== "function") {
+      return;
+    }
+    const unsubscribe = window.electronAPI.onExportProgress((payload) => {
+      if (!payload || typeof payload !== "object") return;
+      const nextType = payload.type || "export";
+      const nextMessage = payload.message || "正在导出...";
+      const nextProgress = Number.isFinite(payload.progress)
+        ? Math.max(0, Math.min(100, payload.progress))
+        : 0;
+
+      setExportProgress((prev) => {
+        const sameType = !prev.type || prev.type === nextType;
+        const monotonicProgress = sameType ? Math.max(prev.progress || 0, nextProgress) : nextProgress;
+        return {
+          visible: true,
+          type: nextType,
+          progress: monotonicProgress,
+          message: nextMessage,
+        };
+      });
+
+      if (payload.done || payload.canceled || payload.error) {
+        finishExportProgress();
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+      if (exportProgressHideTimerRef.current) {
+        clearTimeout(exportProgressHideTimerRef.current);
       }
     };
   }, []);
@@ -1575,6 +1646,7 @@ function App() {
       // 2. 取出用于导出的正文 DOM（只拿真实内容，避免带入滚动容器）
       const previewElement = document.querySelector(".preview .markdown-body");
       if (!previewElement) {
+        finishExportProgress();
         alert("找不到导出区域（.preview .markdown-body），请先打开预览或切换布局。");
         return;
       }
@@ -1702,8 +1774,8 @@ body {
         html: styledHTML,
         skipJuice: true, // 新增参数：跳过样式内联，使用全量 CSS
       });
-
       if (!finalHtml || finalHtml.trim() === "") {
+        finishExportProgress();
         alert("导出失败：主进程返回空内容。");
         return;
       }
@@ -1723,14 +1795,17 @@ body {
       
       if (!dlg || dlg.canceled || !dlg.filePath) {
         // 用户取消
+        finishExportProgress();
         return;
       }
       
       const savePath = dlg.filePath;
+      startExportProgress("pdf", "正在生成 PDF，请稍候...", 6);
 
       // 7. 调用 PDF 导出，传入确定的路径
       console.log("调用 window.electronAPI.exportToPdf, path:", savePath);
       if (!window.electronAPI || !window.electronAPI.exportToPdf) {
+        finishExportProgress();
         console.error("window.electronAPI.exportToPdf 不存在！");
         alert("PDF 导出功能不可用，请检查 Electron API 是否正确加载。");
         return;
@@ -1750,6 +1825,7 @@ body {
       }
     } catch (err) {
       console.error("handleExportPdf error:", err);
+      finishExportProgress();
       alert("导出失败：" + (err && err.message ? err.message : String(err)));
     }
   };
@@ -1770,6 +1846,7 @@ body {
       // 2. 取出用于导出的正文 DOM（只拿内容，避免滚动容器）
       const previewElement = document.querySelector(".preview .markdown-body");
       if (!previewElement) {
+        finishExportProgress();
         alert("找不到导出区域（.preview .markdown-body），请先打开预览或切换布局。");
         return;
       }
@@ -1897,8 +1974,8 @@ body {
         html: styledHTML,
         skipJuice: true,
       });
-
       if (!finalHtml || finalHtml.trim() === "") {
+        finishExportProgress();
         alert("导出失败：主进程返回空内容。");
         return;
       }
@@ -1917,14 +1994,17 @@ body {
       });
 
       if (!dlg || dlg.canceled || !dlg.filePath) {
+        finishExportProgress();
         return;
       }
 
       const savePath = dlg.filePath;
+      startExportProgress("image", "正在渲染长图，请稍候...", 6);
 
       // 7. 调用图片导出，传入确定的路径
       console.log("调用 window.electronAPI.exportToImage, path:", savePath);
       if (!window.electronAPI || !window.electronAPI.exportToImage) {
+        finishExportProgress();
         console.error("window.electronAPI.exportToImage 不存在！");
         alert("图片导出功能不可用，请检查 Electron API 是否正确加载。");
         return;
@@ -1946,6 +2026,7 @@ body {
       }
     } catch (err) {
       console.error("handleExportImage error:", err);
+      finishExportProgress();
       alert("导出失败：" + (err && err.message ? err.message.toString() : String(err)));
     }
   };
@@ -2227,6 +2308,28 @@ body {
           ⛳️ 设置默认图片目录： {attachmentFolder || "未设置图片目录，请设置。"}
         </span>
       </div>
+
+      {exportProgress.visible && (
+        <div className="export-progress-overlay">
+          <div className="export-progress-card">
+            <div className="export-progress-title">
+              {exportProgress.type === "pdf" ? "导出 PDF" : "导出图片"}
+            </div>
+            <div className="export-progress-message">
+              {exportProgress.message || "正在处理，请稍候..."}
+            </div>
+            <div className="export-progress-bar">
+              <div
+                className="export-progress-fill"
+                style={{ width: `${Math.max(0, Math.min(100, exportProgress.progress))}%` }}
+              />
+            </div>
+            <div className="export-progress-percent">
+              {Math.round(Math.max(0, Math.min(100, exportProgress.progress)))}%
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast">

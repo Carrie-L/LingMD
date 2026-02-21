@@ -38,6 +38,17 @@
   --ui-scrollbar-thumb: color-mix(in srgb, var(--md-accent) 38%, white 62%);
   --ui-scrollbar-thumb-hover: color-mix(in srgb, var(--md-accent) 52%, white 48%);
   --ui-scrollbar-border: color-mix(in srgb, var(--md-border) 62%, transparent);
+  --vn-speaker-label: "角色 (Speaker)";
+  --vn-next-label: "Next  ->";
+  --vn-dialog-border: var(--md-accent);
+  --vn-dialog-bg: var(--md-quote-bg);
+  --vn-name-bg: var(--md-bg);
+  --vn-name-fg: var(--md-accent);
+  --vn-name-border: var(--md-border);
+  --vn-avatar-bg: var(--md-accent-soft);
+  --vn-avatar-ring: var(--md-border);
+  --vn-next-bg: var(--md-code-bg);
+  --vn-next-fg: var(--md-accent);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -302,7 +313,8 @@ html, body {
   justify-content: center; /* 灞呬腑鏄剧ず */
   align-items: stretch;
   height: 100%;
-  margin: 0px auto;
+  margin: 0 auto;
+  padding: 8px 10px;
   max-width: 1800px; /* 闄愬埗鏈€澶у搴?*/
   overflow: hidden;
 }
@@ -311,7 +323,7 @@ html, body {
 /* 缂栬緫妯″紡锛氱紪杈戝櫒鍜岄瑙堝悇鍗犱竴鍗婏紝璐村湪涓€璧峰眳涓?*/
 .mode-edit .content-area {
   display: flex;
-  gap: 24px; /* 澧炲姞闂磋窛 */
+  gap: 18px;
 }
 
 .mode-edit .editor-wrapper {
@@ -321,6 +333,7 @@ html, body {
   overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
+  padding: 2px;
 }
 
 .mode-edit .editor-wrapper .editor {
@@ -337,6 +350,7 @@ html, body {
   overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
+  padding: 2px;
 }
 
 .mode-edit .preview-wrapper .preview {
@@ -357,6 +371,7 @@ html, body {
   width: 100%;
   max-width: 1100px;
   height: 100%;
+  padding: 2px;
 }
 
 .mode-preview .preview-wrapper .preview {
@@ -368,6 +383,10 @@ html, body {
   max-width: 1100px;
   height: 100%;
   margin: 0 10px;
+}
+
+.mode-pure-edit .editor-wrapper {
+  padding: 2px;
 }
 
 
@@ -482,15 +501,24 @@ html, body {
   - 璋冩暣鍐呰竟璺?(padding)
 */
 .editor {
-  line-height: 2em;
+  line-height: 1.95;
   display: flex;
   height: 100%;
   flex-direction: column;
-  background: var(--ui-panel-bg);
-  border: 1px solid var(--ui-panel-border);
-  border-radius: 14px;
-  box-shadow: var(--ui-shadow);
-  transition: box-shadow 0.3s ease;
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ui-panel-bg) 97%, white 3%) 0%,
+      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--ui-panel-border) 78%, transparent);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--md-bg) 72%, transparent) inset,
+    0 16px 34px rgba(12, 18, 30, 0.14);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
   backdrop-filter: blur(8px) saturate(112%);
   -webkit-backdrop-filter: blur(8px) saturate(112%);
   padding: 0;
@@ -498,14 +526,60 @@ html, body {
   max-width: 1000px; /* 闃叉鍐呭鎾戝ぇ */
   width: 100%; /* 寮哄埗鍗犳弧鐖跺鍣?*/
   box-sizing: border-box; /* 纭繚 padding/border 涓嶅鍔犲搴?*/
+  overflow: hidden;
+}
+
+.editor::before,
+.preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 46%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.editor::after,
+.preview::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 4px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-accent) 18%, transparent),
+    color-mix(in srgb, var(--md-accent) 64%, transparent),
+    color-mix(in srgb, var(--md-accent) 18%, transparent)
+  );
+  opacity: 0.75;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.editor > *,
+.preview > * {
+  position: relative;
+  z-index: 1;
 }
 
 
 .preview {
-  background: var(--ui-panel-bg);
-  border: 1px solid var(--ui-panel-border);
-  border-radius: 14px;
-  box-shadow: var(--ui-shadow);
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ui-panel-bg) 97%, white 3%) 0%,
+      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%
+    );
+  border: 1px solid color-mix(in srgb, var(--ui-panel-border) 78%, transparent);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--md-bg) 72%, transparent) inset,
+    0 16px 34px rgba(12, 18, 30, 0.14);
   padding: 0 ;       /* 鎴戜滑鎶?padding 鏀惧埌 markdown-body 鍐咃紝閬垮厤褰卞搷楂樺害璁＄畻 */
   min-width: 0;     /* 鍏佽鍦?grid 涓缉灏?*/
   max-width: 100%; /* 闃叉鍐呭鎾戝ぇ */
@@ -540,7 +614,41 @@ html, body {
   margin: 0;            /* 鍙栨秷灞呬腑 margin */
   font-size: 15px;
   line-height: 1.8;
-  padding: 20px 80px 80px 80px;
+  padding: 30px clamp(24px, 6vw, 72px) 78px;
+}
+
+.preview .markdown-body,
+.editor .cm-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-scrollbar-thumb) var(--ui-scrollbar-track);
+}
+
+.preview .markdown-body::-webkit-scrollbar,
+.editor .cm-scroller::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+}
+
+.preview .markdown-body::-webkit-scrollbar-track,
+.editor .cm-scroller::-webkit-scrollbar-track {
+  background: var(--ui-scrollbar-track);
+  border-left: 1px solid var(--ui-scrollbar-border);
+}
+
+.preview .markdown-body::-webkit-scrollbar-thumb,
+.editor .cm-scroller::-webkit-scrollbar-thumb {
+  background: var(--ui-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.preview .markdown-body::-webkit-scrollbar-thumb:hover,
+.editor .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-scrollbar-thumb-hover);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .wechat-export {
@@ -720,6 +828,7 @@ html, body {
 .preview:hover,
 .wechat-export:hover {
   box-shadow: var(--ui-hover-shadow);
+  transform: translateY(-1px);
 }
 
 
@@ -1244,7 +1353,9 @@ html, body {
   --md-quote-bg: #f8f8f2;
   --md-quote-bar: #9bc7bf;
   --md-table-stripe: #f6f8f4;
-  --ui-app-bg: linear-gradient(180deg, #f1f0eb 0%, #e9ece7 100%);
+  --ui-app-bg:
+    radial-gradient(135% 90% at 88% 0%, rgba(161, 216, 196, 0.34) 0%, rgba(161, 216, 196, 0.08) 48%, rgba(161, 216, 196, 0) 100%),
+    linear-gradient(180deg, #f4f2ea 0%, #ecefe8 100%);
   --ui-toolbar-bg: rgba(248, 247, 240, 0.92);
   --ui-toolbar-border: rgba(170, 182, 176, 0.36);
   --ui-status-bg: rgba(248, 247, 240, 0.94);
@@ -1263,6 +1374,17 @@ html, body {
   --ui-input-bg: #f2f5f1;
   --ui-input-border: #d1dad4;
   --ui-input-text: #505a63;
+  --vn-speaker-label: "夏目 (Natsume)";
+  --vn-next-label: "Next  ->";
+  --vn-dialog-border: #28bcac;
+  --vn-dialog-bg: #f6fbf7;
+  --vn-name-bg: #edf8f3;
+  --vn-name-fg: #217e74;
+  --vn-name-border: #7acdc1;
+  --vn-avatar-bg: #e5f6f0;
+  --vn-avatar-ring: #a8dcd2;
+  --vn-next-bg: #eff9f5;
+  --vn-next-fg: #207f75;
 }
 
 .app[data-mdtheme="magazine"] {
@@ -1323,6 +1445,53 @@ html, body {
   --md-quote-bg: #fff3e8;
   --md-quote-bar: #f3af75;
   --md-table-stripe: #fff6ee;
+}
+
+.app[data-mdtheme="duskCamp"] {
+  --md-bg: #f5efe7;
+  --md-fg: #4e4255;
+  --md-text: #5f5466;
+  --md-muted: #8c7e95;
+  --md-accent: #b86f5f;
+  --md-accent-soft: #f2dfd7;
+  --md-border: #ddc9c5;
+  --md-code-bg: #f7e7df;
+  --md-code-fg: #6a4f57;
+  --md-quote-bg: #f9eae3;
+  --md-quote-bar: #cf9a87;
+  --md-table-stripe: #fbf0ea;
+  --ui-app-bg:
+    radial-gradient(110% 100% at 86% 0%, rgba(255, 204, 167, 0.36) 0%, rgba(255, 204, 167, 0.08) 38%, rgba(255, 204, 167, 0) 100%),
+    linear-gradient(180deg, #f2e9e2 0%, #ece3ec 45%, #e3dcec 100%);
+  --ui-toolbar-bg: rgba(245, 236, 232, 0.9);
+  --ui-toolbar-border: rgba(183, 146, 139, 0.4);
+  --ui-status-bg: rgba(241, 233, 238, 0.92);
+  --ui-status-border: rgba(183, 146, 139, 0.36);
+  --ui-status-text: #7c6e85;
+  --ui-panel-bg: #f9f2ed;
+  --ui-panel-border: #ddcbc6;
+  --ui-shadow: 0 18px 42px rgba(82, 62, 83, 0.17);
+  --ui-hover-shadow: 0 22px 50px rgba(82, 62, 83, 0.22);
+  --ui-button-bg: #f7e9e2;
+  --ui-button-border: #d9b8ad;
+  --ui-button-text: #7f4f48;
+  --ui-button-hover-bg: #fae1d9;
+  --ui-button-active-bg: linear-gradient(135deg, #df8a6b 0%, #ca6f59 100%);
+  --ui-button-active-text: #fff7f3;
+  --ui-input-bg: #f7ece8;
+  --ui-input-border: #dec7bf;
+  --ui-input-text: #6b5768;
+  --vn-speaker-label: "凛 (Rin)";
+  --vn-next-label: "Next  ->";
+  --vn-dialog-border: #d88f78;
+  --vn-dialog-bg: #fbf0eb;
+  --vn-name-bg: #fff5ef;
+  --vn-name-fg: #915646;
+  --vn-name-border: #e3b39f;
+  --vn-avatar-bg: #ffe7dc;
+  --vn-avatar-ring: #edc2b2;
+  --vn-next-bg: #fff4ee;
+  --vn-next-fg: #965a49;
 }
 
 .app[data-mdtheme="mintyFresh"] {
@@ -1518,6 +1687,17 @@ html, body {
   --md-quote-bg: #2a2357;
   --md-quote-bar: #a88fe0;
   --md-table-stripe: #201c42;
+  --vn-speaker-label: "抚子 (Nadeshiko)";
+  --vn-next-label: "Next  ->";
+  --vn-dialog-border: #efc98a;
+  --vn-dialog-bg: rgba(43, 36, 84, 0.86);
+  --vn-name-bg: rgba(250, 238, 216, 0.96);
+  --vn-name-fg: #7b4455;
+  --vn-name-border: rgba(240, 203, 140, 0.85);
+  --vn-avatar-bg: rgba(245, 210, 149, 0.95);
+  --vn-avatar-ring: rgba(245, 222, 179, 0.88);
+  --vn-next-bg: rgba(248, 238, 219, 0.98);
+  --vn-next-fg: #6f3e4d;
 }
 
 .app[data-mdtheme="galaxyNight"] {
@@ -1563,8 +1743,8 @@ html, body {
 .app[data-mdtheme="paper"] .preview .markdown-body,
 .app[data-mdtheme="paper"] .wechat-export .markdown-body {
   background:
-    radial-gradient(130% 80% at 92% 0%, rgba(167, 212, 194, 0.18) 0%, rgba(167, 212, 194, 0.03) 54%, rgba(167, 212, 194, 0) 100%),
-    var(--md-bg);
+    radial-gradient(118% 88% at 86% 2%, rgba(130, 214, 186, 0.28) 0%, rgba(130, 214, 186, 0.08) 48%, rgba(130, 214, 186, 0) 100%),
+    linear-gradient(180deg, #f8f6ef 0%, #f4f5ee 100%);
 }
 
 .app[data-mdtheme="paper"] .markdown-body h1,
@@ -1646,6 +1826,321 @@ html, body {
   color: #efe8ff;
 }
 
+.app[data-mdtheme="duskCamp"] .preview,
+.app[data-mdtheme="duskCamp"] .wechat-export {
+  border-radius: 26px;
+  border-width: 2px;
+  border-color: rgba(207, 154, 137, 0.66);
+  box-shadow: 0 22px 46px rgba(87, 61, 71, 0.2);
+}
+
+.app[data-mdtheme="duskCamp"] .preview .markdown-body,
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body {
+  background:
+    radial-gradient(120% 88% at 84% 0%, rgba(255, 191, 150, 0.32) 0%, rgba(255, 191, 150, 0.1) 42%, rgba(255, 191, 150, 0) 100%),
+    linear-gradient(180deg, #f8f0e9 0%, #f7edf2 54%, #f2e9f3 100%);
+}
+
+.app[data-mdtheme="duskCamp"] .markdown-body h1,
+.app[data-mdtheme="duskCamp"] .markdown-body h2 {
+  color: #6c5368;
+  border-bottom-color: rgba(184, 121, 105, 0.42);
+}
+
+.app[data-mdtheme="duskCamp"] .markdown-body h3,
+.app[data-mdtheme="duskCamp"] .markdown-body h4 {
+  color: #b4695a;
+}
+
+.app[data-mdtheme="duskCamp"] .markdown-body blockquote {
+  border-left: 0;
+  border: 2px solid rgba(216, 143, 120, 0.72);
+  border-radius: 16px;
+  background: rgba(253, 244, 238, 0.94);
+  color: #6a5562;
+}
+
+/* Visual novel dialog card for wechat preview */
+.app .wechat-export .markdown-body blockquote {
+  position: relative;
+  margin: 1.8em 0 2.2em;
+  padding: 1.2em 1.1em 4em;
+  border-left: 0;
+  border: 2px solid var(--vn-dialog-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at calc(100% - 30px) 24px, var(--vn-avatar-bg) 0 21px, transparent 22px),
+    var(--vn-dialog-bg);
+  box-shadow: 0 10px 24px rgba(18, 23, 33, 0.14);
+}
+
+.app .wechat-export .markdown-body blockquote::before {
+  content: var(--vn-speaker-label);
+  position: absolute;
+  top: -18px;
+  left: 16px;
+  padding: 7px 15px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--vn-name-border);
+  background: var(--vn-name-bg);
+  color: var(--vn-name-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 14px rgba(18, 23, 33, 0.12);
+}
+
+.app .wechat-export .markdown-body blockquote::after {
+  content: var(--vn-next-label);
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  padding: 8px 16px 9px;
+  border-radius: 10px;
+  border: 2px solid var(--vn-dialog-border);
+  background: var(--vn-next-bg);
+  color: var(--vn-next-fg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+}
+
+.app .wechat-export .markdown-body blockquote > :first-child {
+  position: relative;
+}
+
+.app .wechat-export .markdown-body blockquote > :first-child::before {
+  content: "";
+  position: absolute;
+  top: -46px;
+  right: -4px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 3px solid var(--vn-avatar-ring);
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.82) 0 22%, rgba(255, 255, 255, 0) 24%),
+    var(--vn-avatar-bg);
+  box-shadow: 0 8px 18px rgba(18, 23, 33, 0.18);
+}
+
+.app .wechat-export .markdown-body blockquote p {
+  margin: 0.5em 0;
+}
+
+.app .wechat-export .markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============ Image-inspired VCN themes (keep Natsume Notebook / Campfire Midnight unchanged) ============ */
+
+/* Image #3: soft pink VN */
+.app[data-mdtheme="duskCamp"] {
+  --md-bg: #f8f7ff;
+  --md-fg: #354b67;
+  --md-text: #435b78;
+  --md-muted: #7f90ad;
+  --md-accent: #ff7fa8;
+  --md-accent-soft: #ffe4ef;
+  --md-border: #ced8ea;
+  --md-code-bg: #fdfaff;
+  --md-code-fg: #4b617e;
+  --md-quote-bg: #fff8fc;
+  --md-quote-bar: #ffb3cb;
+  --md-table-stripe: #f8f5ff;
+  --ui-app-bg: #f2f2fe;
+  --ui-toolbar-bg: #f7f7ff;
+  --ui-toolbar-border: #d3dbee;
+  --ui-status-bg: #f4f4fe;
+  --ui-status-border: #d3dbee;
+  --ui-status-text: #7e8faa;
+  --ui-panel-bg: #fbfbff;
+  --ui-panel-border: #d8e0f0;
+  --ui-shadow: 0 14px 34px rgba(62, 77, 105, 0.14);
+  --ui-hover-shadow: 0 18px 42px rgba(62, 77, 105, 0.2);
+  --ui-button-bg: #fff7fb;
+  --ui-button-border: #d8cfe9;
+  --ui-button-text: #7d5c96;
+  --ui-button-hover-bg: #ffeef6;
+  --ui-button-active-bg: #ff7fa8;
+  --ui-button-active-text: #fffafe;
+  --ui-input-bg: #fdfaff;
+  --ui-input-border: #d8dff0;
+  --ui-input-text: #5d6f8a;
+  --vn-speaker-label: "抚子 (Nadeshiko)";
+  --vn-next-label: "NEXT ->";
+  --vn-dialog-border: #f5b9cf;
+  --vn-dialog-bg: #fffdfd;
+  --vn-name-bg: #fff0f8;
+  --vn-name-fg: #ef5b90;
+  --vn-name-border: #f6abc8;
+  --vn-avatar-bg: #fff5fa;
+  --vn-avatar-ring: #f4c8d8;
+  --vn-next-bg: #fff4fa;
+  --vn-next-fg: #f06295;
+}
+
+/* Image #4: fresh camp green */
+.app[data-mdtheme="mintyFresh"] {
+  --md-bg: #f2fbf8;
+  --md-fg: #2f5f66;
+  --md-text: #3f7076;
+  --md-muted: #7a99a0;
+  --md-accent: #34a8aa;
+  --md-accent-soft: #d4f1f0;
+  --md-border: #b9dfe2;
+  --md-code-bg: #f7fdfc;
+  --md-code-fg: #48747a;
+  --md-quote-bg: #f6fefd;
+  --md-quote-bar: #7acfd2;
+  --md-table-stripe: #eef9f9;
+  --ui-app-bg: #eaf7f5;
+  --ui-toolbar-bg: #f0faf8;
+  --ui-toolbar-border: #c0e3e1;
+  --ui-status-bg: #edf8f6;
+  --ui-status-border: #c0e3e1;
+  --ui-status-text: #6f8e95;
+  --ui-panel-bg: #f6fcfb;
+  --ui-panel-border: #c6e4e3;
+  --ui-shadow: 0 12px 28px rgba(48, 93, 96, 0.14);
+  --ui-hover-shadow: 0 16px 36px rgba(48, 93, 96, 0.2);
+  --ui-button-bg: #f7fdfd;
+  --ui-button-border: #c3e3e2;
+  --ui-button-text: #3f8d8f;
+  --ui-button-hover-bg: #e9f7f7;
+  --ui-button-active-bg: #34a8aa;
+  --ui-button-active-text: #f8ffff;
+  --ui-input-bg: #f8fefd;
+  --ui-input-border: #cae6e6;
+  --ui-input-text: #4a7378;
+  --vn-speaker-label: "抚子";
+  --vn-next-label: "NEXT ->";
+  --vn-dialog-border: #9fdddb;
+  --vn-dialog-bg: #fcffff;
+  --vn-name-bg: #fdf1f7;
+  --vn-name-fg: #e85f92;
+  --vn-name-border: #f3a8c5;
+  --vn-avatar-bg: #ecfaf8;
+  --vn-avatar-ring: #bce8e7;
+  --vn-next-bg: #effcfc;
+  --vn-next-fg: #389fa2;
+}
+
+/* Image #5: mint trail */
+.app[data-mdtheme="forestWhisper"] {
+  --md-bg: #f6fdf3;
+  --md-fg: #35644f;
+  --md-text: #3f7358;
+  --md-muted: #7ea389;
+  --md-accent: #73c956;
+  --md-accent-soft: #e3f7d7;
+  --md-border: #c8e5bc;
+  --md-code-bg: #fbfff8;
+  --md-code-fg: #4f7d63;
+  --md-quote-bg: #f9fff6;
+  --md-quote-bar: #9bde7f;
+  --md-table-stripe: #f2fbe8;
+  --ui-app-bg: #edf8e6;
+  --ui-toolbar-bg: #f3fbee;
+  --ui-toolbar-border: #cfe7c2;
+  --ui-status-bg: #f1f9ea;
+  --ui-status-border: #cfe7c2;
+  --ui-status-text: #74977f;
+  --ui-panel-bg: #f9fdf5;
+  --ui-panel-border: #d2e9c6;
+  --ui-shadow: 0 12px 28px rgba(66, 102, 72, 0.14);
+  --ui-hover-shadow: 0 16px 36px rgba(66, 102, 72, 0.2);
+  --ui-button-bg: #f8fef3;
+  --ui-button-border: #d2e8c6;
+  --ui-button-text: #5ba246;
+  --ui-button-hover-bg: #eef9e4;
+  --ui-button-active-bg: #73c956;
+  --ui-button-active-text: #f7fff3;
+  --ui-input-bg: #fbfff7;
+  --ui-input-border: #d6eacb;
+  --ui-input-text: #547d61;
+  --vn-speaker-label: "抚子";
+  --vn-next-label: "NEXT ->";
+  --vn-dialog-border: #b8e78f;
+  --vn-dialog-bg: #fefffc;
+  --vn-name-bg: #fff0f8;
+  --vn-name-fg: #e95d95;
+  --vn-name-border: #f4abca;
+  --vn-avatar-bg: #f4fde9;
+  --vn-avatar-ring: #c9e9ab;
+  --vn-next-bg: #f7ffef;
+  --vn-next-fg: #67b44b;
+}
+
+/* Shared VN composition for image-inspired themes */
+.app[data-mdtheme="duskCamp"] .preview,
+.app[data-mdtheme="duskCamp"] .wechat-export,
+.app[data-mdtheme="mintyFresh"] .preview,
+.app[data-mdtheme="mintyFresh"] .wechat-export,
+.app[data-mdtheme="forestWhisper"] .preview,
+.app[data-mdtheme="forestWhisper"] .wechat-export {
+  border-radius: 24px;
+  border-width: 2px;
+  box-shadow: var(--ui-shadow);
+}
+
+.app[data-mdtheme="duskCamp"] .preview .markdown-body,
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body,
+.app[data-mdtheme="mintyFresh"] .preview .markdown-body,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body,
+.app[data-mdtheme="forestWhisper"] .preview .markdown-body,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body {
+  background: var(--md-bg);
+  color: var(--md-text);
+}
+
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote {
+  background: var(--vn-dialog-bg);
+  border: 3px solid var(--vn-dialog-border);
+  border-radius: 28px;
+  padding: 1.25em 1.2em 4.1em;
+  box-shadow: 0 14px 28px rgba(30, 44, 56, 0.14);
+}
+
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote::before,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote::before,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote::before {
+  top: -22px;
+  left: 20px;
+  border-radius: 999px;
+  padding: 9px 18px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote::after,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote::after,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote::after {
+  right: 20px;
+  bottom: 13px;
+  border-radius: 12px;
+  padding: 10px 18px 11px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote > :first-child::before,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote > :first-child::before,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote > :first-child::before {
+  top: -50px;
+  right: 14px;
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--vn-avatar-ring);
+  background: var(--vn-avatar-bg);
+  box-shadow: 0 8px 18px rgba(30, 44, 56, 0.16);
+}
+
 /* ========================================= */
 /*       CodeMirror 绾枃鏈啓浣滄ā寮?        */
 /* ========================================= */
@@ -1706,18 +2201,19 @@ html, body {
 
 /* 鍐呭鍖?- 鍔犲ぇ鍐呰竟璺?*/
 .editor .cm-content {
-  padding: 40px 60px 80px 60px;
+  padding: 34px clamp(24px, 5vw, 64px) 88px;
   caret-color: var(--md-accent);
   font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
-  line-height: 2.5;
+  line-height: 2.05;
   color: var(--md-text);
   min-height: 100%;
-  min-width: 50px;
-  width: 800px;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
   box-sizing: border-box;
   white-space: pre-wrap !important;
   overflow-wrap: break-word;
-  word-break: break-all; 
+  word-break: break-word;
 }
 
 /* 鍏夋爣 */
@@ -1735,6 +2231,23 @@ html, body {
   background-color: #e5e5e5 !important;
 }
 
+/* Remove browser/editor focus outlines (avoid dotted/dashed frame on click) */
+.editor .codemirror-editor,
+.editor .codemirror-editor.cm-focused,
+.editor .codemirror-editor .cm-editor,
+.editor .codemirror-editor .cm-editor.cm-focused,
+.editor .cm-editor,
+.editor .cm-editor.cm-focused,
+.editor .codemirror-editor .cm-scroller,
+.editor .cm-scroller,
+.editor .codemirror-editor .cm-scroller:focus,
+.editor .codemirror-editor .cm-scroller:focus-visible,
+.editor .cm-scroller:focus,
+.editor .cm-scroller:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* 鍗犱綅绗?*/
 .editor .codemirror-editor .cm-placeholder {
   color: #999;
@@ -1750,7 +2263,7 @@ html, body {
   background: transparent !important;
   white-space: pre-wrap !important;
   overflow-wrap: break-word;
-  word-break: break-all; 
+  word-break: break-word;
 }
 
 /* 绉婚櫎鎵€鏈夎娉曢珮浜?- 绾壊鏂囧瓧 */
@@ -1775,5 +2288,258 @@ html, body {
   .editor .codemirror-editor .cm-content {
     padding: 20px;
   }
+}
+
+/* ========================================= */
+/*     Layout Reboot (Except 2 Custom Themes) */
+/* ========================================= */
+
+.app {
+  position: relative;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) {
+  --ui-app-bg: color-mix(in srgb, var(--md-accent-soft) 58%, var(--md-bg) 42%);
+  --ui-toolbar-bg: color-mix(in srgb, var(--md-bg) 94%, #ffffff 6%);
+  --ui-toolbar-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-status-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
+  --ui-status-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-status-text: color-mix(in srgb, var(--md-muted) 90%, var(--md-fg) 10%);
+  --ui-panel-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
+  --ui-panel-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
+  --ui-shadow: 0 12px 28px rgba(31, 49, 77, 0.12);
+  --ui-hover-shadow: 0 16px 34px rgba(31, 49, 77, 0.16);
+  --ui-button-bg: color-mix(in srgb, var(--md-bg) 86%, var(--md-accent-soft) 14%);
+  --ui-button-border: color-mix(in srgb, var(--md-border) 82%, var(--md-accent-soft) 18%);
+  --ui-button-text: color-mix(in srgb, var(--md-fg) 90%, #1b2430 10%);
+  --ui-button-hover-bg: color-mix(in srgb, var(--md-accent-soft) 66%, #ffffff 34%);
+  --ui-button-active-bg: var(--md-accent);
+  --ui-button-active-text: #ffffff;
+  --ui-input-bg: color-mix(in srgb, var(--md-bg) 90%, var(--md-accent-soft) 10%);
+  --ui-input-border: color-mix(in srgb, var(--md-border) 84%, var(--md-accent-soft) 16%);
+  --ui-input-text: var(--md-fg);
+  --ui-book-cover: color-mix(in srgb, var(--md-accent-soft) 78%, var(--md-bg) 22%);
+  --ui-book-cover-border: color-mix(in srgb, var(--md-accent) 26%, var(--md-border) 74%);
+  --ui-book-cover-shadow: color-mix(in srgb, var(--md-fg) 20%, transparent);
+  --ui-book-page: color-mix(in srgb, var(--md-bg) 98%, #ffffff 2%);
+  --ui-book-page-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-book-spine: color-mix(in srgb, var(--md-accent) 28%, var(--md-border) 72%);
+}
+
+/* Top and bottom bars intentionally use the original base layout rules. */
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main {
+  margin-top: 70px;
+  margin-bottom: 30px;
+  padding: 0;
+  gap: 10px;
+  background: var(--ui-app-bg);
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .content-area {
+  padding: 8px 10px;
+  gap: 14px;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .outline-wrapper,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export {
+  border: 2px solid var(--ui-panel-border);
+  border-radius: 22px;
+  background: var(--ui-panel-bg);
+  box-shadow: var(--ui-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor::before,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor::after,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview::before,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview::after {
+  content: none !important;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview .markdown-body {
+  padding: 28px clamp(22px, 5vw, 68px) 74px;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export .markdown-body {
+  padding: 20px 18px 88px;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar button,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar-button {
+  height: 34px;
+  padding: 6px 12px;
+  border-radius: 11px;
+  border-width: 0;
+  box-shadow: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transform: none;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar button:hover,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar-button:hover {
+  transform: none;
+  box-shadow: 0 3px 10px rgba(71, 56, 50, 0.12);
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar button.active,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toolbar-button.active {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-accent-soft) 74%, transparent);
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor:hover,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview:hover,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export:hover {
+  transform: none;
+  box-shadow: var(--ui-hover-shadow);
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .export-progress-card {
+  border-width: 2px;
+  border-radius: 16px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .toast {
+  background: color-mix(in srgb, var(--md-fg) 82%, #3a342f 18%);
+  border: 1px solid color-mix(in srgb, var(--md-border) 62%, transparent);
+  border-radius: 10px;
+}
+
+/* Flat VN card for non-custom themes: no gradients */
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export .markdown-body blockquote {
+  background: var(--vn-dialog-bg);
+  border: 2px solid var(--vn-dialog-border);
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(35, 42, 53, 0.12);
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export .markdown-body blockquote > :first-child::before {
+  background: var(--vn-avatar-bg);
+}
+
+/* Open planner book: shell + inner pages */
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area {
+  position: relative;
+  gap: 0;
+  padding: 20px 22px;
+  border: 2px solid var(--ui-book-cover-border);
+  border-radius: 30px;
+  background: var(--ui-book-cover);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--ui-book-cover-shadow) 24%, transparent);
+  overflow: hidden;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid var(--ui-book-page-border);
+  border-radius: 22px;
+  background: var(--ui-book-page);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 50%;
+  width: 14px;
+  transform: translateX(-50%);
+  background: var(--ui-book-spine);
+  border-left: 1px solid color-mix(in srgb, var(--ui-book-page-border) 78%, #ffffff 22%);
+  border-right: 1px solid color-mix(in srgb, var(--ui-book-page-border) 78%, #ffffff 22%);
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  z-index: 1;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper {
+  padding: 8px 18px 8px 8px;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper {
+  padding: 8px 8px 8px 18px;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor .cm-scroller,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview .markdown-body {
+  background: transparent;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor:hover,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+@media (max-width: 1100px) {
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area {
+    gap: 14px;
+    padding: 10px 12px;
+    border-radius: 20px;
+  }
+
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::before,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::after,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper::before,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper::before {
+    content: none;
+  }
+
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor-wrapper,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview-wrapper {
+    padding: 0;
+  }
+
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .editor,
+  .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .preview {
+    border: none;
+    border-radius: 18px;
+  }
+}
+
+/* Buttons: borderless (global) */
+.toolbar button,
+.toolbar-button {
+  border: none;
+}
+
+.toolbar button.active,
+.toolbar-button.active {
+  border: none;
 }
 

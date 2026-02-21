@@ -49,8 +49,9 @@ const MD_THEMES = {
   sepia: { name: "Warm Sepia" },
   paper: { name: "Natsume Notebook" },
   midnight: { name: "Campfire Midnight" },
+  duskCamp: { name: "Switchboard Blush" },
   auroraPurple: { name: "Aurora Violet" },
-  mintyFresh: { name: "Mint Fresh" },
+  mintyFresh: { name: "Morning Camp Radio" },
   lazySloth: { name: "Fog Sage" },
   oceanBreeze: { name: "Ocean Breeze" },
   candyDream: { name: "Candy Pastel" },
@@ -64,7 +65,7 @@ const MD_THEMES = {
   mintBreeze: { name: "Mint Breeze" },
   digitalWave: { name: "Digital Wave" },
   lavenderMist: { name: "Lavender Mist" },
-  forestWhisper: { name: "Forest Whisper" },
+  forestWhisper: { name: "Mint Mountain Trail" },
   roseGold: { name: "Rose Gold" },
 };
 

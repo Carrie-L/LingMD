@@ -1,44 +1,66 @@
-/* @import "github-markdown-css/github-markdown.css"; */
-/* ✅ 新增：为 CSS 变量提供一套默认值（对应亮色主题） */
+﻿/* @import "github-markdown-css/github-markdown.css"; */
+/* 鉁?鏂板锛氫负 CSS 鍙橀噺鎻愪緵涓€濂楅粯璁ゅ€硷紙瀵瑰簲浜壊涓婚锛?*/
 .app {
   --md-bg: #ffffff;
-  --md-fg: #000000;
-  --md-text: #212121
-  /* 默认文字颜色为黑色 */
-  --md-muted: #666666;
-  --md-accent: #e7b0d0;
-  --md-border: #e5e7eb;
-  --md-code-bg: #fff;
+  --md-fg: #0f172a;
+  --md-text: #1f2937;
+  /* 榛樿鏂囧瓧棰滆壊涓洪粦鑹?*/
+  --md-muted: #64748b;
+  --md-accent: #2f7df5;
+  --md-accent-soft: #e8f0ff;
+  --md-border: #e2e8f0;
+  --md-code-bg: #f8fafc;
   --md-code-fg: #0f172a;
-  --md-quote-bg: #fafafa;
-  --md-quote-bar: #d1d5db;
-  --md-table-stripe: #fafafa;
+  --md-quote-bg: #f8fbff;
+  --md-quote-bar: #9dc0ff;
+  --md-table-stripe: #f8fbff;
+  --ui-app-bg: var(--md-accent-soft);
+  --ui-toolbar-bg: var(--md-bg);
+  --ui-toolbar-border: var(--md-border);
+  --ui-status-bg: var(--md-bg);
+  --ui-status-border: var(--md-border);
+  --ui-status-text: var(--md-muted);
+  --ui-panel-bg: var(--md-bg);
+  --ui-panel-border: var(--md-border);
+  --ui-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  --ui-hover-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+  --ui-button-bg: var(--md-quote-bg);
+  --ui-button-border: var(--md-border);
+  --ui-button-text: var(--md-fg);
+  --ui-button-hover-bg: var(--md-accent-soft);
+  --ui-button-active-bg: var(--md-accent);
+  --ui-button-active-text: #ffffff;
+  --ui-input-bg: var(--md-code-bg);
+  --ui-input-border: var(--md-border);
+  --ui-input-text: var(--md-fg);
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
-/* 默认亮色 UI */
+/* 榛樿浜壊 UI */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
-  
+  background: #ebf0f8;
 }
 
 .app {
   height: 100vh;
-  font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "LXGW WenKai", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   box-sizing: border-box;
   overflow: hidden;
+  color: var(--md-fg);
+  background: var(--ui-app-bg);
 }
 
 /* background: var(--md-bg); */
   /* color: var(--md-fg); */
 
-/* 确保所有元素继承盒模型 */
+/* 纭繚鎵€鏈夊厓绱犵户鎵跨洅妯″瀷 */
 *,
 *::before,
 *::after {
@@ -49,13 +71,13 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  /* 使用 vh 单位确保全屏 */
+  /* 浣跨敤 vh 鍗曚綅纭繚鍏ㄥ睆 */
   
 }
 
 
 /* ========================================= */
-/*            顶部工具栏 & 底部状态栏        */
+/*            椤堕儴宸ュ叿鏍?& 搴曢儴鐘舵€佹爮        */
 /* ========================================= */
 
 .toolbar {
@@ -67,26 +89,35 @@ html, body {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px;
-  background: #ffffff;
-  border-bottom: 1px solid #ddd;
+  padding: 10px 14px;
+  background: var(--ui-toolbar-bg);
+  border-bottom: 1px solid var(--ui-toolbar-border);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  box-shadow: 0 8px 24px rgba(31, 49, 77, 0.08);
   z-index: 100;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .toolbar button {
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #ccc;
-  padding: 5px 12px;
-  border-radius: 6px;
+  background: var(--ui-button-bg);
+  color: var(--ui-button-text);
+  border: 1px solid var(--ui-button-border);
+  padding: 6px 12px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 12px;
-  transition: background-color 0.2s ease;
-  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(28, 44, 67, 0.06);
+  white-space: nowrap;
 }
 
 .toolbar button:hover {
-  background-color: #e6e6e6;
+  background: var(--ui-button-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(28, 44, 67, 0.12);
 }
 
 .status-bar {
@@ -101,15 +132,17 @@ html, body {
   gap: 20px;
   padding: 0 15px;
   font-size: 12px;
-  background: #fff;
-  border-top: 1px solid #ddd;
-  color: #333;
+  background: var(--ui-status-bg);
+  border-top: 1px solid var(--ui-status-border);
+  color: var(--ui-status-text);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
   z-index: 100;
 }
 
 
 /* ========================================= */
-/*              主体布局容器 (核心)          */
+/*              涓讳綋甯冨眬瀹瑰櫒 (鏍稿績)          */
 /* ========================================= */
 
 .main {
@@ -118,20 +151,20 @@ html, body {
   margin-bottom: 30px;
   padding: 0;
   height: calc(100vh - 100px);
-  /* 视口高度减去 toolbar/status-bar 等 */
+  /* 瑙嗗彛楂樺害鍑忓幓 toolbar/status-bar 绛?*/
   box-sizing: border-box;
   display: grid;
   gap: 10px;
-  /* 卡片之间的间距 */
+  /* 鍗＄墖涔嬮棿鐨勯棿璺?*/
 
-  /* ✅ 新增：为卡片提供一个柔和的背景底座 */
-  background:  #ffffff;;
+  /* 鉁?鏂板锛氫负鍗＄墖鎻愪緵涓€涓煍鍜岀殑鑳屾櫙搴曞骇 */
+  background: var(--ui-app-bg);
 
-  /* ✅ 新增：限制 Grid 行的高度，防止子元素无限拉伸 */
-  /* 1fr 表示占据所有剩余空间，minmax(0, 1fr) 是一种防止溢出的健壮写法 */
+  /* 鉁?鏂板锛氶檺鍒?Grid 琛岀殑楂樺害锛岄槻姝㈠瓙鍏冪礌鏃犻檺鎷変几 */
+  /* 1fr 琛ㄧず鍗犳嵁鎵€鏈夊墿浣欑┖闂达紝minmax(0, 1fr) 鏄竴绉嶉槻姝㈡孩鍑虹殑鍋ュ．鍐欐硶 */
   grid-auto-rows: minmax(0, 1fr);
 
-  /* --- 默认两栏布局 --- */
+  /* --- 榛樿涓ゆ爮甯冨眬 --- */
   grid-template-columns: 1fr 1fr;
 }
 
@@ -140,10 +173,10 @@ html, body {
 }
 
 /* ===========================
-   布局模式样式（layout modes）
+   甯冨眬妯″紡鏍峰紡锛坙ayout modes锛?
    =========================== */
 
-/* editor-wrapper 和 preview-wrapper 都是 grid 的子项，确保在不同模式下行为可控 */
+/* editor-wrapper 鍜?preview-wrapper 閮芥槸 grid 鐨勫瓙椤癸紝纭繚鍦ㄤ笉鍚屾ā寮忎笅琛屼负鍙帶 */
 .editor-wrapper,
 .preview-wrapper {
   min-width: 0;
@@ -152,32 +185,32 @@ html, body {
   flex-direction: column;
 }
 
-/* ========== 默认：split（两栏） ========== */
-/* 已由 .main 的 grid-template-columns: 1fr 1fr 支持 */
+/* ========== 榛樿锛歴plit锛堜袱鏍忥級 ========== */
+/* 宸茬敱 .main 鐨?grid-template-columns: 1fr 1fr 鏀寔 */
 
-/* ========== 仅编辑（居中） ========== */
+/* ========== 浠呯紪杈戯紙灞呬腑锛?========== */
 .layout-editor {
   grid-template-columns: 1fr;
 }
 
-/* 仅编辑时让编辑器在水平上居中并限制宽度 */
+/* 浠呯紪杈戞椂璁╃紪杈戝櫒鍦ㄦ按骞充笂灞呬腑骞堕檺鍒跺搴?*/
 .layout-editor .editor-wrapper {
   display: flex;
-  justify-content: center; /* 横向居中 */
+  justify-content: center; /* 妯悜灞呬腑 */
   align-items: stretch;
 }
 .layout-editor .editor {
   width: 100px;
-  margin: 10px auto; /* 垂直仍保留 margin */
+  margin: 10px auto; /* 鍨傜洿浠嶄繚鐣?margin */
   height: calc(100% - 20px);
 }
 
-/* ========== 仅预览（居中） ========== */
+/* ========== 浠呴瑙堬紙灞呬腑锛?========== */
 .layout-preview {
   grid-template-columns: 1fr;
 }
 
-/* 仅预览时让 preview 在中间 */
+/* 浠呴瑙堟椂璁?preview 鍦ㄤ腑闂?*/
 .layout-preview .preview-wrapper {
   display: flex;
   justify-content: center;
@@ -189,82 +222,82 @@ html, body {
   height: calc(100% - 20px);
 }
 
-/* ========== 主布局 Grid ========== */
+/* ========== 涓诲竷灞€ Grid ========== */
 
-/* 基础布局：只有内容区 */
+/* 鍩虹甯冨眬锛氬彧鏈夊唴瀹瑰尯 */
 .main {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
 }
 
-/* 有目录：目录 + 内容区 */
+/* 鏈夌洰褰曪細鐩綍 + 鍐呭鍖?*/
 .main.outline-visible {
   grid-template-columns: minmax(200px, 300px) 1fr;
 }
 
-/* 无目录 + 有微信：内容区 + 微信 */
+/* 鏃犵洰褰?+ 鏈夊井淇★細鍐呭鍖?+ 寰俊 */
 .main.wechat-visible:not(.outline-visible) {
   grid-template-columns: 1fr 375px;
 }
 
-/* 有目录 + 有微信：目录 + 内容区 + 微信 */
+/* 鏈夌洰褰?+ 鏈夊井淇★細鐩綍 + 鍐呭鍖?+ 寰俊 */
 .main.outline-visible.wechat-visible {
   grid-template-columns: minmax(200px, 300px) 1fr 375px;
 }
 
-/* ========== 内容区布局 ========== */
+/* ========== 鍐呭鍖哄竷灞€ ========== */
 
-/* 内容区容器 */
+/* 鍐呭鍖哄鍣?*/
 .content-area {
   display: flex;
-  justify-content: center; /* 居中显示 */
+  justify-content: center; /* 灞呬腑鏄剧ず */
   align-items: stretch;
   height: 100%;
   margin: 0px auto;
-  max-width: 1800px; /* 限制最大宽度 */
+  max-width: 1800px; /* 闄愬埗鏈€澶у搴?*/
   overflow: hidden;
 }
   /* gap: 10px; */
 
-/* 编辑模式：编辑器和预览各占一半，贴在一起居中 */
+/* 缂栬緫妯″紡锛氱紪杈戝櫒鍜岄瑙堝悇鍗犱竴鍗婏紝璐村湪涓€璧峰眳涓?*/
 .mode-edit .content-area {
   display: flex;
-  gap: 24px; /* 增加间距 */
+  gap: 24px; /* 澧炲姞闂磋窛 */
 }
 
 .mode-edit .editor-wrapper {
-  flex: 1 1 0; /* 从0开始平均分配，而不是基于内容 */
-  min-width: 0; /* 允许缩小 */
+  flex: 1 1 0; /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
+  min-width: 0; /* 鍏佽缂╁皬 */
   height: 100%;
-  overflow: hidden; /* 防止内容撑大 */
+  overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
 }
 
 .mode-edit .editor-wrapper .editor {
   height: 100%;
-  width: 100%; /* 占满wrapper */
-  margin: 0; /* 移除默认margin，防止宽度变化 */
+  width: 100%; /* 鍗犳弧wrapper */
+  margin: 0; /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
   padding-top: 20px;
 }
 
 .mode-edit .preview-wrapper {
-  flex: 1 1 0; /* 从0开始平均分配，而不是基于内容 */
-  min-width: 0; /* 允许缩小 */
+  flex: 1 1 0; /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
+  min-width: 0; /* 鍏佽缂╁皬 */
   height: 100%;
-  overflow: hidden; /* 防止内容撑大 */
+  overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
 }
 
 .mode-edit .preview-wrapper .preview {
   height: 100%;
-  width: 100%; /* 占满wrapper */
-  margin: 0; /* 移除默认margin，防止宽度变化 */
+  width: 100%; /* 鍗犳弧wrapper */
+  margin: 0; /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
 }
 
 
-/* 仅预览模式：预览居中 */
+/* 浠呴瑙堟ā寮忥細棰勮灞呬腑 */
 .mode-preview .content-area {
   display: flex;
   justify-content: center;
@@ -278,7 +311,7 @@ html, body {
 }
 
 .mode-preview .preview-wrapper .preview {
-  margin: 0 10px; /* 仅保留左右边距，移除上下边距 */
+  margin: 0 10px; /* 浠呬繚鐣欏乏鍙宠竟璺濓紝绉婚櫎涓婁笅杈硅窛 */
 }
 
 .mode-pure-edit .edit-wrapper{
@@ -289,30 +322,30 @@ html, body {
 }
 
 
-/* ========== 微信栏与模式组合 ========== */
-/* 如果同时显示 wechat（.wechat-visible），并且在 editor/preview/unified 模式下，
-   保持 wechat 的列宽为 375px（你已有 .main.wechat-visible 的定义）。
-   但当模式为 only-editor/only-preview 时也要确保 wechat 在右侧正常显示。
+/* ========== 寰俊鏍忎笌妯″紡缁勫悎 ========== */
+/* 濡傛灉鍚屾椂鏄剧ず wechat锛?wechat-visible锛夛紝骞朵笖鍦?editor/preview/unified 妯″紡涓嬶紝
+   淇濇寔 wechat 鐨勫垪瀹戒负 375px锛堜綘宸叉湁 .main.wechat-visible 鐨勫畾涔夛級銆?
+   浣嗗綋妯″紡涓?only-editor/only-preview 鏃朵篃瑕佺‘淇?wechat 鍦ㄥ彸渚ф甯告樉绀恒€?
 */
 .main.wechat-visible.layout-split {
   grid-template-columns: 1fr 1fr 375px !important;
 }
 .main.wechat-visible.layout-editor {
-  /* 只有编辑 + 右侧 wechat */
+  /* 鍙湁缂栬緫 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
 }
 .main.wechat-visible.layout-preview {
-  /* 只有预览 + 右侧 wechat */
+  /* 鍙湁棰勮 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
 }
 .main.wechat-visible.layout-unified {
-  /* 统一视图 + 右侧 wechat */
+  /* 缁熶竴瑙嗗浘 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
 }
 
-/* ========== 小屏 / 响应调整 ========== */
+/* ========== 灏忓睆 / 鍝嶅簲璋冩暣 ========== */
 @media (max-width: 900px) {
-  /* 手机或窄屏时，始终采用单列（编辑或预览垂直堆叠） */
+  /* 鎵嬫満鎴栫獎灞忔椂锛屽缁堥噰鐢ㄥ崟鍒楋紙缂栬緫鎴栭瑙堝瀭鐩村爢鍙狅級 */
   .main,
   .main.layout-split {
     grid-template-columns: 1fr !important;
@@ -322,114 +355,122 @@ html, body {
     width: 96%;
   }
 
-/* 小屏适配：窄屏强制隐藏 outline（或变为 overlay） */
+/* 灏忓睆閫傞厤锛氱獎灞忓己鍒堕殣钘?outline锛堟垨鍙樹负 overlay锛?*/
   .main.outline-visible.layout-split,
   .main.outline-visible.layout-preview {
-    grid-template-columns: 1fr; /* 隐藏 outline，或者你可以把它变成 overlay 弹窗 */
+    grid-template-columns: 1fr; /* 闅愯棌 outline锛屾垨鑰呬綘鍙互鎶婂畠鍙樻垚 overlay 寮圭獥 */
   }
   .outline-wrapper { display: none; }
 }
 
 
 
-/* Outline 面板宽度控制：
-   - 最小宽度 200px，最大宽度 360px
-   - 在 split 模式下我们把 grid 列改成：editor | outline | preview
+/* Outline 闈㈡澘瀹藉害鎺у埗锛?
+   - 鏈€灏忓搴?200px锛屾渶澶у搴?360px
+   - 鍦?split 妯″紡涓嬫垜浠妸 grid 鍒楁敼鎴愶細editor | outline | preview
 */
 .main.outline-visible.layout-split {
   /* editor | outline | preview */
   grid-template-columns: 1fr minmax(200px, 300px) 1.2fr;
 }
 
-/* 当 wechat 也显示时（右侧第三列），保留 wechat 宽度 */
+/* 褰?wechat 涔熸樉绀烘椂锛堝彸渚х涓夊垪锛夛紝淇濈暀 wechat 瀹藉害 */
 .main.wechat-visible.outline-visible.layout-split {
   grid-template-columns: 1fr minmax(200px, 300px) 1fr 375px;
 }
 
-/* 如果是仅预览模式（layout-preview），我们把 outline 放到左侧与 preview 同列（或隐藏） */
-/* 你可以根据需要调整这些组合 */
+/* 濡傛灉鏄粎棰勮妯″紡锛坙ayout-preview锛夛紝鎴戜滑鎶?outline 鏀惧埌宸︿晶涓?preview 鍚屽垪锛堟垨闅愯棌锛?*/
+/* 浣犲彲浠ユ牴鎹渶瑕佽皟鏁磋繖浜涚粍鍚?*/
 .main.outline-visible.layout-preview {
   grid-template-columns: minmax(200px, 300px) 1fr;
 }
 
-/* Outline wrapper（外层）——让它具备滚动和视觉分隔 */
+/* Outline wrapper锛堝灞傦級鈥斺€旇瀹冨叿澶囨粴鍔ㄥ拰瑙嗚鍒嗛殧 */
 .outline-wrapper {
   margin: 10px;
-  border-radius: 8px;
-  background: #fafafa;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-radius: 12px;
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  box-shadow: var(--ui-shadow);
   overflow: hidden;
   min-width: 200px;
   max-width: 360px;
 }
 
-/* 实际导航区域 */
+/* 瀹為檯瀵艰埅鍖哄煙 */
 .outline {
   padding: 12px;
-  height: calc(100vh - 120px); /* 顶部 toolbar + 底部 status-bar 预留（与你 project 保持一致）*/
+  height: calc(100vh - 120px); /* 椤堕儴 toolbar + 搴曢儴 status-bar 棰勭暀锛堜笌浣?project 淇濇寔涓€鑷达級*/
   overflow-y: auto;
   box-sizing: border-box;
+  font-size: 12px;
 }
 
-/* 项目样式 */
+/* 椤圭洰鏍峰紡 */
 .outline ul { list-style: none; margin: 0; padding: 0; }
 .outline li { margin: 6px 0; }
 .outline a {
-  color: #333;
+  font-size: 12px;
+  color: var(--md-fg);
   text-decoration: none;
   display: inline-block;
   width: 100%;
 }
-.outline a:hover { color: #0366d6; text-decoration: underline; }
+.outline a:hover { color: var(--md-accent); text-decoration: underline; }
 
 
 
 
 /* ========================================= */
-/*        各功能区域 (编辑器, 预览等)         */
+/*        鍚勫姛鑳藉尯鍩?(缂栬緫鍣? 棰勮绛?         */
 /* ========================================= */
 
 /* 
-  通用卡片样式：
-  - 移除边框 (border)
-  - 添加圆角 (border-radius)
-  - 添加阴影 (box-shadow)
-  - 调整内边距 (padding)
+  閫氱敤鍗＄墖鏍峰紡锛?
+  - 绉婚櫎杈规 (border)
+  - 娣诲姞鍦嗚 (border-radius)
+  - 娣诲姞闃村奖 (box-shadow)
+  - 璋冩暣鍐呰竟璺?(padding)
 */
 .editor {
   line-height: 2em;
   display: flex;
   height: 100%;
   flex-direction: column;
-  background: #ffffff;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
   transition: box-shadow 0.3s ease;
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
   padding: 0;
   min-width: 0;
-  max-width: 1000px; /* 防止内容撑大 */
-  width: 100%; /* 强制占满父容器 */
-  box-sizing: border-box; /* 确保 padding/border 不增加宽度 */
+  max-width: 1000px; /* 闃叉鍐呭鎾戝ぇ */
+  width: 100%; /* 寮哄埗鍗犳弧鐖跺鍣?*/
+  box-sizing: border-box; /* 纭繚 padding/border 涓嶅鍔犲搴?*/
 }
 
 
 .preview {
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 0 ;       /* 我们把 padding 放到 markdown-body 内，避免影响高度计算 */
-  min-width: 0;     /* 允许在 grid 中缩小 */
-  max-width: 100%; /* 防止内容撑大 */
-  width: 100%; /* 强制占满父容器 */
-  box-sizing: border-box; /* 确保 padding/border 不增加宽度 */
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 14px;
+  box-shadow: var(--ui-shadow);
+  padding: 0 ;       /* 鎴戜滑鎶?padding 鏀惧埌 markdown-body 鍐咃紝閬垮厤褰卞搷楂樺害璁＄畻 */
+  min-width: 0;     /* 鍏佽鍦?grid 涓缉灏?*/
+  max-width: 100%; /* 闃叉鍐呭鎾戝ぇ */
+  width: 100%; /* 寮哄埗鍗犳弧鐖跺鍣?*/
+  box-sizing: border-box; /* 纭繚 padding/border 涓嶅鍔犲搴?*/
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* 外层不滚动，内层滚动 */
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
+  overflow: hidden; /* 澶栧眰涓嶆粴鍔紝鍐呭眰婊氬姩 */
 }
 
-/* 内部 wrapper，负责撑满父高度 */
+/* 鍐呴儴 wrapper锛岃礋璐ｆ拺婊＄埗楂樺害 */
 .preview .preview-inner {
   display: flex;
   flex-direction: column;
@@ -437,29 +478,31 @@ html, body {
   overflow: hidden;
 }
 
-/* 预览区内部主体 */
+/* 棰勮鍖哄唴閮ㄤ富浣?*/
 .preview .markdown-body {
-  flex: 1 1 auto;       /* 占满剩余高度 */
-  overflow: auto;       /* 重要：真正的滚动在这里发生 */
+  flex: 1 1 auto;       /* 鍗犳弧鍓╀綑楂樺害 */
+  overflow: auto;       /* 閲嶈锛氱湡姝ｇ殑婊氬姩鍦ㄨ繖閲屽彂鐢?*/
   box-sizing: border-box;
+  background: var(--md-bg);
+  color: var(--md-text);
   
   width: 100%;
-  max-width: none;      /* 允许宽度铺满列（不再强制 800px 居中） */
-  margin: 0;            /* 取消居中 margin */
+  max-width: none;      /* 鍏佽瀹藉害閾烘弧鍒楋紙涓嶅啀寮哄埗 800px 灞呬腑锛?*/
+  margin: 0;            /* 鍙栨秷灞呬腑 margin */
   font-size: 15px;
   line-height: 1.8;
   padding: 20px 80px 80px 80px;
 }
 
 .wechat-export {
-  width: 375px;            /* 固定宽度 */
+  width: 375px;            /* 鍥哄畾瀹藉害 */
   min-width: 375px;
   max-width: 375px;
   box-sizing: border-box;
-  overflow-x: hidden;      /* 禁止水平滚动 */
-  overflow-y: auto;        /* 纵向滚动 */
-  height: 100%;            /* 占满父容器高度 */
-  margin-right: 10px;      /* 右边距 */
+  overflow-x: hidden;      /* 绂佹姘村钩婊氬姩 */
+  overflow-y: auto;        /* 绾靛悜婊氬姩 */
+  height: 100%;            /* 鍗犳弧鐖跺鍣ㄩ珮搴?*/
+  margin-right: 10px;      /* 鍙宠竟璺?*/
   font-family: 
           "PingFang SC", "Microsoft YaHei",
           "Kaiti SC", "KaiTi",
@@ -472,10 +515,13 @@ html, body {
   font-size: 15px;
   letter-spacing: 0.9px;
   margin-right: 10px;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 14px;
+  background: var(--ui-panel-bg);
+  box-shadow: var(--ui-shadow);
   transition: box-shadow 0.3s ease;
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
 }
 
   /* font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", */
@@ -511,17 +557,19 @@ html, body {
 }
 .wechat-export .markdown-body {
   flex: 1 1 auto;
-  overflow-x: hidden !important;  /* 强制禁止水平滚动 */
-  overflow-y: auto;                /* 只允许垂直滚动 */
+  overflow-x: hidden !important;  /* 寮哄埗绂佹姘村钩婊氬姩 */
+  overflow-y: auto;                /* 鍙厑璁稿瀭鐩存粴鍔?*/
+  background: var(--md-bg);
+  color: var(--md-text);
   padding: 15px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 100%;                /* 确保不超出父容器 */
+  max-width: 100%;                /* 纭繚涓嶈秴鍑虹埗瀹瑰櫒 */
   margin: 0;
   font-size: 15px;
   line-height: 1.8;
-  word-wrap: break-word;          /* 强制长单词换行 */
-  overflow-wrap: break-word;      /* 强制长单词换行 */
+  word-wrap: break-word;          /* 寮哄埗闀垮崟璇嶆崲琛?*/
+  overflow-wrap: break-word;      /* 寮哄埗闀垮崟璇嶆崲琛?*/
 }
 
 .wechat-export .markdown-body h2{ 
@@ -536,24 +584,24 @@ html, body {
 }
 
 .wechat-export .markdown-body table {
-  font-size: 11px;  /* 缩小字体，让内容能在窄屏显示 */
+  font-size: 11px;  /* 缂╁皬瀛椾綋锛岃鍐呭鑳藉湪绐勫睆鏄剧ず */
   width: 100%;
   line-height: 1.8;
   letter-spacing: 0.1px;
 }
 .wechat-export .markdown-body th{
-    padding: 4px 4px;  /* 减小内边距，节省空间 */
+    padding: 4px 4px;  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
     font-size: 12px;
     overflow-wrap: break-word;
    text-align: center;
 }
 .wechat-export .markdown-body td {
-  padding: 4px 4px;  /* 减小内边距，节省空间 */
+  padding: 4px 4px;  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
   font-size: 12px;
   overflow-wrap: break-word;
 }
 
-/* 表格行内代码，更小更紧凑 */
+/* 琛ㄦ牸琛屽唴浠ｇ爜锛屾洿灏忔洿绱у噾 */
 .wechat-export .markdown-body table :not(pre)>code {
   background: var(--md-code-bg);
   color: var(--md-code-fg);
@@ -574,7 +622,7 @@ html, body {
   letter-spacing: 0.1px;
 }
 
-/* 行内代码 */
+/* 琛屽唴浠ｇ爜 */
 .wechat-export .markdown-body :not(pre)>code {
   background: var(--md-code-bg);
   color: var(--md-code-fg);
@@ -598,7 +646,7 @@ html, body {
 
 .wechat-export ruby {
   ruby-position: over;
-  /* 确保注音在上面（有些浏览器支持 under） */
+  /* 纭繚娉ㄩ煶鍦ㄤ笂闈紙鏈変簺娴忚鍣ㄦ敮鎸?under锛?*/
   margin-top: 15dp;
 
 }
@@ -618,56 +666,63 @@ html, body {
 
 
 
-/* (可选) 鼠标悬浮时，卡片阴影加深，提供交互感 */
+/* (鍙€? 榧犳爣鎮诞鏃讹紝鍗＄墖闃村奖鍔犳繁锛屾彁渚涗氦浜掓劅 */
 .editor:hover,
 .preview:hover,
 .wechat-export:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ui-hover-shadow);
 }
 
 
 
-/* ====== 编辑区 图片 =========== */
+/* ====== 缂栬緫鍖?鍥剧墖 =========== */
 .toolbar-button {
-  background: white;
-  color: #212121;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background: var(--ui-button-bg);
+  color: var(--ui-button-text);
+  padding: 6px 11px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 12px;
-  transition: background 0.2s;
-  border: 2px solid #def5ee;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--ui-button-border);
   height: 32px;
-  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(28, 44, 67, 0.06);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .toolbar-button:hover {
-  background: #48eabf;
+  background: var(--ui-button-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(28, 44, 67, 0.12);
 }
 
-/* 工具栏的 select 小优化（可选） */
+/* 宸ュ叿鏍忕殑 select 灏忎紭鍖栵紙鍙€夛級 */
 .toolbar select {
   height: 32px;
-  background: white;
-  color: #44c8a5;
+  background: var(--ui-input-bg);
+  color: var(--ui-input-text);
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 10px;
   padding: 0 8px;
-  font-size: 15px;
-  border: 2px solid #def5ee;
+  font-size: 13px;
+  border: 1px solid var(--ui-input-border);
   font-weight: 500;
-  font-family: 'LXGW WenKai', Consolas, Monaco, "Courier New", monospace;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(28, 44, 67, 0.05);
 }
 
 .uploading {
-  color: #666;
+  color: var(--md-muted);
   font-size: 14px;
 }
 
-/* 拖拽状态 */
+/* 鎷栨嫿鐘舵€?*/
 .editor.drag-over {
-  background: #e3f2fd;
-  border: 2px dashed #48eabf;
+  background: var(--md-accent-soft);
+  border: 2px dashed var(--md-accent);
 }
 
 
@@ -682,10 +737,17 @@ html, body {
 }
 
 .toolbar button.active {
-  background: #48eabf;
-  /* Windows 风格蓝色 */
-  color: #fff;
-  border: 1px solid #9ceed8;
+  background: var(--ui-button-active-bg);
+  color: var(--ui-button-active-text);
+  border: 1px solid var(--md-accent);
+  box-shadow: 0 0 0 2px var(--md-accent-soft);
+}
+
+.toolbar-button.active {
+  background: var(--ui-button-active-bg);
+  color: var(--ui-button-active-text);
+  border: 1px solid var(--md-accent);
+  box-shadow: 0 0 0 2px var(--md-accent-soft);
 }
 
 .toast {
@@ -720,37 +782,39 @@ html, body {
 
 .export-progress-card {
   width: min(420px, 88vw);
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 12px;
+  box-shadow: var(--ui-shadow);
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
   padding: 14px 16px 12px;
 }
 
 .export-progress-title {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--md-fg);
   margin-bottom: 8px;
 }
 
 .export-progress-message {
   font-size: 13px;
-  color: #374151;
+  color: var(--md-muted);
   margin-bottom: 10px;
 }
 
 .export-progress-bar {
   width: 100%;
   height: 10px;
-  background: #eef2f7;
+  background: var(--md-accent-soft);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .export-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  background: var(--md-accent);
   transition: width 0.22s ease;
 }
 
@@ -758,11 +822,11 @@ html, body {
   margin-top: 8px;
   text-align: right;
   font-size: 12px;
-  color: #4b5563;
+  color: var(--md-muted);
 }
 
 /* ========================================= */
-/*       Markdown 基础排版（使用 CSS 变量）        */
+/*       Markdown 鍩虹鎺掔増锛堜娇鐢?CSS 鍙橀噺锛?       */
 /* ========================================= */
 
 .app .markdown-body {
@@ -775,62 +839,68 @@ html, body {
 
 .markdown-body ruby {
   ruby-position: over;
-  /* 确保注音在上面（有些浏览器支持 under） */
+  /* 纭繚娉ㄩ煶鍦ㄤ笂闈紙鏈変簺娴忚鍣ㄦ敮鎸?under锛?*/
 }
 
 .markdown-body rt {
   font-size: 12px;
-  /* 和正文一样大 */
+  /* 鍜屾鏂囦竴鏍峰ぇ */
   font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
   letter-spacing: 0.08em;
   margin-top: 8px;
 }
 
-/* font-family: 'LXGW WenKai';  在上面加这句会让Preview和公众号区域都显示LXGW字体 */
+/* font-family: 'LXGW WenKai';  鍦ㄤ笂闈㈠姞杩欏彞浼氳Preview鍜屽叕浼楀彿鍖哄煙閮芥樉绀篖XGW瀛椾綋 */
 
 .app .preview,
 .app .editor {
-  background: var(--md-bg) !important;
+  background: var(--ui-panel-bg) !important;
   color: var(--md-text);
 }
 
   /* background: var(--md-bg) !important;
   color: var(--md-fg); */
 
-/* 微信预览区 */
+/* 寰俊棰勮鍖?*/
 .app .wechat-export {
-  background: var(--md-bg) !important;
+  background: var(--ui-panel-bg) !important;
   color: var(--md-fg);
 
 }
 
-/* 标题 */
+/* 鏍囬 */
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
-  line-height: 1;
-  margin: 1em 0 0 0;
-  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.35em 0 0.45em 0;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  line-height: 1.8;
-  margin: 2em 0 0 0;
-  font-weight: 500;
+  line-height: 1.45;
+  margin: 1.15em 0 0.35em 0;
+  font-weight: 600;
 }
 
 .markdown-body h1 {
-  font-size: 28px;
+  font-size: 30px;
+  border-bottom: 1px solid var(--md-border);
+  padding-bottom: 0.4em;
 }
 
 .markdown-body h2 {
-  font-size: 24px;
+  font-size: 25px;
+  border-bottom: 1px solid var(--md-border);
+  padding-bottom: 0.34em;
 }
 
 .markdown-body h3 {
-  font-size: 20px;
+  font-size: 21px;
+  color: var(--md-accent);
 }
 
 .markdown-body h4 {
@@ -849,7 +919,7 @@ html, body {
 
 
 
-/* 段落与列表 */
+/* 娈佃惤涓庡垪琛?*/
 .markdown-body p {
   margin: 1em 0;
   overflow-wrap: break-word !important;
@@ -869,14 +939,14 @@ html, body {
 .markdown-body li:has(input[type="checkbox"]) {
   list-style: none;
   vertical-align: middle;
-  /* 垂直居中对齐 */
+  /* 鍨傜洿灞呬腑瀵归綈 */
 }
 
 .markdown-body li input[type="checkbox"] {
   transform: scale(1.2);
-  /* 只放大复选框，不影响文字 */
+  /* 鍙斁澶у閫夋锛屼笉褰卞搷鏂囧瓧 */
   transform-origin: center;
-  /* 从中间放大，不会偏移 */
+  /* 浠庝腑闂存斁澶э紝涓嶄細鍋忕Щ */
 }
 
 /* .markdown-body li input[type="checkbox"] ~ * {
@@ -884,10 +954,10 @@ html, body {
   vertical-align: middle;
   margin-left: 0.5em;
 } */
-/* 仅影响紧跟在 checkbox 之后的常见包裹结构 */
+/* 浠呭奖鍝嶇揣璺熷湪 checkbox 涔嬪悗鐨勫父瑙佸寘瑁圭粨鏋?*/
 
 
-/* 链接 */
+/* 閾炬帴 */
 .markdown-body a {
   color: var(--md-accent);
   text-decoration: none;
@@ -897,7 +967,7 @@ html, body {
   text-decoration: underline;
 }
 
-/* 引用 */
+/* 寮曠敤 */
 .markdown-body blockquote {
   margin: 2em 0;
   padding: 1px 1em;
@@ -907,7 +977,7 @@ html, body {
   font-size: 14px;
 }
 
-/* 分割线 */
+/* 鍒嗗壊绾?*/
 .markdown-body hr {
   border: 0;
   height: 1px;
@@ -915,7 +985,7 @@ html, body {
   margin: 1.5em 0;
 }
 
-/* 表格 */
+/* 琛ㄦ牸 */
 .markdown-body table {
   border-collapse: collapse;
   width: 100%;
@@ -950,7 +1020,7 @@ html, body {
   text-align: right;
 }
 
-/* 行内代码 */
+/* 琛屽唴浠ｇ爜 */
 .markdown-body :not(pre)>code {
   background: var(--md-code-bg);
   color: var(--md-code-fg);
@@ -963,11 +1033,11 @@ html, body {
   font-weight: 500;
 }
 
-/* 代码块（不覆盖 hljs 的配色，主要做容器与滚动） */
+/* 浠ｇ爜鍧楋紙涓嶈鐩?hljs 鐨勯厤鑹诧紝涓昏鍋氬鍣ㄤ笌婊氬姩锛?*/
 .markdown-body pre {
   margin: 1em 0;
   padding: 0;
-  /* 交给 hljs 主题控制内边距也行，你也可以改成 1em */
+  /* 浜ょ粰 hljs 涓婚鎺у埗鍐呰竟璺濅篃琛岋紝浣犱篃鍙互鏀规垚 1em */
   overflow: auto;
   border-radius: 8px;
   background: var(--md-code-bg);
@@ -980,40 +1050,40 @@ html, body {
   border-radius: 8px;
   line-height: 1.7;
   font-size: 90%;
-  white-space: pre !important;  /* 不换行，保持代码原样 */
+  white-space: pre !important;  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
   word-break: normal;
-  letter-spacing: normal;  /* 重置字间距 */
+  letter-spacing: normal;  /* 閲嶇疆瀛楅棿璺?*/
 }
 
 /* ================================================ */
-/* Highlight.js 样式修正               */
+/* Highlight.js 鏍峰紡淇               */
 /* ================================================ */
 
 /*
- * 1. 解决 fun/class 关键字与其后标识符的空格丢失问题
- * 例如： "funobserveArticles" -> "fun observeArticles"
+ * 1. 瑙ｅ喅 fun/class 鍏抽敭瀛椾笌鍏跺悗鏍囪瘑绗︾殑绌烘牸涓㈠け闂
+ * 渚嬪锛?"funobserveArticles" -> "fun observeArticles"
  */
 .hljs-function .hljs-keyword + .hljs-title,
 .hljs-keyword + .hljs-title.class_ {
-  margin-left: 0.5em; /* 添加一个水平间距来模拟空格 */
+  margin-left: 0.5em; /* 娣诲姞涓€涓按骞抽棿璺濇潵妯℃嫙绌烘牸 */
 }
 
 /*
- * 2. 解决单行注释后的换行符丢失问题 (精确版)
- * 使用 ::before 伪元素插入一个换行符，而不改变元素本身的 display 属性
+ * 2. 瑙ｅ喅鍗曡娉ㄩ噴鍚庣殑鎹㈣绗︿涪澶遍棶棰?(绮剧‘鐗?
+ * 浣跨敤 ::before 浼厓绱犳彃鍏ヤ竴涓崲琛岀锛岃€屼笉鏀瑰彉鍏冪礌鏈韩鐨?display 灞炴€?
  */
 
 .hljs-comment {
-  white-space: pre-wrap; /* 保留换行和空格，自动换行 */
+  white-space: pre-wrap; /* 淇濈暀鎹㈣鍜岀┖鏍硷紝鑷姩鎹㈣ */
 }
 
 /*
- * 2. 解决单行注释后的换行及缩进丢失问题
+ * 2. 瑙ｅ喅鍗曡娉ㄩ噴鍚庣殑鎹㈣鍙婄缉杩涗涪澶遍棶棰?
  */
 
-/* ========== Mermaid 图表样式 ========== */
+/* ========== Mermaid 鍥捐〃鏍峰紡 ========== */
 
-/* 预览区的 Mermaid：适中尺寸，避免占满整个屏幕 */
+/* 棰勮鍖虹殑 Mermaid锛氶€備腑灏哄锛岄伩鍏嶅崰婊℃暣涓睆骞?*/
 .preview .markdown-body .mermaid {
   text-align: center;
   margin: 1.5em auto;
@@ -1025,24 +1095,24 @@ html, body {
 }
 
 .preview .markdown-body .mermaid svg {
-  max-width: 600px;  /* 限制最大宽度，避免太大 */
-  max-height: 600px; /* 限制最大高度 */
+  max-width: 600px;  /* 闄愬埗鏈€澶у搴︼紝閬垮厤澶ぇ */
+  max-height: 600px; /* 闄愬埗鏈€澶ч珮搴?*/
   width: auto !important;
   height: auto !important;
 }
 
-/* ========== 公众号预览区：强制固定宽度，内容可滚动 ========== */
+/* ========== 鍏紬鍙烽瑙堝尯锛氬己鍒跺浐瀹氬搴︼紝鍐呭鍙粴鍔?========== */
 
-/* 图片强制不超出容器 */
+/* 鍥剧墖寮哄埗涓嶈秴鍑哄鍣?*/
 .wechat-export .markdown-body img {
   max-width: 100% !important;
   height: auto !important;
   display: block;
 }
 
-/* 代码块：保持原样，添加水平滚动条，与预览区样式一致 */
+/* 浠ｇ爜鍧楋細淇濇寔鍘熸牱锛屾坊鍔犳按骞虫粴鍔ㄦ潯锛屼笌棰勮鍖烘牱寮忎竴鑷?*/
 .wechat-export .markdown-body pre {
-  overflow-x: auto !important;  /* 水平滚动条 */
+  overflow-x: auto !important;  /* 姘村钩婊氬姩鏉?*/
   overflow-y: auto;
   max-width: 100%;
   margin: 1em 0;
@@ -1058,12 +1128,12 @@ html, body {
   border-radius: 8px;
   line-height: 1.7;
   font-size: 90%;
-  white-space: pre !important;  /* 不换行，保持代码原样 */
+  white-space: pre !important;  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
   word-break: normal;
-  letter-spacing: normal;  /* 重置字间距 */
+  letter-spacing: normal;  /* 閲嶇疆瀛楅棿璺?*/
 }
 
-/* Mermaid 图表：固定宽度，按比例缩小适应手机屏幕 */
+/* Mermaid 鍥捐〃锛氬浐瀹氬搴︼紝鎸夋瘮渚嬬缉灏忛€傚簲鎵嬫満灞忓箷 */
 .wechat-export .markdown-body .mermaid {
   text-align: center;
   margin: 1em 0;
@@ -1071,8 +1141,8 @@ html, body {
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 375px;  /* 公众号区域宽度 375px - 左右 padding 30px */
-  overflow: hidden;  /* 禁止滚动 */
+  max-width: 375px;  /* 鍏紬鍙峰尯鍩熷搴?375px - 宸﹀彸 padding 30px */
+  overflow: hidden;  /* 绂佹婊氬姩 */
 }
 
 .wechat-export .markdown-body .mermaid svg {
@@ -1083,7 +1153,7 @@ html, body {
   display: block;
 }
 
-/* 图片 */
+/* 鍥剧墖 */
 .markdown-body img {
   max-width: 100%;
   height: auto;
@@ -1095,511 +1165,450 @@ html, body {
 
 
 
-/* ============ 主题映射（根据 data-mdtheme 切换变量） ============ */
+/* ============ Theme Mapping (data-mdtheme) ============ */
 
-/* Light */
 .app[data-mdtheme="light"] {
   --md-bg: #ffffff;
-  --md-fg: #0b1220;
-  --md-muted: #667085;
-  --md-accent: #f63b70;
-  --md-border: #e5e7eb;
-  --md-code-bg: #ffffff;
-  --md-code-fg: #f63b70;
-  --md-quote-bg: #fff;
-  --md-quote-bar: #46ddee;
-  --md-table-stripe: #fafafa;
+  --md-fg: #11243e;
+  --md-text: #20344f;
+  --md-muted: #5f738d;
+  --md-accent: #2f7df5;
+  --md-accent-soft: #e6efff;
+  --md-border: #dbe5f2;
+  --md-code-bg: #f4f8ff;
+  --md-code-fg: #213650;
+  --md-quote-bg: #f3f8ff;
+  --md-quote-bar: #9ec0ff;
+  --md-table-stripe: #f8fbff;
 }
 
-/* Dark */
-.app[data-mdtheme="dark"] {
-  --md-bg: #fdfaff;
-  --md-fg: #2e2338;
-  --md-muted: #6a5975;
-  --md-accent: #c084fc;
-  --md-border: #ebdef5;
-  --md-code-bg: #f7f0fb;
-  --md-code-fg: #352b41;
-  --md-quote-bg: #faf4ff;
-  --md-quote-bar: #d8b4fe;
-  --md-table-stripe: #fdf7ff;
-}
-
-/* Sepia（阅读风） */
-.app[data-mdtheme="sepia"] {
-  --md-bg: #f6efe5;
-  --md-fg: #473c2f;
-  --md-muted: #7c6f61;
-  --md-accent: #a05a2c;
-  --md-border: #e9dfd1;
-  --md-code-bg: #efe6d8;
-  --md-code-fg: #3d3328;
-  --md-quote-bg: #f3e9db;
-  --md-quote-bar: #dbcbb1;
-  --md-table-stripe: #f3e9db;
-}
-
-/* Paper（纸张质感，略灰） */
 .app[data-mdtheme="paper"] {
-  --md-bg: #f8fafc;
-  --md-fg: #0f172a;
-  --md-muted: #64748b;
-  --md-accent: #2563eb;
-  --md-border: #e2e8f0;
-  --md-code-bg: #eef2f7;
-  --md-code-fg: #0f172a;
-  --md-quote-bg: #f1f5f9;
-  --md-quote-bar: #cbd5e1;
-  --md-table-stripe: #f1f5f9;
+  --md-bg: #f6f4ec;
+  --md-fg: #4b5057;
+  --md-text: #5d646d;
+  --md-muted: #8a9093;
+  --md-accent: #25bfae;
+  --md-accent-soft: #ddf5ef;
+  --md-border: #d7dfd8;
+  --md-code-bg: #edf3ee;
+  --md-code-fg: #4c5762;
+  --md-quote-bg: #f8f8f2;
+  --md-quote-bar: #9bc7bf;
+  --md-table-stripe: #f6f8f4;
+  --ui-app-bg: linear-gradient(180deg, #f1f0eb 0%, #e9ece7 100%);
+  --ui-toolbar-bg: rgba(248, 247, 240, 0.92);
+  --ui-toolbar-border: rgba(170, 182, 176, 0.36);
+  --ui-status-bg: rgba(248, 247, 240, 0.94);
+  --ui-status-border: rgba(170, 182, 176, 0.34);
+  --ui-status-text: #7d8687;
+  --ui-panel-bg: #f7f6f1;
+  --ui-panel-border: #d6dfd7;
+  --ui-shadow: 0 16px 36px rgba(58, 67, 63, 0.15);
+  --ui-hover-shadow: 0 20px 44px rgba(58, 67, 63, 0.2);
+  --ui-button-bg: #f3f7f2;
+  --ui-button-border: #bbd8d1;
+  --ui-button-text: #2f6f67;
+  --ui-button-hover-bg: #e4f4ef;
+  --ui-button-active-bg: linear-gradient(135deg, #34d2bf 0%, #24b7a5 100%);
+  --ui-button-active-text: #f6fffe;
+  --ui-input-bg: #f2f5f1;
+  --ui-input-border: #d1dad4;
+  --ui-input-text: #505a63;
 }
 
-/* Midnight（深蓝夜色） */
-.app[data-mdtheme="midnight"] {
-  --md-bg: #0b1220;
-  --md-fg: #dbeafe;
-  --md-text: #dbeafe;
-  --md-muted: #94a3b8;
-  --md-accent: #60a5fa;
-  --md-border: #142033;
-  --md-code-bg: #0f172a;
-  --md-code-fg: #e2e8f0;
-  --md-quote-bg: #0e1726;
-  --md-quote-bar: #46ddee;
-  --md-table-stripe: #0e1726;
+.app[data-mdtheme="magazine"] {
+  --md-bg: #ffffff;
+  --md-fg: #1a1f29;
+  --md-text: #2b3340;
+  --md-muted: #677283;
+  --md-accent: #111827;
+  --md-accent-soft: #eef1f5;
+  --md-border: #d9dee6;
+  --md-code-bg: #f6f7fa;
+  --md-code-fg: #232a35;
+  --md-quote-bg: #f7f8fa;
+  --md-quote-bar: #a8b2c1;
+  --md-table-stripe: #fafbfc;
 }
 
-/* 9 */
+.app[data-mdtheme="executive"] {
+  --md-bg: #ffffff;
+  --md-fg: #12273f;
+  --md-text: #23384f;
+  --md-muted: #647991;
+  --md-accent: #2f72d8;
+  --md-accent-soft: #e9f1ff;
+  --md-border: #d8e2ee;
+  --md-code-bg: #f4f8ff;
+  --md-code-fg: #213851;
+  --md-quote-bg: #f1f6ff;
+  --md-quote-bar: #8eb1e9;
+  --md-table-stripe: #f7faff;
+}
 
+.app[data-mdtheme="sepia"] {
+  --md-bg: #fbf4e9;
+  --md-fg: #4a3a2e;
+  --md-text: #5a493c;
+  --md-muted: #8a7868;
+  --md-accent: #b06c37;
+  --md-accent-soft: #f7e8d7;
+  --md-border: #e9dcc9;
+  --md-code-bg: #f4e9da;
+  --md-code-fg: #5a4635;
+  --md-quote-bg: #f7ebdc;
+  --md-quote-bar: #d8b896;
+  --md-table-stripe: #f8efe3;
+}
 
-.app[data-mdtheme="auroraPurple"] {
-  --md-bg: #f6f7ff;
-  --md-fg: #2a2a40;
-  --md-muted: #6c6c8f;
-  --md-accent: #6d5dfc;
-  --md-border: #e0e3f8;
-  --md-code-bg: #edefff;
-  --md-code-fg: #2b2b4f;
-  --md-quote-bg: #f0f2ff;
-  --md-quote-bar: #a5a9f9;
-  --md-table-stripe: #f8f9ff;
+.app[data-mdtheme="sunsetGlow"] {
+  --md-bg: #fff8f1;
+  --md-fg: #4f3528;
+  --md-text: #614538;
+  --md-muted: #8d6c57;
+  --md-accent: #e57a2f;
+  --md-accent-soft: #ffe7d6;
+  --md-border: #f2d8c1;
+  --md-code-bg: #fff0e3;
+  --md-code-fg: #74452a;
+  --md-quote-bg: #fff3e8;
+  --md-quote-bar: #f3af75;
+  --md-table-stripe: #fff6ee;
 }
 
 .app[data-mdtheme="mintyFresh"] {
-  --md-bg: #f4fff9;
-  --md-fg: #1e3328;
-  --md-muted: #497d65;
-  --md-accent: #37c77b;
-  --md-border: #d1f0de;
-  --md-code-bg: #e8f9f0;
-  --md-code-fg: #204b37;
-  --md-quote-bg: #f0fff7;
-  --md-quote-bar: #7be6a7;
-  --md-table-stripe: #eafdf4;
+  --md-bg: #f7fffb;
+  --md-fg: #13372b;
+  --md-text: #214738;
+  --md-muted: #547c69;
+  --md-accent: #1f9e76;
+  --md-accent-soft: #dff6ee;
+  --md-border: #cde8dd;
+  --md-code-bg: #ecfbf5;
+  --md-code-fg: #245a45;
+  --md-quote-bg: #ebf9f3;
+  --md-quote-bar: #83d2b4;
+  --md-table-stripe: #f1fcf7;
+}
+
+.app[data-mdtheme="mintBreeze"] {
+  --md-bg: #f9fffd;
+  --md-fg: #174035;
+  --md-text: #285148;
+  --md-muted: #5d8174;
+  --md-accent: #1baf84;
+  --md-accent-soft: #dbf7ee;
+  --md-border: #cdece2;
+  --md-code-bg: #edfcf6;
+  --md-code-fg: #24624d;
+  --md-quote-bg: #ecfaf4;
+  --md-quote-bar: #72d5b1;
+  --md-table-stripe: #f2fcf8;
+}
+
+.app[data-mdtheme="forestWhisper"] {
+  --md-bg: #f8fcf7;
+  --md-fg: #193829;
+  --md-text: #284b3a;
+  --md-muted: #5f7e6a;
+  --md-accent: #2d9e66;
+  --md-accent-soft: #e0f4e7;
+  --md-border: #d4e8d9;
+  --md-code-bg: #edf8f0;
+  --md-code-fg: #2b5d43;
+  --md-quote-bg: #ecf7ef;
+  --md-quote-bar: #8dc9a7;
+  --md-table-stripe: #f2faf4;
 }
 
 .app[data-mdtheme="lazySloth"] {
-  --md-bg: #f8fbf9;
-  --md-fg: #223026;
-  --md-muted: #506a58;
-  --md-accent: #6ccf8e;
-  --md-border: #dce8e1;
-  --md-code-bg: #edf7f1;
-  --md-code-fg: #1e3529;
-  --md-quote-bg: #f3faf5;
-  --md-quote-bar: #9ee2b8;
-  --md-table-stripe: #f2fdf7;
+  --md-bg: #f7faf8;
+  --md-fg: #25352f;
+  --md-text: #344841;
+  --md-muted: #667c74;
+  --md-accent: #4f9a79;
+  --md-accent-soft: #e8f3ee;
+  --md-border: #d7e4de;
+  --md-code-bg: #eef5f1;
+  --md-code-fg: #355047;
+  --md-quote-bg: #edf4f0;
+  --md-quote-bar: #9cbcae;
+  --md-table-stripe: #f3f8f5;
 }
 
 .app[data-mdtheme="oceanBreeze"] {
-  --md-bg: #f7faff;
-  --md-fg: #1f2c3a;
-  --md-muted: #4d637d;
-  --md-accent: #4a90e2;
-  --md-border: #d8e4f5;
-  --md-code-bg: #eef5ff;
-  --md-code-fg: #1c314a;
-  --md-quote-bg: #f0f6ff;
-  --md-quote-bar: #7ab6f0;
-  --md-table-stripe: #f5f9ff;
+  --md-bg: #f6fbff;
+  --md-fg: #17324a;
+  --md-text: #27445e;
+  --md-muted: #607a96;
+  --md-accent: #2f86d8;
+  --md-accent-soft: #e3f1ff;
+  --md-border: #d4e3f3;
+  --md-code-bg: #edf6ff;
+  --md-code-fg: #295276;
+  --md-quote-bg: #ebf4ff;
+  --md-quote-bar: #89b8ea;
+  --md-table-stripe: #f2f8ff;
+}
+
+.app[data-mdtheme="digitalWave"] {
+  --md-bg: #f8fbff;
+  --md-fg: #16344c;
+  --md-text: #264a66;
+  --md-muted: #63809a;
+  --md-accent: #198fd6;
+  --md-accent-soft: #def2ff;
+  --md-border: #d2e5f2;
+  --md-code-bg: #eef7fd;
+  --md-code-fg: #276084;
+  --md-quote-bg: #edf6ff;
+  --md-quote-bar: #7dbde7;
+  --md-table-stripe: #f4f9ff;
+}
+
+.app[data-mdtheme="auroraPurple"] {
+  --md-bg: #faf9ff;
+  --md-fg: #2b2f52;
+  --md-text: #3b4061;
+  --md-muted: #7278a0;
+  --md-accent: #6e67d8;
+  --md-accent-soft: #ecebff;
+  --md-border: #dddff3;
+  --md-code-bg: #f3f3ff;
+  --md-code-fg: #414777;
+  --md-quote-bg: #f1f1ff;
+  --md-quote-bar: #a9a5ee;
+  --md-table-stripe: #f7f7ff;
+}
+
+.app[data-mdtheme="lavenderMist"] {
+  --md-bg: #fcfaff;
+  --md-fg: #3b2f5f;
+  --md-text: #4b3f72;
+  --md-muted: #82739f;
+  --md-accent: #7e62c8;
+  --md-accent-soft: #efe8ff;
+  --md-border: #e4daf4;
+  --md-code-bg: #f6f1ff;
+  --md-code-fg: #5a4a8d;
+  --md-quote-bg: #f4eeff;
+  --md-quote-bar: #b8a3e6;
+  --md-table-stripe: #faf7ff;
 }
 
 .app[data-mdtheme="candyDream"] {
-  --md-bg: #fdfaff;
-  --md-fg: #2e2338;
-  --md-muted: #6a5975;
-  --md-accent: #c084fc;
-  --md-border: #ebdef5;
-  --md-code-bg: #f7f0fb;
-  --md-code-fg: #352b41;
-  --md-quote-bg: #faf4ff;
-  --md-quote-bar: #d8b4fe;
-  --md-table-stripe: #fdf7ff;
+  --md-bg: #fffafd;
+  --md-fg: #4b3553;
+  --md-text: #5f4666;
+  --md-muted: #8b7494;
+  --md-accent: #bf62b3;
+  --md-accent-soft: #f8e6f5;
+  --md-border: #edd8ea;
+  --md-code-bg: #fdf2fc;
+  --md-code-fg: #7f4c78;
+  --md-quote-bg: #faeff8;
+  --md-quote-bar: #e1a6d8;
+  --md-table-stripe: #fef7fd;
 }
 
-.app[data-mdtheme="sunsetGlow"] {
-  --md-bg: #fffaf5;
-  --md-fg: #332621;
-  --md-muted: #7a5a4c;
-  --md-accent: #f59e0b;
-  --md-border: #f8e1c6;
-  --md-code-bg: #fff3e6;
-  --md-code-fg: #3b2a24;
-  --md-quote-bg: #fff7ed;
-  --md-quote-bar: #fbbf24;
-  --md-table-stripe: #fff9f0;
+.app[data-mdtheme="sakuraBloom"] {
+  --md-bg: #fffbfc;
+  --md-fg: #5a3642;
+  --md-text: #6b4551;
+  --md-muted: #8f7280;
+  --md-accent: #d86a90;
+  --md-accent-soft: #fde8f0;
+  --md-border: #f1d6e2;
+  --md-code-bg: #fff1f6;
+  --md-code-fg: #8a4d67;
+  --md-quote-bg: #fff0f5;
+  --md-quote-bar: #e8a0bb;
+  --md-table-stripe: #fff7fa;
+}
+
+.app[data-mdtheme="roseGold"] {
+  --md-bg: #fffbfa;
+  --md-fg: #5d3a43;
+  --md-text: #714a53;
+  --md-muted: #9b7781;
+  --md-accent: #c86a7d;
+  --md-accent-soft: #fde7ec;
+  --md-border: #efd8dd;
+  --md-code-bg: #fff1f4;
+  --md-code-fg: #8d5565;
+  --md-quote-bg: #fff1f4;
+  --md-quote-bar: #dea1b0;
+  --md-table-stripe: #fff7f8;
+}
+
+.app[data-mdtheme="dark"] {
+  --md-bg: #101623;
+  --md-fg: #e7eefc;
+  --md-text: #d5e1f7;
+  --md-muted: #9eb1d2;
+  --md-accent: #7cb6ff;
+  --md-accent-soft: #1d2a43;
+  --md-border: #27344f;
+  --md-code-bg: #141f31;
+  --md-code-fg: #dce8ff;
+  --md-quote-bg: #162236;
+  --md-quote-bar: #4d78b5;
+  --md-table-stripe: #131d2f;
+}
+
+.app[data-mdtheme="midnight"] {
+  --md-bg: #191839;
+  --md-fg: #efebff;
+  --md-text: #e3defd;
+  --md-muted: #b7afd8;
+  --md-accent: #f2c57b;
+  --md-accent-soft: #352768;
+  --md-border: #6f57ae;
+  --md-code-bg: #221d47;
+  --md-code-fg: #f2eeff;
+  --md-quote-bg: #2a2357;
+  --md-quote-bar: #a88fe0;
+  --md-table-stripe: #201c42;
 }
 
 .app[data-mdtheme="galaxyNight"] {
-  --md-bg: #0e0e1a;
-  --md-fg: #e8e9f5;
-  --md-muted: #9da3c3;
-  --md-accent: #8b5cf6;
-  --md-border: #2a2a40;
-  --md-code-bg: #1a1a2e;
-  --md-code-fg: #f1f5ff;
-  --md-quote-bg: #181826;
-  --md-quote-bar: #6d28d9;
-  --md-table-stripe: #151525;
+  --md-bg: #121021;
+  --md-fg: #ebe9ff;
+  --md-text: #d8d4fb;
+  --md-muted: #a7a0d3;
+  --md-accent: #9a88ff;
+  --md-accent-soft: #221d3d;
+  --md-border: #322d56;
+  --md-code-bg: #17142b;
+  --md-code-fg: #e5e0ff;
+  --md-quote-bg: #1a1730;
+  --md-quote-bar: #655ca8;
+  --md-table-stripe: #151228;
 }
 
-
-
-
-
-
-/* 1. 杂志风 - Magazine Style */
-.app[data-mdtheme="magazine"] {
-  --md-bg: #ffffff;
-  --md-fg: #1a1a1a;
-  --md-muted: #666666;
-  --md-accent: #000000;
-  --md-border: #e5e5e5;
-  --md-code-bg: #ffffff;
-  --md-code-fg: #212121;
-  --md-quote-bg: #fafafa;
-  --md-quote-bar: #000000;
-  --md-table-stripe: #f9f9f9;
-}
-
-.app[data-mdtheme="magazine"] h1,
-.app[data-mdtheme="magazine"] h2,
-.app[data-mdtheme="magazine"] h3 {
-  text-align: left;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--md-accent);
-  padding-bottom: 2px;
-  font-size: 16px;
-}
-
-/* 2. City Pop风 - Neon Dreams */
 .app[data-mdtheme="neonDreams"] {
-  --md-bg: #ffffff;
-  --md-fg: #2d1b69;
-  --md-muted: #8b5cf6;
-  --md-accent: #ec4899;
-  --md-border: #f3e8ff;
-  --md-code-bg: #fdf4ff;
-  --md-code-fg: #581c87;
-  --md-quote-bg: #fef7ff;
-  --md-quote-bar: #d946ef;
-  --md-table-stripe: #faf5ff;
+  --md-bg: #151228;
+  --md-fg: #f3efff;
+  --md-text: #e2dcfb;
+  --md-muted: #aea4dd;
+  --md-accent: #c379ff;
+  --md-accent-soft: #281f44;
+  --md-border: #3a2f61;
+  --md-code-bg: #1b1633;
+  --md-code-fg: #ede7ff;
+  --md-quote-bg: #1f1a39;
+  --md-quote-bar: #7e61c3;
+  --md-table-stripe: #18142f;
 }
 
-.app[data-mdtheme="neonDreams"] h1,
-.app[data-mdtheme="neonDreams"] h2,
-.app[data-mdtheme="neonDreams"] h3 {
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-  border-left: 4px solid var(--md-accent);
-  padding-left: 16px;
+/* ============ Visual Code Novel variants ============ */
+
+.app[data-mdtheme="paper"] .preview,
+.app[data-mdtheme="paper"] .wechat-export {
+  border-radius: 26px;
+  border-width: 2px;
+  border-color: #d6e1d8;
+  box-shadow: 0 22px 48px rgba(54, 63, 59, 0.16);
 }
 
-/* 3. 少女粉 - Sakura Bloom */
-.app[data-mdtheme="sakuraBloom"] {
-  --md-bg: #ffffff;
-  --md-fg: #4a2c2a;
-  --md-muted: #94a3b8;
-  --md-accent: #f472b6;
-  --md-border: #fed7e2;
-  --md-code-bg: #fef7f0;
-  --md-code-fg: #7c2d12;
-  --md-quote-bg: #fef2f2;
-  --md-quote-bar: #fb7185;
-  --md-table-stripe: #fef7f0;
+.app[data-mdtheme="paper"] .preview .markdown-body,
+.app[data-mdtheme="paper"] .wechat-export .markdown-body {
+  background:
+    radial-gradient(130% 80% at 92% 0%, rgba(167, 212, 194, 0.18) 0%, rgba(167, 212, 194, 0.03) 54%, rgba(167, 212, 194, 0) 100%),
+    var(--md-bg);
 }
 
-.app[data-mdtheme="sakuraBloom"] h1,
-.app[data-mdtheme="sakuraBloom"] h2,
-.app[data-mdtheme="sakuraBloom"] h3 {
-  background: var(--md-accent);
-  color: white;
-  border-radius: 12px;
-  padding: 8px 16px;
-  text-align: center;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+.app[data-mdtheme="paper"] .markdown-body h1,
+.app[data-mdtheme="paper"] .markdown-body h2 {
+  border-bottom-color: #d2ddd4;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  color: #585f66;
 }
 
-/* 4. 商务风 - Executive Suite */
-.app[data-mdtheme="executive"] {
-  --md-bg: #ffffff;
-  --md-fg: #1f2937;
-  --md-muted: #6b7280;
-  --md-accent: #3b82f6;
-  --md-border: #e5e7eb;
-  --md-code-bg: #fff;
-  --md-code-fg: #3b82f6;
-  --md-quote-bg: #f8fafc;
-  --md-quote-bar: #3b82f6;
-  --md-table-stripe: #f1f5f9;
+.app[data-mdtheme="paper"] .markdown-body h3,
+.app[data-mdtheme="paper"] .markdown-body h4 {
+  color: #1f8e83;
 }
 
-.app[data-mdtheme="executive"] h1,
-.app[data-mdtheme="executive"] h2,
-.app[data-mdtheme="executive"] h3 {
-  border-left: 6px solid var(--md-accent);
-  padding-left: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.app[data-mdtheme="paper"] .markdown-body blockquote {
+  border-left: 0;
+  border: 2px solid rgba(37, 191, 174, 0.64);
+  border-radius: 18px;
+  background: rgba(249, 253, 251, 0.95);
+  color: #57616b;
 }
 
-/* 5. 清新风 - Mint Breeze */
-.app[data-mdtheme="mintBreeze"] {
-  --md-bg: #ffffff;
-  --md-fg: #07654c;
-  --md-text: #212121;
-  --md-muted: #6b7280;
-  --md-accent: #10b981;
-  --md-border: #d1fae5;
-  --md-code-bg: #f0fdf4;
-  --md-code-fg: #166534;
-  --md-quote-bg: #ecfdf5;
-  --md-quote-bar: #34d399;
-  --md-table-stripe: #f7fee7;
-  --md-strong:#242929 ;
+.app[data-mdtheme="midnight"] {
+  --ui-app-bg:
+    radial-gradient(120% 120% at 86% 8%, rgba(255, 242, 170, 0.2) 0%, rgba(255, 242, 170, 0) 18%),
+    linear-gradient(180deg, #30236c 0%, #221a4f 54%, #171533 100%);
+  --ui-toolbar-bg: rgba(29, 22, 62, 0.84);
+  --ui-toolbar-border: rgba(137, 116, 204, 0.4);
+  --ui-status-bg: rgba(20, 17, 43, 0.86);
+  --ui-status-border: rgba(137, 116, 204, 0.4);
+  --ui-status-text: #c7bbef;
+  --ui-panel-bg: rgba(32, 24, 72, 0.86);
+  --ui-panel-border: rgba(129, 101, 201, 0.7);
+  --ui-shadow: 0 24px 56px rgba(9, 8, 24, 0.62);
+  --ui-hover-shadow: 0 28px 60px rgba(9, 8, 24, 0.7);
+  --ui-button-bg: rgba(61, 44, 117, 0.88);
+  --ui-button-border: rgba(162, 135, 228, 0.66);
+  --ui-button-text: #efe9ff;
+  --ui-button-hover-bg: rgba(76, 56, 140, 0.92);
+  --ui-button-active-bg: linear-gradient(135deg, #f5d695 0%, #efb96f 100%);
+  --ui-button-active-text: #2e2151;
+  --ui-input-bg: rgba(41, 30, 84, 0.9);
+  --ui-input-border: rgba(155, 128, 221, 0.55);
+  --ui-input-text: #f1ebff;
 }
 
-.app[data-mdtheme="mintBreeze"] h1,
-.app[data-mdtheme="mintBreeze"] h2 {
-  color: var(--md-accent);
-  /* text-decoration: underline;
-  text-decoration-color: var(--md-accent);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 10px; */
-  text-align: left;
-  line-height: 2em;
+.app[data-mdtheme="midnight"] .preview,
+.app[data-mdtheme="midnight"] .wechat-export {
+  border-radius: 28px;
+  border-width: 2px;
+  border-color: rgba(126, 96, 202, 0.9);
 }
 
-/* .app[data-mdtheme="mintBreeze"] h2{
-  color: var(--md-accent);
-  font-weight: 600;
-  text-align: center;
-  position: left;
-  padding: 0 0 10px 0;
-  border-bottom: 3px solid var(--md-accent);
-} */
-.app[data-mdtheme="mintBreeze"] h3 {
-  color: var(--md-accent);
-  font-weight: 600;
-  text-align: left;
-  position: left;
-  padding: 0 0 10px 0;
-  border-bottom: 2px solid var(--md-accent);
+.app[data-mdtheme="midnight"] .preview .markdown-body,
+.app[data-mdtheme="midnight"] .wechat-export .markdown-body {
+  background:
+    radial-gradient(circle at 86% 8%, rgba(255, 245, 176, 0.26) 0%, rgba(255, 245, 176, 0) 12%),
+    radial-gradient(circle at 70% 22%, rgba(255, 255, 255, 0.1) 0 1px, transparent 1.3px) 0 0 / 26px 26px,
+    linear-gradient(180deg, #4e30aa 0%, #5a35b0 57%, #171a38 57%, #12142a 100%);
 }
 
-.app[data-mdtheme="mintBreeze"] h4 {
-  color: var(--md-accent);
-  font-weight: 600;
-  text-align: left;
-  position: left;
-  padding: 0 0 7px 0;
-  border-bottom: 2px solid var(--md-accent);
+.app[data-mdtheme="midnight"] .markdown-body h1,
+.app[data-mdtheme="midnight"] .markdown-body h2 {
+  color: #f7f2ff;
+  border-bottom-color: rgba(169, 144, 239, 0.62);
 }
 
-.app[data-mdtheme="mintBreeze"] p>strong{
-  color: var(--md-strong);
+.app[data-mdtheme="midnight"] .markdown-body h3,
+.app[data-mdtheme="midnight"] .markdown-body h4 {
+  color: #f2c57b;
 }
 
-.app[data-mdtheme="mintBreeze"] li>p>strong{
-  color: var(--md-text);
-}
-
-/* 标题上方一杠 */
-/* .app[data-mdtheme="mintBreeze"] h1::before,
-.app[data-mdtheme="mintBreeze"] h2::before,
-.app[data-mdtheme="mintBreeze"] h3::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 160px;
-  height: 2px;
-  background: var(--md-accent);
-} */
-
-/* 6. 科技蓝 - Digital Wave */
-.app[data-mdtheme="digitalWave"] {
-  --md-bg: #ffffff;
-  --md-fg: #1e293b;
-  --md-muted: #64748b;
-  --md-accent: #0ea5e9;
-  --md-border: #e2e8f0;
-  --md-code-bg: #f1f5f9;
-  --md-code-fg: #334155;
-  --md-quote-bg: #f0f9ff;
-  --md-quote-bar: #38bdf8;
-  --md-table-stripe: #f8fafc;
-}
-
-.app[data-mdtheme="digitalWave"] h1,
-.app[data-mdtheme="digitalWave"] h2,
-.app[data-mdtheme="digitalWave"] h3 {
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  position: relative;
-  overflow: hidden;
-}
-
-/* 7. 温暖橙 - Sunset Glow */
-.app[data-mdtheme="sunsetGlow"] {
-  --md-bg: #ffffff;
-  --md-fg: #7c2d12;
-  --md-muted: #a3a3a3;
-  --md-accent: #f97316;
-  --md-border: #fed7aa;
-  --md-code-bg: #fff7ed;
-  --md-code-fg: #9a3412;
-  --md-quote-bg: #fef3c7;
-  --md-quote-bar: #f59e0b;
-  --md-table-stripe: #fffbeb;
-}
-
-.app[data-mdtheme="sunsetGlow"] h1,
-.app[data-mdtheme="sunsetGlow"] h2,
-.app[data-mdtheme="sunsetGlow"] h3 {
-  color: var(--md-accent);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: var(--md-accent);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 6px;
-  text-align: center;
-}
-
-/* 8. 优雅紫 - Lavender Mist */
-.app[data-mdtheme="lavenderMist"] {
-  --md-bg: #ffffff;
-  --md-fg: #4c1d95;
-  --md-muted: #7c3aed;
-  --md-accent: #8b5cf6;
-  --md-border: #ede9fe;
-  --md-code-bg: #faf5ff;
-  --md-code-fg: #581c87;
-  --md-quote-bg: #f3e8ff;
-  --md-quote-bar: #a855f7;
-  --md-table-stripe: #fdf4ff;
-}
-
-.app[data-mdtheme="lavenderMist"] h1,
-.app[data-mdtheme="lavenderMist"] h2,
-.app[data-mdtheme="lavenderMist"] h3 {
-  border: 2px solid var(--md-accent);
+.app[data-mdtheme="midnight"] .markdown-body blockquote {
+  border-left: 0;
+  border: 2px solid rgba(242, 197, 123, 0.7);
   border-radius: 16px;
-  padding: 12px 20px;
-  text-align: center;
-  background: rgba(139, 92, 246, 0.1);
-  color: var(--md-accent);
-  font-weight: 600;
-}
-
-/* 9. 自然绿 - Forest Whisper */
-.app[data-mdtheme="forestWhisper"] {
-  --md-bg: #ffffff;
-  --md-fg: #14532d;
-  --md-muted: #4b5563;
-  --md-accent: #059669;
-  --md-border: #d1fae5;
-  --md-code-bg: #f0fdf4;
-  --md-code-fg: #15803d;
-  --md-quote-bg: #ecfdf5;
-  --md-quote-bar: #10b981;
-  --md-table-stripe: #f7fee7;
-}
-
-.app[data-mdtheme="forestWhisper"] h1,
-.app[data-mdtheme="forestWhisper"] h2,
-.app[data-mdtheme="forestWhisper"] h3 {
-  border-left: 8px solid var(--md-accent);
-  border-top: 2px solid var(--md-accent);
-  border-bottom: 2px solid var(--md-accent);
-  padding: 10px 0 10px 20px;
-  background: linear-gradient(90deg, rgba(5, 150, 105, 0.1), transparent);
-  font-weight: 700;
-  color: var(--md-accent);
-}
-
-/* 10. 玫瑰金 - Rose Gold Elegance */
-.app[data-mdtheme="roseGold"] {
-  --md-bg: #ffffff;
-  --md-fg: #881337;
-  --md-muted: #a3a3a3;
-  --md-accent: #e11d48;
-  --md-border: #fecdd3;
-  --md-code-bg: #fff1f2;
-  --md-code-fg: #9f1239;
-  --md-quote-bg: #fdf2f8;
-  --md-quote-bar: #ec4899;
-  --md-table-stripe: #fef7f0;
-}
-
-.app[data-mdtheme="roseGold"] h1,
-.app[data-mdtheme="roseGold"] h2,
-.app[data-mdtheme="roseGold"] h3 {
-  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-  text-align: center;
-  position: relative;
-  padding-bottom: 12px;
-}
-
-.app[data-mdtheme="roseGold"] h1::after,
-.app[data-mdtheme="roseGold"] h2::after,
-.app[data-mdtheme="roseGold"] h3::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 3px;
-  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
-  border-radius: 2px;
+  background: rgba(33, 27, 67, 0.8);
+  color: #efe8ff;
 }
 
 /* ========================================= */
-/*       CodeMirror 纯文本写作模式         */
+/*       CodeMirror 绾枃鏈啓浣滄ā寮?        */
 /* ========================================= */
 
-/* 1. 确保 CodeMirror 从外到内的每一层容器都严格遵守其父级的宽度 */
+/* 1. 纭繚 CodeMirror 浠庡鍒板唴鐨勬瘡涓€灞傚鍣ㄩ兘涓ユ牸閬靛畧鍏剁埗绾х殑瀹藉害 */
 .editor,
 .codemirror-editor,
 .cm-editor,
 .cm-scroller {
   width: 100%;
   height: 100%;
-  box-sizing: border-box; /* 添加这个属性，让 padding 和 border 不会影响宽度计算，更稳健 */
+  box-sizing: border-box; /* 娣诲姞杩欎釜灞炴€э紝璁?padding 鍜?border 涓嶄細褰卞搷瀹藉害璁＄畻锛屾洿绋冲仴 */
 }
 
 
@@ -1608,7 +1617,7 @@ html, body {
 } */
 
 
-/* CodeMirror 容器 - 极简黑白风格，继承 .editor 的卡片样式 */
+/* CodeMirror 瀹瑰櫒 - 鏋佺畝榛戠櫧椋庢牸锛岀户鎵?.editor 鐨勫崱鐗囨牱寮?*/
 /* .editor .codemirror-editor {
   height: 100%;
   width: 100%;
@@ -1617,12 +1626,12 @@ html, body {
   font-family: 'LXGW WenKai', 'PingFang SC', system-ui, sans-serif;
 } */
 
-/* 隐藏所有代码感元素 */
+/* 闅愯棌鎵€鏈変唬鐮佹劅鍏冪礌 */
 .editor .cm-gutters {
   display: none !important;
 }
 
-/* 编辑器主体 - 透明背景，继承父容器的白色背景 */
+/* 缂栬緫鍣ㄤ富浣?- 閫忔槑鑳屾櫙锛岀户鎵跨埗瀹瑰櫒鐨勭櫧鑹茶儗鏅?*/
 /* .editor .codemirror-editor .cm-editor {
   height: 100%;
   width: 100%;
@@ -1634,19 +1643,19 @@ html, body {
   box-sizing: border-box;
 } */
 
-/* 滚动区域 - 这是滚动发生的地方 */
+/* 婊氬姩鍖哄煙 - 杩欐槸婊氬姩鍙戠敓鐨勫湴鏂?*/
 .editor .cm-scroller {
   font-family: inherit;
   line-height: inherit;
   height: 100% !important;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden !important; /* 禁止横向滚动 */
-  overflow-y: auto !important; /* 允许垂直滚动 */
+  overflow-x: hidden !important; /* 绂佹妯悜婊氬姩 */
+  overflow-y: auto !important; /* 鍏佽鍨傜洿婊氬姩 */
   box-sizing: border-box;
 }
 
-/* 内容区 - 加大内边距 */
+/* 鍐呭鍖?- 鍔犲ぇ鍐呰竟璺?*/
 .editor .cm-content {
   padding: 40px 60px 80px 60px;
   caret-color: var(--md-accent);
@@ -1662,13 +1671,13 @@ html, body {
   word-break: break-all; 
 }
 
-/* 光标 */
+/* 鍏夋爣 */
 .editor .codemirror-editor .cm-cursor {
   border-left-color: var(--md-accent);
   border-left-width: 2px;
 }
 
-/* 选中文本 - 淡灰色 */
+/* 閫変腑鏂囨湰 - 娣＄伆鑹?*/
 .editor .codemirror-editor .cm-selectionBackground {
   background-color: #e5e5e5 !important;
 }
@@ -1677,13 +1686,13 @@ html, body {
   background-color: #e5e5e5 !important;
 }
 
-/* 占位符 */
+/* 鍗犱綅绗?*/
 .editor .codemirror-editor .cm-placeholder {
   color: #999;
   font-style: normal;
 }
 
-/* 每一行的文字颜色 */
+/* 姣忎竴琛岀殑鏂囧瓧棰滆壊 */
 .editor .cm-line {
   font-family: inherit;
   color: var(--md-text) !important;
@@ -1695,7 +1704,7 @@ html, body {
   word-break: break-all; 
 }
 
-/* 移除所有语法高亮 - 纯色文字 */
+/* 绉婚櫎鎵€鏈夎娉曢珮浜?- 绾壊鏂囧瓧 */
 /* .editor .codemirror-editor .cm-line * {
   color: var(--md-text) !important;
   font-weight: inherit !important;
@@ -1709,7 +1718,7 @@ html, body {
 
 
 
-/* 响应式字体大小 */
+/* 鍝嶅簲寮忓瓧浣撳ぇ灏?*/
 @media (max-width: 768px) {
   .editor .codemirror-editor .cm-editor {
     font-size: 14px;
@@ -1718,3 +1727,4 @@ html, body {
     padding: 20px;
   }
 }
+

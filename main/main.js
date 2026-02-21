@@ -21,6 +21,7 @@ const { log } = require("console");
 const os = require('os');
 
 const IMAGE_EXPORT_MAX_PIXELS = 80_000_000; // 约 320MB RGBA，防止超长截图内存爆炸
+const IMAGE_EXPORT_FORCE_COMPAT_MODE = true; // 兼容模式更稳定，默认跳过 CDP 主截图
 
 
 let mainWindow;
@@ -1248,6 +1249,80 @@ ipcMain.handle("export-to-pdf", async (event, payload) => {
     console.log("[PDF Export] 等待样式渲染 (500ms)...");
     await new Promise(resolve => setTimeout(resolve, 500));
     console.log("[PDF Export] 等待结束");
+
+    // 将单个水印推到最后一页底部，避免在每页重复显示
+    console.log("[PDF Export] 开始定位末页水印...");
+    try {
+      const watermarkLayout = await pdfWindow.webContents.executeJavaScript(`
+        (() => {
+          const measureMm = (mm) => {
+            const probe = document.createElement('div');
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            probe.style.pointerEvents = 'none';
+            probe.style.left = '-99999px';
+            probe.style.top = '0';
+            probe.style.width = '1px';
+            probe.style.height = mm + 'mm';
+            document.body.appendChild(probe);
+            const px = probe.getBoundingClientRect().height;
+            probe.remove();
+            return px;
+          };
+
+          const watermark = document.querySelector('.pdf-export .app-watermark');
+          const content = document.querySelector('.pdf-export .markdown-body');
+          if (!watermark || !content) {
+            return { adjusted: false, reason: 'missing-elements' };
+          }
+
+          watermark.style.marginTop = '0px';
+          watermark.style.position = 'relative';
+          watermark.style.left = 'auto';
+          watermark.style.right = 'auto';
+          watermark.style.bottom = 'auto';
+
+          const pageHeightPx = measureMm(297);
+          if (!pageHeightPx || pageHeightPx < 200) {
+            return { adjusted: false, reason: 'invalid-page-height', pageHeightPx };
+          }
+
+          const bottomInsetPx = measureMm(8);
+          const minGapPx = measureMm(18);
+
+          const scrollY = window.scrollY || window.pageYOffset || 0;
+          const contentRect = content.getBoundingClientRect();
+          const watermarkRect = watermark.getBoundingClientRect();
+
+          const contentTop = contentRect.top + scrollY;
+          const contentBottom = contentTop + contentRect.height;
+          const watermarkTopNow = watermarkRect.top + scrollY;
+          const watermarkHeight = watermarkRect.height;
+
+          const minTop = contentBottom + minGapPx;
+          const requiredBottom = minTop + watermarkHeight + bottomInsetPx;
+          const pageIndex = Math.max(1, Math.ceil(requiredBottom / pageHeightPx));
+          const targetTop = (pageIndex * pageHeightPx) - bottomInsetPx - watermarkHeight;
+          const extraMargin = Math.max(0, Math.ceil(targetTop - watermarkTopNow));
+
+          watermark.style.marginTop = extraMargin + 'px';
+          return {
+            adjusted: true,
+            pageHeightPx,
+            bottomInsetPx,
+            minGapPx,
+            pageIndex,
+            extraMargin,
+            watermarkHeight,
+          };
+        })();
+      `).catch((e) => ({ adjusted: false, reason: 'execute-failed', error: String(e) }));
+      console.log("[PDF Export] 末页水印定位结果:", watermarkLayout);
+    } catch (watermarkErr) {
+      console.warn("[PDF Export] 末页水印定位失败，使用默认位置:", watermarkErr);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 80));
     sendExportProgress(sender, { type: 'pdf', progress: 70, message: '正在生成 PDF...' });
 
     console.log("[PDF Export] 开始生成 PDF 数据...");
@@ -1574,16 +1649,17 @@ ipcMain.handle("export-to-image", async (event, payload) => {
       dimensions.height = Math.max(dimensions.height, Math.ceil(stableHeight));
     }
     console.log("[Image Export] 页面尺寸:", dimensions);
-    sendExportProgress(sender, { type: 'image', progress: 50, message: `尺寸 ${dimensions.width}x${dimensions.height}，开始分段截图...` });
+    sendExportProgress(sender, { type: 'image', progress: 50, message: `尺寸 ${dimensions.width}x${dimensions.height}，开始生成图片...` });
 
     const finalWidth = Math.max(360, Math.min(2000, Math.ceil(dimensions.width)));
     const finalHeight = Math.max(1, Math.ceil(dimensions.height));
     const maxPixels = IMAGE_EXPORT_MAX_PIXELS;
     const preferFallbackForLongPage = finalHeight > 20_000;
+    const shouldUseCdpPrimary = !IMAGE_EXPORT_FORCE_COMPAT_MODE && !preferFallbackForLongPage;
     let pngBuffer = null;
 
     // 优先使用 Chromium 全页截图能力；超长内容优先走兼容分段模式，避免 CDP 长时间超时。
-    if (!preferFallbackForLongPage) {
+    if (shouldUseCdpPrimary) {
       try {
         const totalPixels = finalWidth * finalHeight;
         if (totalPixels > maxPixels) {
@@ -1668,7 +1744,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
           sendExportProgress(sender, {
             type: 'image',
             progress: segProgress,
-            message: `正在拼接图片片段 ${segmentCount}/${totalSegments}...`,
+            message: '正在生成图片...',
           });
         }
 
@@ -1698,8 +1774,19 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         console.warn("[Image Export] CDP 截图失败，回退 capturePage:", cdpErr);
       }
     } else {
-      console.log("[Image Export] 页面过长，跳过 CDP 主方案，直接使用兼容截图模式:", { finalWidth, finalHeight });
-      sendExportProgress(sender, { type: 'image', progress: 60, message: '文档较长，切换到兼容分段截图模式...' });
+      console.log("[Image Export] 跳过 CDP 主方案，直接使用兼容截图模式:", {
+        finalWidth,
+        finalHeight,
+        forceCompat: IMAGE_EXPORT_FORCE_COMPAT_MODE,
+        preferFallbackForLongPage,
+      });
+      sendExportProgress(sender, {
+        type: 'image',
+        progress: 60,
+        message: IMAGE_EXPORT_FORCE_COMPAT_MODE
+          ? '已启用兼容截图模式...'
+          : '文档较长，切换到兼容截图模式...',
+      });
     }
 
     // 回退方案：分段滚动 + capturePage，再拼接，确保超长文档也能完整导出
@@ -1863,7 +1950,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         sendExportProgress(sender, {
           type: 'image',
           progress: segProgress,
-          message: `兼容截图拼接 ${segmentCount}/${expectedSegments}...`,
+          message: '正在生成高清图片...',
         });
 
         const nextCssOffset = cssTop + cssChunkHeight;
@@ -1947,7 +2034,7 @@ ipcMain.handle("export-to-image", async (event, payload) => {
         throw new Error("兼容截图拼接失败：生成图像为空");
       }
       pngBuffer = mergedImage.toPNG();
-      console.log("[Image Export] 回退分段拼接完成，段数:", segmentCount, "字节数:", pngBuffer.length, "尺寸:", { width: outputWidth, height: finalOutputHeight });
+      console.log("[Image Export] 兼容截图完成，段数:", segmentCount, "字节数:", pngBuffer.length, "尺寸:", { width: outputWidth, height: finalOutputHeight });
       sendExportProgress(sender, { type: 'image', progress: 90, message: '截图完成，正在写入文件...' });
     }
 

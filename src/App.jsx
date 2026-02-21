@@ -44,28 +44,28 @@ const mermaidInitialized = new Promise(resolve => {
 // ======== 主题 ==============
 // Markdown 主题清单
 const MD_THEMES = {
-  light: { name: "Light" },
-  dark: { name: "Dark" },
-  sepia: { name: "Sepia" },
-  paper: { name: "Paper" },
-  midnight: { name: "Midnight" },
-  auroraPurple: { name: "Aurora Purple" },
-  mintyFresh: { name: "Minty Fresh" },
-  lazySloth: { name: "Lazy Sloth" },
+  light: { name: "Studio Light" },
+  dark: { name: "Carbon Dark" },
+  sepia: { name: "Warm Sepia" },
+  paper: { name: "Natsume Notebook" },
+  midnight: { name: "Campfire Midnight" },
+  auroraPurple: { name: "Aurora Violet" },
+  mintyFresh: { name: "Mint Fresh" },
+  lazySloth: { name: "Fog Sage" },
   oceanBreeze: { name: "Ocean Breeze" },
-  candyDream: { name: "Candy Dream" },
-  sunsetGlow: { name: "Sunset Glow" },
+  candyDream: { name: "Candy Pastel" },
+  sunsetGlow: { name: "Sunset Amber" },
   galaxyNight: { name: "Galaxy Night" },
 
-  magazine: { name: "Magazine Style" },
-  neonDreams: { name: "Neon Dreams" },
-  sakuraBloom: { name: "Sakura Bloom" },
-  executive: { name: "Executive Suite" },
+  magazine: { name: "Editorial Mono" },
+  neonDreams: { name: "Neon Pulse" },
+  sakuraBloom: { name: "Sakura Soft" },
+  executive: { name: "Executive Pro" },
   mintBreeze: { name: "Mint Breeze" },
   digitalWave: { name: "Digital Wave" },
   lavenderMist: { name: "Lavender Mist" },
   forestWhisper: { name: "Forest Whisper" },
-  roseGold: { name: "Rose Gold Elegance" },
+  roseGold: { name: "Rose Gold" },
 };
 
 const DEFAULT_MD_THEME = "light";
@@ -420,172 +420,37 @@ font-family:
 };
 
 // 3. 获取主题特定样式
-const getThemeSpecificStyles = (theme, variables) => {
-  const themeStyles = {
-    magazine: `
-/* Magazine Style Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  text-align: center;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid ${variables['--md-accent'] || '#000'};
-  padding-bottom: 8px;
-}`,
+const getThemeSpecificStyles = (_theme, variables) => {
+  const accent = variables['--md-accent'] || '#2f7df5';
+  const border = variables['--md-border'] || '#dbe5f2';
+  const quoteBg = variables['--md-quote-bg'] || '#f3f8ff';
+  const headingColor = variables['--md-fg'] || '#1f2937';
 
-    neonDreams: `
-/* Neon Dreams Headers */
+  return `
+/* Modern unified heading/blockquote tuning for export */
 .markdown-body h1,
 .markdown-body h2,
-.markdown-body h3 {
-  background: linear-gradient(135deg, ${variables['--md-accent'] || '#ec4899'}, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-  border-left: 4px solid ${variables['--md-accent'] || '#ec4899'};
-  padding-left: 16px;
-}`,
-
-    sakuraBloom: `
-/* Sakura Bloom Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  background: ${variables['--md-accent'] || '#f472b6'};
-  color: white;
-  border-radius: 12px;
-  padding: 8px 16px;
-  text-align: center;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
-}`,
-
-    executive: `
-/* Executive Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  border-left: 6px solid ${variables['--md-accent'] || '#3b82f6'};
-  padding-left: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}`,
-
-    mintBreeze: `
-/* Mint Breeze Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  color: ${variables['--md-accent'] || '#10b981'};
-  font-weight: 600;
-  text-align: center;
-  position: relative;
-  padding: 20px 0 10px 0;
+.markdown-body h3,
+.markdown-body h4 {
+  color: ${headingColor};
 }
 
-.markdown-body h1::before,
-.markdown-body h2::before,
-.markdown-body h3::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 2px;
-  background: ${variables['--md-accent'] || '#10b981'};
-}`,
-
-    digitalWave: `
-/* Digital Wave Headers */
 .markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  position: relative;
-  overflow: hidden;
-}`,
-
-    sunsetGlow: `
-/* Sunset Glow Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  color: ${variables['--md-accent'] || '#f97316'};
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: ${variables['--md-accent'] || '#f97316'};
-  text-decoration-thickness: 3px;
-  text-underline-offset: 6px;
-  text-align: center;
-}`,
-
-    lavenderMist: `
-/* Lavender Mist Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  border: 2px solid ${variables['--md-accent'] || '#8b5cf6'};
-  border-radius: 16px;
-  padding: 12px 20px;
-  text-align: center;
-  background: rgba(139, 92, 246, 0.1);
-  color: ${variables['--md-accent'] || '#8b5cf6'};
-  font-weight: 600;
-}`,
-
-    forestWhisper: `
-/* Forest Whisper Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  border-left: 8px solid ${variables['--md-accent'] || '#059669'};
-  border-top: 2px solid ${variables['--md-accent'] || '#059669'};
-  border-bottom: 2px solid ${variables['--md-accent'] || '#059669'};
-  padding: 10px 0 10px 20px;
-  background: linear-gradient(90deg, rgba(5, 150, 105, 0.1), transparent);
-  font-weight: 700;
-  color: ${variables['--md-accent'] || '#059669'};
-}`,
-
-    roseGold: `
-/* Rose Gold Headers */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-  text-align: center;
-  position: relative;
-  padding-bottom: 12px;
+.markdown-body h2 {
+  border-bottom: 1px solid ${border};
+  padding-bottom: 0.35em;
 }
 
-.markdown-body h1::after,
-.markdown-body h2::after,
-.markdown-body h3::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  height: 3px;
-  background: linear-gradient(45deg, #e11d48, #ec4899, #f59e0b);
-  border-radius: 2px;
-}`
-  };
+.markdown-body h3,
+.markdown-body h4 {
+  color: ${accent};
+}
 
-  return themeStyles[theme] || '';
+.markdown-body blockquote {
+  background: ${quoteBg};
+  border-radius: 10px;
+}
+`;
 };
 
 
@@ -750,18 +615,24 @@ function App() {
     localStorage.setItem("mdTheme", mdTheme);
   }, [mdTheme]);
 
-  // 第二个 useEffect：负责读取样式
-  // 1. 创建一个 ref 来引用我们的主容器 div
+  // 第二个 useEffect：把页面外层背景同步为当前主题背景
   const appRef = useRef(null);
   useEffect(() => {
-    if (appRef.current) {
-      const styles = getComputedStyle(appRef.current);
-      console.log(`主题 '${mdTheme}' 的styles是: ${styles}`);
-      console.dir(styles);
-      const backgroundColor = styles.getPropertyValue('--md-bg').trim();
-      console.log(`主题 '${mdTheme}' 的背景色是: ${backgroundColor}`);
-    }
-  }, [mdTheme]);
+    if (!appRef.current) return;
+    const styles = getComputedStyle(appRef.current);
+    const appBackground =
+      styles.getPropertyValue("--ui-app-bg").trim() ||
+      styles.getPropertyValue("--md-bg").trim() ||
+      "#ffffff";
+
+    document.body.style.background = appBackground;
+    document.documentElement.style.background = appBackground;
+
+    return () => {
+      document.body.style.background = "";
+      document.documentElement.style.background = "";
+    };
+  }, [mdTheme, customThemes]);
 
   // 直接解析 URL 参数
   const query = new URLSearchParams(window.location.search);
@@ -1509,32 +1380,45 @@ function App() {
 .preview-export {
   box-sizing: border-box;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 20px 0;
+  display: block;
+  padding: 0;
   background: var(--md-bg, #ffffff);
   color: var(--md-fg, #000);
-  min-height: 100vh;
+  min-height: auto;
 }
 
-/* 这里控制实际的可视宽度：80% / 最大 1100px（和你 app 的 layout-preview 一致） */
+/* HTML 导出宽度与主预览流一致 */
 .preview-export .preview {
-  width: 80%;
-  max-width: 1100px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 0;
   box-sizing: border-box;
+  height: auto !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
-/* markdown-body 在导出时按 preview 的内部样式显示 */
+.preview-export .preview-inner {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* markdown-body 直接沿用主预览宽度策略 */
 .preview-export .markdown-body {
   width: 100%;
-  max-width: 100%;
-  padding: 0 32px;
+  max-width: none;
+  padding: 20px 80px 80px 80px;
   box-sizing: border-box;
   margin: 0;
   font-size: 15px;
   line-height: 1.8;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 /* 保证图片/mermaid 等不超出 */
@@ -1642,6 +1526,9 @@ function App() {
 
       // 1. 获取页面全量样式
       const allStyles = getAllStyles();
+      const appStyles = appRef.current ? getComputedStyle(appRef.current) : null;
+      const exportBg = (appStyles?.getPropertyValue("--md-bg") || "").trim() || "#ffffff";
+      const exportFg = (appStyles?.getPropertyValue("--md-fg") || "").trim() || "#111111";
 
       // 2. 取出用于导出的正文 DOM（只拿真实内容，避免带入滚动容器）
       const previewElement = document.querySelector(".preview .markdown-body");
@@ -1669,7 +1556,21 @@ body {
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
-  background: #ffffff !important;
+  background: ${exportBg} !important;
+  color: ${exportFg} !important;
+  position: relative !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* 让每一页都铺满主题背景，避免“外白内暗” */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: ${exportBg};
+  z-index: 0;
+  pointer-events: none;
 }
 
 .app {
@@ -1678,20 +1579,25 @@ body {
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
-  background: #ffffff !important;
+  background: ${exportBg} !important;
+  color: ${exportFg} !important;
+  position: relative !important;
+  z-index: 1;
 }
 
 .pdf-export {
   box-sizing: border-box;
   width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 12mm 9mm;
-  background: var(--md-bg, #ffffff);
-  color: var(--md-fg, #000);
+  max-width: none;
+  margin: 0;
+  padding: 12mm 9mm 10mm 9mm;
+  background: ${exportBg};
+  color: ${exportFg};
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
+  position: relative;
+  z-index: 1;
 }
 
 .pdf-export .markdown-body {
@@ -1721,7 +1627,7 @@ body {
 
 @page {
   size: A4;
-  margin: 9mm 7mm;
+  margin: 0;
 }
 
 /* 保证图片/mermaid 等不超出 */
@@ -1749,29 +1655,25 @@ body {
 
 /* Export watermark */
 .pdf-export .app-watermark {
-  margin: 28px auto 0;
+  position: relative;
+  margin: 0 auto;
   text-align: center;
   user-select: none;
+  pointer-events: none;
+  page-break-inside: avoid;
+  break-inside: avoid-page;
+  z-index: 2;
 }
 
 .pdf-export .app-watermark-divider {
   width: min(260px, 62%);
-  height: 16px;
+  height: 12px;
   margin: 0 auto 10px;
   border-radius: 999px;
   opacity: 0.42;
-  background:
-    radial-gradient(circle at 8px 8px, rgba(132, 220, 198, 0.48) 0 3px, transparent 3.6px) 0 2px / 16px 12px repeat-x,
-    radial-gradient(circle at 8px 8px, rgba(177, 236, 220, 0.34) 0 2px, transparent 2.8px) 8px 8px / 16px 12px repeat-x,
-    linear-gradient(
-      90deg,
-      rgba(140, 222, 203, 0),
-      rgba(140, 222, 203, 0.35) 16%,
-      rgba(140, 222, 203, 0.44) 50%,
-      rgba(140, 222, 203, 0.35) 84%,
-      rgba(140, 222, 203, 0)
-    );
-  filter: drop-shadow(0 0 6px rgba(137, 220, 202, 0.26));
+  border-top: 1px dashed rgba(140, 222, 203, 0.5);
+  border-bottom: 1px dashed rgba(140, 222, 203, 0.3);
+  box-shadow: inset 0 1px 0 rgba(202, 240, 229, 0.3);
 }
 
 .pdf-export .app-watermark-title {
@@ -1912,6 +1814,8 @@ body {
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
+  background: var(--md-bg, #ffffff) !important;
+  color: var(--md-fg, #111) !important;
 }
 
 /* 隐藏滚动条，避免分段截图拼接后出现多个滚动条滑块 */
@@ -1941,6 +1845,8 @@ body::-webkit-scrollbar,
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
+  background: var(--md-bg, #ffffff) !important;
+  color: var(--md-fg, #111) !important;
 }
 
 .image-export {
@@ -1949,8 +1855,8 @@ body::-webkit-scrollbar,
   max-width: 390px;
   margin: 0 auto;
   padding: 20px 10px 24px;
-  background: #ffffff !important;
-  color: #111111 !important;
+  background: var(--md-bg, #ffffff) !important;
+  color: var(--md-fg, #111111) !important;
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
@@ -1965,7 +1871,7 @@ body::-webkit-scrollbar,
   font-size: 17px;
   font-weight: 500;
   line-height: 1.8;
-  color: #111111 !important;
+  color: var(--md-fg, #111111) !important;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -2023,22 +1929,13 @@ body::-webkit-scrollbar,
 
 .image-export .app-watermark-divider {
   width: min(250px, 68%);
-  height: 18px;
+  height: 12px;
   margin: 0 auto 10px;
   border-radius: 999px;
   opacity: 0.44;
-  background:
-    radial-gradient(circle at 8px 8px, rgba(129, 221, 198, 0.52) 0 3px, transparent 3.6px) 0 2px / 16px 12px repeat-x,
-    radial-gradient(circle at 8px 8px, rgba(184, 238, 223, 0.34) 0 2px, transparent 2.8px) 8px 8px / 16px 12px repeat-x,
-    linear-gradient(
-      90deg,
-      rgba(140, 223, 204, 0),
-      rgba(140, 223, 204, 0.36) 16%,
-      rgba(140, 223, 204, 0.46) 50%,
-      rgba(140, 223, 204, 0.36) 84%,
-      rgba(140, 223, 204, 0)
-    );
-  filter: drop-shadow(0 0 6px rgba(133, 219, 199, 0.3));
+  border-top: 1px dashed rgba(140, 223, 204, 0.52);
+  border-bottom: 1px dashed rgba(140, 223, 204, 0.32);
+  box-shadow: inset 0 1px 0 rgba(204, 241, 231, 0.32);
 }
 
 .image-export .app-watermark-title {

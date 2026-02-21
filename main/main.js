@@ -247,6 +247,37 @@ ipcMain.handle('exit-fullscreen', (event) => {
   }
 });
 
+ipcMain.handle("window-minimize", (event) => {
+  const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  if (!win) return { success: false, error: "no-window" };
+  win.minimize();
+  return { success: true };
+});
+
+ipcMain.handle("window-toggle-maximize", (event) => {
+  const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  if (!win) return { success: false, error: "no-window", isMaximized: false };
+  if (win.isMaximized()) {
+    win.unmaximize();
+  } else {
+    win.maximize();
+  }
+  return { success: true, isMaximized: win.isMaximized() };
+});
+
+ipcMain.handle("window-is-maximized", (event) => {
+  const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  if (!win) return false;
+  return win.isMaximized();
+});
+
+ipcMain.handle("window-close", (event) => {
+  const win = event && event.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  if (!win) return { success: false, error: "no-window" };
+  win.close();
+  return { success: true };
+});
+
 const LOGFILE = path.join(app.getPath('userData'), 'electron.log');
 function safeLog(...args) {
   try {
@@ -322,6 +353,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
+    frame: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
 
@@ -336,6 +369,15 @@ function createWindow() {
 
 
   // 将渲染器 console 输出写入日志（方便定位前端错误）
+  if (process.platform !== "darwin") {
+    try {
+      mainWindow.setAutoHideMenuBar(true);
+      mainWindow.setMenuBarVisibility(false);
+    } catch (err) {
+      log("setMenuBarVisibility failed:", err && (err.message || err));
+    }
+  }
+
   mainWindow.webContents.on('console-message', (e, level, message, line, sourceId) => {
     log('Renderer console:', { level, message, line, sourceId });
   });

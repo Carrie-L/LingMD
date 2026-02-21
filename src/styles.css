@@ -157,7 +157,126 @@ html, body {
   box-shadow: 0 8px 24px rgba(31, 49, 77, 0.08);
   z-index: 100;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
+  -webkit-app-region: drag;
+}
+
+.toolbar button,
+.toolbar label,
+.toolbar select,
+.toolbar input,
+.toolbar .toolbar-button,
+.toolbar .file-menu,
+.toolbar .file-menu-dropdown,
+.toolbar .file-menu-dropdown button {
+  -webkit-app-region: no-drag;
+}
+
+.app-brand {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--ui-button-bg);
+  color: var(--ui-button-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.app-brand img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: block;
+}
+
+.file-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.file-menu-trigger {
+  min-width: 62px;
+  justify-content: center;
+}
+
+.file-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 180px;
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(18, 24, 36, 0.16);
+  padding: 6px;
+  z-index: 240;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbar .file-menu-dropdown button {
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-button-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  padding: 0 10px;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.toolbar .file-menu-dropdown button:hover {
+  background: var(--ui-button-hover-bg);
+  box-shadow: none;
+  transform: none;
+}
+
+.file-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--ui-panel-border);
+}
+
+.window-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.window-control {
+  width: 30px;
+  height: 28px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ui-button-text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.window-control:hover {
+  background: var(--ui-button-hover-bg);
+}
+
+.window-control.close:hover {
+  background: #e81123;
+  color: #fff;
 }
 
 .toolbar button {
@@ -1341,50 +1460,70 @@ html, body {
 }
 
 .app[data-mdtheme="paper"] {
-  --md-bg: #f6f4ec;
-  --md-fg: #4b5057;
-  --md-text: #5d646d;
-  --md-muted: #8a9093;
-  --md-accent: #25bfae;
-  --md-accent-soft: #ddf5ef;
-  --md-border: #d7dfd8;
-  --md-code-bg: #edf3ee;
-  --md-code-fg: #4c5762;
-  --md-quote-bg: #f8f8f2;
-  --md-quote-bar: #9bc7bf;
-  --md-table-stripe: #f6f8f4;
-  --ui-app-bg:
-    radial-gradient(135% 90% at 88% 0%, rgba(161, 216, 196, 0.34) 0%, rgba(161, 216, 196, 0.08) 48%, rgba(161, 216, 196, 0) 100%),
-    linear-gradient(180deg, #f4f2ea 0%, #ecefe8 100%);
-  --ui-toolbar-bg: rgba(248, 247, 240, 0.92);
-  --ui-toolbar-border: rgba(170, 182, 176, 0.36);
-  --ui-status-bg: rgba(248, 247, 240, 0.94);
-  --ui-status-border: rgba(170, 182, 176, 0.34);
-  --ui-status-text: #7d8687;
-  --ui-panel-bg: #f7f6f1;
-  --ui-panel-border: #d6dfd7;
-  --ui-shadow: 0 16px 36px rgba(58, 67, 63, 0.15);
-  --ui-hover-shadow: 0 20px 44px rgba(58, 67, 63, 0.2);
-  --ui-button-bg: #f3f7f2;
-  --ui-button-border: #bbd8d1;
-  --ui-button-text: #2f6f67;
-  --ui-button-hover-bg: #e4f4ef;
-  --ui-button-active-bg: linear-gradient(135deg, #34d2bf 0%, #24b7a5 100%);
-  --ui-button-active-text: #f6fffe;
-  --ui-input-bg: #f2f5f1;
-  --ui-input-border: #d1dad4;
-  --ui-input-text: #505a63;
-  --vn-speaker-label: "夏目 (Natsume)";
-  --vn-next-label: "Next  ->";
-  --vn-dialog-border: #28bcac;
-  --vn-dialog-bg: #f6fbf7;
-  --vn-name-bg: #edf8f3;
-  --vn-name-fg: #217e74;
-  --vn-name-border: #7acdc1;
-  --vn-avatar-bg: #e5f6f0;
-  --vn-avatar-ring: #a8dcd2;
-  --vn-next-bg: #eff9f5;
-  --vn-next-fg: #207f75;
+  --md-bg: #fcfcfb;
+  --md-fg: #1d2a3a;
+  --md-text: #2c3a4e;
+  --md-muted: #6f7c8e;
+  --md-accent: #356ecf;
+  --md-accent-soft: #ecf3ff;
+  --md-border: #d9e0ea;
+  --md-code-bg: #f7f9fc;
+  --md-code-fg: #26364a;
+  --md-quote-bg: #f5f8fd;
+  --md-quote-bar: #9eb5d8;
+  --md-table-stripe: #fafbfd;
+}
+
+.app[data-mdtheme="natsumeNotebook"] {
+  --md-bg: #f7f3e8;
+  --md-fg: #4f5963;
+  --md-text: #5e6972;
+  --md-muted: #8b928f;
+  --md-accent: #6da598;
+  --md-accent-soft: #ebf4f1;
+  --md-border: #dfe6df;
+  --md-code-bg: #f3f6f3;
+  --md-code-fg: #4f5d67;
+  --md-quote-bg: #f9faf6;
+  --md-quote-bar: #b7d7ce;
+  --md-table-stripe: #f8faf7;
+}
+
+.app[data-mdtheme="campfireMidnight"] {
+  --md-bg: #262a3b;
+  --md-fg: #e5e2d8;
+  --md-text: #d6d2c8;
+  --md-muted: #aaa69d;
+  --md-accent: #c8ac8a;
+  --md-accent-soft: #3f4357;
+  --md-border: #676d82;
+  --md-code-bg: #31364b;
+  --md-code-fg: #e7e3da;
+  --md-quote-bg: #363b50;
+  --md-quote-bar: #b79a79;
+  --md-table-stripe: #2c3043;
+  --ui-app-bg: #34384b;
+  --ui-toolbar-bg: #3b4054;
+  --ui-toolbar-border: #636a82;
+  --ui-status-bg: #3b4054;
+  --ui-status-border: #636a82;
+  --ui-status-text: #d7d2c6;
+  --ui-panel-bg: #41465b;
+  --ui-panel-border: #6b7289;
+  --ui-button-bg: #474d63;
+  --ui-button-border: #707991;
+  --ui-button-text: #eee9de;
+  --ui-button-hover-bg: #4e556d;
+  --ui-input-bg: #444b61;
+  --ui-input-border: #6e7891;
+  --ui-input-text: #eee9de;
+  --ui-outline-bg: #42485e;
+  --ui-book-cover: #3f4459;
+  --ui-book-cover-border: #6b728a;
+  --ui-book-cover-shadow: rgba(12, 14, 24, 0.38);
+  --ui-book-page: #3a3f54;
+  --ui-book-page-border: #697186;
+  --ui-book-spine: #5d657d;
 }
 
 .app[data-mdtheme="magazine"] {
@@ -1675,29 +1814,18 @@ html, body {
 }
 
 .app[data-mdtheme="midnight"] {
-  --md-bg: #191839;
-  --md-fg: #efebff;
-  --md-text: #e3defd;
-  --md-muted: #b7afd8;
-  --md-accent: #f2c57b;
-  --md-accent-soft: #352768;
-  --md-border: #6f57ae;
-  --md-code-bg: #221d47;
-  --md-code-fg: #f2eeff;
-  --md-quote-bg: #2a2357;
-  --md-quote-bar: #a88fe0;
-  --md-table-stripe: #201c42;
-  --vn-speaker-label: "抚子 (Nadeshiko)";
-  --vn-next-label: "Next  ->";
-  --vn-dialog-border: #efc98a;
-  --vn-dialog-bg: rgba(43, 36, 84, 0.86);
-  --vn-name-bg: rgba(250, 238, 216, 0.96);
-  --vn-name-fg: #7b4455;
-  --vn-name-border: rgba(240, 203, 140, 0.85);
-  --vn-avatar-bg: rgba(245, 210, 149, 0.95);
-  --vn-avatar-ring: rgba(245, 222, 179, 0.88);
-  --vn-next-bg: rgba(248, 238, 219, 0.98);
-  --vn-next-fg: #6f3e4d;
+  --md-bg: #0d1423;
+  --md-fg: #e3ecff;
+  --md-text: #d2def7;
+  --md-muted: #98aecd;
+  --md-accent: #6da7f5;
+  --md-accent-soft: #19263d;
+  --md-border: #24344d;
+  --md-code-bg: #101c2e;
+  --md-code-fg: #dbe7ff;
+  --md-quote-bg: #132036;
+  --md-quote-bar: #4f74a7;
+  --md-table-stripe: #111a2b;
 }
 
 .app[data-mdtheme="galaxyNight"] {
@@ -1730,101 +1858,7 @@ html, body {
   --md-table-stripe: #18142f;
 }
 
-/* ============ Visual Code Novel variants ============ */
-
-.app[data-mdtheme="paper"] .preview,
-.app[data-mdtheme="paper"] .wechat-export {
-  border-radius: 26px;
-  border-width: 2px;
-  border-color: #d6e1d8;
-  box-shadow: 0 22px 48px rgba(54, 63, 59, 0.16);
-}
-
-.app[data-mdtheme="paper"] .preview .markdown-body,
-.app[data-mdtheme="paper"] .wechat-export .markdown-body {
-  background:
-    radial-gradient(118% 88% at 86% 2%, rgba(130, 214, 186, 0.28) 0%, rgba(130, 214, 186, 0.08) 48%, rgba(130, 214, 186, 0) 100%),
-    linear-gradient(180deg, #f8f6ef 0%, #f4f5ee 100%);
-}
-
-.app[data-mdtheme="paper"] .markdown-body h1,
-.app[data-mdtheme="paper"] .markdown-body h2 {
-  border-bottom-color: #d2ddd4;
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  color: #585f66;
-}
-
-.app[data-mdtheme="paper"] .markdown-body h3,
-.app[data-mdtheme="paper"] .markdown-body h4 {
-  color: #1f8e83;
-}
-
-.app[data-mdtheme="paper"] .markdown-body blockquote {
-  border-left: 0;
-  border: 2px solid rgba(37, 191, 174, 0.64);
-  border-radius: 18px;
-  background: rgba(249, 253, 251, 0.95);
-  color: #57616b;
-}
-
-.app[data-mdtheme="midnight"] {
-  --ui-app-bg:
-    radial-gradient(120% 120% at 86% 8%, rgba(255, 242, 170, 0.2) 0%, rgba(255, 242, 170, 0) 18%),
-    linear-gradient(180deg, #30236c 0%, #221a4f 54%, #171533 100%);
-  --ui-toolbar-bg: rgba(29, 22, 62, 0.84);
-  --ui-toolbar-border: rgba(137, 116, 204, 0.4);
-  --ui-status-bg: rgba(20, 17, 43, 0.86);
-  --ui-status-border: rgba(137, 116, 204, 0.4);
-  --ui-status-text: #c7bbef;
-  --ui-panel-bg: rgba(32, 24, 72, 0.86);
-  --ui-panel-border: rgba(129, 101, 201, 0.7);
-  --ui-shadow: 0 24px 56px rgba(9, 8, 24, 0.62);
-  --ui-hover-shadow: 0 28px 60px rgba(9, 8, 24, 0.7);
-  --ui-button-bg: rgba(61, 44, 117, 0.88);
-  --ui-button-border: rgba(162, 135, 228, 0.66);
-  --ui-button-text: #efe9ff;
-  --ui-button-hover-bg: rgba(76, 56, 140, 0.92);
-  --ui-button-active-bg: linear-gradient(135deg, #f5d695 0%, #efb96f 100%);
-  --ui-button-active-text: #2e2151;
-  --ui-input-bg: rgba(41, 30, 84, 0.9);
-  --ui-input-border: rgba(155, 128, 221, 0.55);
-  --ui-input-text: #f1ebff;
-}
-
-.app[data-mdtheme="midnight"] .preview,
-.app[data-mdtheme="midnight"] .wechat-export {
-  border-radius: 28px;
-  border-width: 2px;
-  border-color: rgba(126, 96, 202, 0.9);
-}
-
-.app[data-mdtheme="midnight"] .preview .markdown-body,
-.app[data-mdtheme="midnight"] .wechat-export .markdown-body {
-  background:
-    radial-gradient(circle at 86% 8%, rgba(255, 245, 176, 0.26) 0%, rgba(255, 245, 176, 0) 12%),
-    radial-gradient(circle at 70% 22%, rgba(255, 255, 255, 0.1) 0 1px, transparent 1.3px) 0 0 / 26px 26px,
-    linear-gradient(180deg, #4e30aa 0%, #5a35b0 57%, #171a38 57%, #12142a 100%);
-}
-
-.app[data-mdtheme="midnight"] .markdown-body h1,
-.app[data-mdtheme="midnight"] .markdown-body h2 {
-  color: #f7f2ff;
-  border-bottom-color: rgba(169, 144, 239, 0.62);
-}
-
-.app[data-mdtheme="midnight"] .markdown-body h3,
-.app[data-mdtheme="midnight"] .markdown-body h4 {
-  color: #f2c57b;
-}
-
-.app[data-mdtheme="midnight"] .markdown-body blockquote {
-  border-left: 0;
-  border: 2px solid rgba(242, 197, 123, 0.7);
-  border-radius: 16px;
-  background: rgba(33, 27, 67, 0.8);
-  color: #efe8ff;
-}
+/* ============ Notebook Variants (Yuru Camp style) ============ */
 
 .app[data-mdtheme="duskCamp"] .preview,
 .app[data-mdtheme="duskCamp"] .wechat-export {
@@ -1934,7 +1968,7 @@ html, body {
   margin-bottom: 0;
 }
 
-/* ============ Image-inspired VCN themes (keep Natsume Notebook / Campfire Midnight unchanged) ============ */
+/* ============ Image-inspired VCN themes ============ */
 
 /* Image #3: soft pink VN */
 .app[data-mdtheme="duskCamp"] {
@@ -2299,31 +2333,32 @@ html, body {
 }
 
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) {
-  --ui-app-bg: color-mix(in srgb, var(--md-accent-soft) 58%, var(--md-bg) 42%);
-  --ui-toolbar-bg: color-mix(in srgb, var(--md-bg) 94%, #ffffff 6%);
-  --ui-toolbar-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
-  --ui-status-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
-  --ui-status-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
+  --ui-app-bg: color-mix(in srgb, var(--md-accent-soft) 34%, var(--md-bg) 66%);
+  --ui-toolbar-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
+  --ui-toolbar-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
+  --ui-status-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
+  --ui-status-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
   --ui-status-text: color-mix(in srgb, var(--md-muted) 90%, var(--md-fg) 10%);
-  --ui-panel-bg: color-mix(in srgb, var(--md-bg) 95%, #ffffff 5%);
-  --ui-panel-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
-  --ui-shadow: 0 12px 28px rgba(31, 49, 77, 0.12);
-  --ui-hover-shadow: 0 16px 34px rgba(31, 49, 77, 0.16);
-  --ui-button-bg: color-mix(in srgb, var(--md-bg) 86%, var(--md-accent-soft) 14%);
-  --ui-button-border: color-mix(in srgb, var(--md-border) 82%, var(--md-accent-soft) 18%);
+  --ui-panel-bg: color-mix(in srgb, var(--md-bg) 97%, #ffffff 3%);
+  --ui-panel-border: color-mix(in srgb, var(--md-border) 93%, var(--md-accent-soft) 7%);
+  --ui-shadow: 0 8px 20px rgba(31, 49, 77, 0.08);
+  --ui-hover-shadow: 0 12px 26px rgba(31, 49, 77, 0.12);
+  --ui-button-bg: color-mix(in srgb, var(--md-bg) 92%, var(--md-accent-soft) 8%);
+  --ui-button-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
   --ui-button-text: color-mix(in srgb, var(--md-fg) 90%, #1b2430 10%);
-  --ui-button-hover-bg: color-mix(in srgb, var(--md-accent-soft) 66%, #ffffff 34%);
+  --ui-button-hover-bg: color-mix(in srgb, var(--md-accent-soft) 42%, #ffffff 58%);
   --ui-button-active-bg: var(--md-accent);
   --ui-button-active-text: #ffffff;
-  --ui-input-bg: color-mix(in srgb, var(--md-bg) 90%, var(--md-accent-soft) 10%);
-  --ui-input-border: color-mix(in srgb, var(--md-border) 84%, var(--md-accent-soft) 16%);
+  --ui-input-bg: color-mix(in srgb, var(--md-bg) 94%, var(--md-accent-soft) 6%);
+  --ui-input-border: color-mix(in srgb, var(--md-border) 90%, var(--md-accent-soft) 10%);
   --ui-input-text: var(--md-fg);
-  --ui-book-cover: color-mix(in srgb, var(--md-accent-soft) 78%, var(--md-bg) 22%);
-  --ui-book-cover-border: color-mix(in srgb, var(--md-accent) 26%, var(--md-border) 74%);
-  --ui-book-cover-shadow: color-mix(in srgb, var(--md-fg) 20%, transparent);
-  --ui-book-page: color-mix(in srgb, var(--md-bg) 98%, #ffffff 2%);
-  --ui-book-page-border: color-mix(in srgb, var(--md-border) 88%, var(--md-accent-soft) 12%);
-  --ui-book-spine: color-mix(in srgb, var(--md-accent) 28%, var(--md-border) 72%);
+  --ui-outline-bg: var(--ui-panel-bg);
+  --ui-book-cover: color-mix(in srgb, var(--md-accent-soft) 42%, var(--md-bg) 58%);
+  --ui-book-cover-border: color-mix(in srgb, var(--md-accent) 14%, var(--md-border) 86%);
+  --ui-book-cover-shadow: color-mix(in srgb, var(--md-fg) 12%, transparent);
+  --ui-book-page: color-mix(in srgb, var(--md-bg) 99%, #ffffff 1%);
+  --ui-book-page-border: color-mix(in srgb, var(--md-border) 94%, var(--md-accent-soft) 6%);
+  --ui-book-spine: color-mix(in srgb, var(--md-accent) 16%, var(--md-border) 84%);
 }
 
 /* Top and bottom bars intentionally use the original base layout rules. */
@@ -2345,12 +2380,17 @@ html, body {
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .preview,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export {
-  border: 2px solid var(--ui-panel-border);
+  border: 1px solid var(--ui-panel-border);
   border-radius: 22px;
   background: var(--ui-panel-bg);
   box-shadow: var(--ui-shadow);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .outline-wrapper,
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .outline {
+  background: var(--ui-outline-bg);
 }
 
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .editor::before,
@@ -2429,10 +2469,10 @@ html, body {
   position: relative;
   gap: 0;
   padding: 20px 22px;
-  border: 2px solid var(--ui-book-cover-border);
+  border: 1px solid var(--ui-book-cover-border);
   border-radius: 30px;
   background: var(--ui-book-cover);
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--ui-book-cover-shadow) 24%, transparent);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--ui-book-cover-shadow) 16%, transparent);
   overflow: hidden;
 }
 
@@ -2440,7 +2480,7 @@ html, body {
   content: "";
   position: absolute;
   inset: 12px;
-  border: 1px solid var(--ui-book-page-border);
+  border: 0;
   border-radius: 22px;
   background: var(--ui-book-page);
   pointer-events: none;
@@ -2450,15 +2490,29 @@ html, body {
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area::after {
   content: "";
   position: absolute;
-  top: 18px;
-  bottom: 18px;
+  top: 22px;
+  bottom: 22px;
   left: 50%;
-  width: 14px;
+  width: 20px;
   transform: translateX(-50%);
-  background: var(--ui-book-spine);
-  border-left: 1px solid color-mix(in srgb, var(--ui-book-page-border) 78%, #ffffff 22%);
-  border-right: 1px solid color-mix(in srgb, var(--ui-book-page-border) 78%, #ffffff 22%);
-  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at 50% 10px,
+      color-mix(in srgb, var(--ui-book-page) 96%, #ffffff 4%) 0 2.4px,
+      color-mix(in srgb, var(--ui-book-page-border) 58%, transparent) 2.5px 4.7px,
+      transparent 4.8px
+    ) center top / 100% 20px repeat-y,
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ui-book-spine) 62%, transparent) 0 20%,
+      color-mix(in srgb, var(--ui-book-spine) 56%, transparent) 20% 80%,
+      color-mix(in srgb, var(--ui-book-spine) 62%, transparent) 80% 100%
+    );
+  border-radius: 12px;
+  box-shadow:
+    inset 1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 40%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--ui-book-page-border) 40%, transparent);
+  opacity: 0.72;
   pointer-events: none;
   z-index: 2;
 }

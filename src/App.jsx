@@ -47,8 +47,10 @@ const MD_THEMES = {
   light: { name: "Studio Light" },
   dark: { name: "Carbon Dark" },
   sepia: { name: "Warm Sepia" },
-  paper: { name: "Natsume Notebook" },
-  midnight: { name: "Campfire Midnight" },
+  paper: { name: "Paper White" },
+  midnight: { name: "Midnight Ink" },
+  natsumeNotebook: { name: "Natsume Notebook" },
+  campfireMidnight: { name: "Campfire Midnight" },
   duskCamp: { name: "Switchboard Blush" },
   auroraPurple: { name: "Aurora Violet" },
   mintyFresh: { name: "Morning Camp Radio" },
@@ -657,6 +659,9 @@ function App() {
   });
   const exportProgressHideTimerRef = useRef(null);
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
+  const [showFileMenu, setShowFileMenu] = useState(false);
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
+  const fileMenuRef = useRef(null);
 
   // 获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
@@ -694,6 +699,31 @@ function App() {
   const editorRef = useRef(null);
   const previewRef = useRef(null);
   const wechatRef = useRef(null);
+
+  useEffect(() => {
+    const handleGlobalPointerDown = (event) => {
+      if (fileMenuRef.current && !fileMenuRef.current.contains(event.target)) {
+        setShowFileMenu(false);
+      }
+    };
+    window.addEventListener("mousedown", handleGlobalPointerDown);
+    return () => window.removeEventListener("mousedown", handleGlobalPointerDown);
+  }, []);
+
+  useEffect(() => {
+    const syncWindowState = async () => {
+      if (!window.electronAPI || typeof window.electronAPI.windowIsMaximized !== "function") return;
+      try {
+        const maximized = await window.electronAPI.windowIsMaximized();
+        setIsWindowMaximized(Boolean(maximized));
+      } catch (err) {
+        console.warn("windowIsMaximized failed:", err);
+      }
+    };
+    syncWindowState();
+    window.addEventListener("focus", syncWindowState);
+    return () => window.removeEventListener("focus", syncWindowState);
+  }, []);
 
   // 事件委托：preview 与 wechat 两个区域的 checkbox 点击同步回 editor
   useEffect(() => {
@@ -2055,14 +2085,79 @@ body::-webkit-scrollbar,
     return dir.endsWith(sep) ? dir + name : dir + sep + name;
   }
 
+  const handleFileMenuAction = async (action) => {
+    setShowFileMenu(false);
+    if (typeof action !== "function") return;
+    try {
+      await action();
+    } catch (err) {
+      console.error("file menu action failed:", err);
+    }
+  };
+
+  const handleWindowMinimize = async () => {
+    if (!window.electronAPI || typeof window.electronAPI.windowMinimize !== "function") return;
+    try {
+      await window.electronAPI.windowMinimize();
+    } catch (err) {
+      console.error("windowMinimize failed:", err);
+    }
+  };
+
+  const handleWindowToggleMaximize = async () => {
+    if (!window.electronAPI || typeof window.electronAPI.windowToggleMaximize !== "function") return;
+    try {
+      const res = await window.electronAPI.windowToggleMaximize();
+      if (res && typeof res.isMaximized === "boolean") {
+        setIsWindowMaximized(res.isMaximized);
+      } else if (typeof window.electronAPI.windowIsMaximized === "function") {
+        const maximized = await window.electronAPI.windowIsMaximized();
+        setIsWindowMaximized(Boolean(maximized));
+      }
+    } catch (err) {
+      console.error("windowToggleMaximize failed:", err);
+    }
+  };
+
+  const handleWindowClose = async () => {
+    if (!window.electronAPI || typeof window.electronAPI.windowClose !== "function") return;
+    try {
+      await window.electronAPI.windowClose();
+    } catch (err) {
+      console.error("windowClose failed:", err);
+    }
+  };
+
 
   // 默认编辑模式
   return (
     <div className="app" data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
-        <label className="toolbar-button" onClick={handleNewFile}>新建</label>
-        <label onClick={handleOpen} className="toolbar-button" >打开</label>
-        <label onClick={handleSave} className="toolbar-button">保存</label>
+        <div className="app-brand" title="LingMD">
+          <img src="/favicon.ico" alt="LingMD" />
+          <span>LingMD</span>
+        </div>
+
+        <div className={`file-menu ${showFileMenu ? "open" : ""}`} ref={fileMenuRef}>
+          <button
+            type="button"
+            className="toolbar-button file-menu-trigger"
+            onClick={() => setShowFileMenu((v) => !v)}
+          >
+            File
+          </button>
+          {showFileMenu && (
+            <div className="file-menu-dropdown">
+              <button type="button" onClick={() => handleFileMenuAction(handleNewFile)}>新建</button>
+              <button type="button" onClick={() => handleFileMenuAction(handleOpen)}>打开</button>
+              <button type="button" onClick={() => handleFileMenuAction(handleSave)}>保存</button>
+              <div className="file-menu-sep" />
+              <button type="button" onClick={() => handleFileMenuAction(handleExportHtml)}>导出 HTML</button>
+              <button type="button" onClick={() => handleFileMenuAction(handleExportPdf)}>导出 PDF</button>
+              <button type="button" onClick={() => handleFileMenuAction(handleExportImage)}>导出图片</button>
+            </div>
+          )}
+        </div>
 
         {/* 视图切换按钮 */}
       <button
@@ -2126,6 +2221,32 @@ body::-webkit-scrollbar,
         {showWechat && (
           <label className="toolbar-button" onClick={handleCopyToWechat}>复制到公众号</label>
         )}
+        <div className="window-controls" aria-label="window-controls">
+          <button
+            type="button"
+            className="window-control"
+            title="Minimize"
+            onClick={handleWindowMinimize}
+          >
+            -
+          </button>
+          <button
+            type="button"
+            className="window-control"
+            title={isWindowMaximized ? "Restore" : "Maximize"}
+            onClick={handleWindowToggleMaximize}
+          >
+            {isWindowMaximized ? "❐" : "□"}
+          </button>
+          <button
+            type="button"
+            className="window-control close"
+            title="Close"
+            onClick={handleWindowClose}
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* 主布局：目录 + 内容区 + 微信区 */}

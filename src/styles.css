@@ -33,6 +33,11 @@
   --ui-input-bg: var(--md-code-bg);
   --ui-input-border: var(--md-border);
   --ui-input-text: var(--md-fg);
+  --ui-scrollbar-size: 10px;
+  --ui-scrollbar-track: color-mix(in srgb, var(--md-code-bg) 88%, transparent);
+  --ui-scrollbar-thumb: color-mix(in srgb, var(--md-accent) 38%, white 62%);
+  --ui-scrollbar-thumb-hover: color-mix(in srgb, var(--md-accent) 52%, white 48%);
+  --ui-scrollbar-border: color-mix(in srgb, var(--md-border) 62%, transparent);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -65,6 +70,50 @@ html, body {
 *::before,
 *::after {
   box-sizing: inherit;
+}
+
+/* Crystal jelly scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-scrollbar-thumb) var(--ui-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--ui-scrollbar-track);
+  border: 1px solid var(--ui-scrollbar-border);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--ui-scrollbar-thumb);
+  border: 1px solid var(--ui-scrollbar-border);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Optional: hide all scrollbars by adding className="app scrollbar-hidden" */
+.app.scrollbar-hidden,
+.app.scrollbar-hidden * {
+  scrollbar-width: none !important;
+}
+
+.app.scrollbar-hidden *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
 }
 
 .app {

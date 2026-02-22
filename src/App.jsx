@@ -2091,7 +2091,7 @@ body::-webkit-scrollbar,
     try {
       const rect = fileMenuButtonRef.current?.getBoundingClientRect();
       const payload = rect
-        ? { x: Math.round(rect.left), y: Math.round(rect.bottom + 2) }
+        ? { x: Math.round(rect.left), y: Math.round(rect.bottom + 10) }
         : {};
       await window.electronAPI.showNativeFileMenu(payload);
     } catch (err) {
@@ -2198,16 +2198,6 @@ body::-webkit-scrollbar,
             File
           </button>
         </div>
-        <button type="button" className="toolbar-button" onClick={handleNewFile}>
-          新建
-        </button>
-        <button type="button" className="toolbar-button" onClick={handleOpen}>
-          打开
-        </button>
-        <button type="button" className="toolbar-button" onClick={handleSave}>
-          保存
-        </button>
-
         {/* 视图切换按钮 */}
       <button
           className={viewMode === 'edit' ? 'toolbar-button active' : 'toolbar-button'}

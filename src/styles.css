@@ -402,7 +402,7 @@ html, body {
   align-items: stretch;
 }
 .layout-editor .editor {
-  width: 100px;
+  width: min(100%, 1360px);
   margin: 10px auto; /* 鍨傜洿浠嶄繚鐣?margin */
   height: calc(100% - 20px);
 }
@@ -419,7 +419,7 @@ html, body {
   align-items: stretch;
 }
 .layout-preview .preview {
-  width: 100px;
+  width: min(100%, 1360px);
   margin: 10px auto;
   height: calc(100% - 20px);
 }
@@ -511,7 +511,7 @@ html, body {
 
 .mode-preview .preview-wrapper {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1360px;
   height: 100%;
   padding: 2px;
 }
@@ -522,7 +522,7 @@ html, body {
 
 .mode-pure-edit .edit-wrapper{
   width: 100%;
-  max-width: 1100px;
+  max-width: 1360px;
   height: 100%;
   margin: 0 10px;
 }
@@ -2596,8 +2596,9 @@ html, body {
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .editor-wrapper,
 .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .preview-wrapper {
   position: relative;
-  width: 100%;
-  max-width: 1100px;
+  flex: 1 1 auto;
+  width: min(100%, 1360px);
+  max-width: 1360px;
   margin: 0 auto;
   height: 100%;
   z-index: 1;

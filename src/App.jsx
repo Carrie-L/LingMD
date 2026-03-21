@@ -653,6 +653,12 @@ function App() {
   const [status, setStatus] = useState("未保存");
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
+  /** EPUB：选完目录后在此弹层填写元数据（避免 window.prompt 在 Electron 中不可用） */
+  const [epubWizard, setEpubWizard] = useState(null);
+  const [epubFormTitle, setEpubFormTitle] = useState("");
+  const [epubFormAuthor, setEpubFormAuthor] = useState("");
+  const [epubFormPickCover, setEpubFormPickCover] = useState(false);
+
   const [exportProgress, setExportProgress] = useState({
     visible: false,
     type: "",
@@ -1542,6 +1548,14 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (epubWizard) {
+      setEpubFormTitle(epubWizard.defaultTitle || "");
+      setEpubFormAuthor("");
+      setEpubFormPickCover(false);
+    }
+  }, [epubWizard]);
+
   const deriveChapterTitle = (markdown, fp) => {
     const lines = (markdown || "").split(/\r?\n/);
     for (const line of lines) {
@@ -1553,99 +1567,104 @@ function App() {
     return base.replace(/\.(md|markdown)$/i, "");
   };
 
+  const runEpubExportCore = async (files, bookTitle, bookAuthor, pickCover) => {
+    let coverPath = null;
+    if (pickCover && window.electronAPI?.pickCoverImage) {
+      coverPath = await window.electronAPI.pickCoverImage();
+    }
+    const chapters = [];
+    const total = files.length;
+    startExportProgress("epub", "正在渲染章节…", 4);
+    for (let i = 0; i < files.length; i++) {
+      const { path: chapterPath, rel } = files[i];
+      const pct = Math.round(8 + (82 * (i + 1)) / total);
+      startExportProgress("epub", `正在渲染 ${i + 1}/${total}: ${rel}`, pct);
+      const readRes = await window.electronAPI.readFile(chapterPath);
+      if (!readRes || readRes.content == null) {
+        console.warn("read chapter failed", chapterPath, readRes);
+        continue;
+      }
+      const mdText = String(readRes.content);
+      const chapterTitle = deriveChapterTitle(mdText, chapterPath);
+      const bodyHtml = await renderMarkdownChapterHtml(mdText, chapterPath);
+      const fullDoc = `<!DOCTYPE html><html><body><div class="markdown-body">${bodyHtml}</div></body></html>`;
+      const inlined = await window.electronAPI.convertHtmlForClipboard({
+        html: fullDoc,
+        skipJuice: true,
+      });
+      if (!inlined) {
+        alert(`章节「${rel}」处理失败，已跳过`);
+        continue;
+      }
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(inlined, "text/html");
+      const mdInner =
+        doc.querySelector(".markdown-body")?.innerHTML || doc.body.innerHTML;
+      chapters.push({ title: chapterTitle, htmlBody: mdInner });
+    }
+    if (!chapters.length) {
+      finishExportProgress();
+      alert("没有成功渲染任何章节。");
+      return;
+    }
+    let mdThemeCss = "";
+    if (customThemes[mdTheme]) {
+      mdThemeCss = extractWechatPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
+    } else {
+      mdThemeCss = extractPreviewStyles(mdTheme) || "";
+    }
+    startExportProgress("epub", "正在打包 EPUB…", 94);
+    const result = await window.electronAPI.exportEpubBook({
+      title: bookTitle,
+      author: bookAuthor,
+      language: "zh-CN",
+      coverPath,
+      chapters,
+      mdThemeCss,
+      codeThemeKey: themeKey,
+    });
+    finishExportProgress();
+    if (result.canceled) return;
+    if (result.success && result.path) {
+      showToast("✅ EPUB 已保存", 6000, result.path);
+    } else {
+      alert(`导出失败：${result?.error || "未知错误"}`);
+    }
+  };
+
+  const handleEpubMetaConfirm = async () => {
+    if (!epubWizard) return;
+    const { files, defaultTitle } = epubWizard;
+    const bookTitle = epubFormTitle.trim() || defaultTitle;
+    const bookAuthor = epubFormAuthor.trim() || "佚名";
+    const pickCover = epubFormPickCover;
+    setEpubWizard(null);
+    try {
+      await runEpubExportCore(files, bookTitle, bookAuthor, pickCover);
+    } catch (e) {
+      finishExportProgress();
+      console.error(e);
+      alert(`导出失败：${e.message || e}`);
+    }
+  };
+
   const handleExportEpub = async () => {
     if (!window.electronAPI?.pickBookDirectory) {
       alert("请使用 Electron 桌面版导出 EPUB。");
       return;
     }
     try {
-      startExportProgress("epub", "选择书籍目录…", 2);
       const rootDir = await window.electronAPI.pickBookDirectory();
-      if (!rootDir) {
-        finishExportProgress();
-        return;
-      }
-      startExportProgress("epub", "扫描 Markdown 文件…", 6);
+      if (!rootDir) return;
       const files = await window.electronAPI.scanMarkdownBook(rootDir);
       if (!files.length) {
-        finishExportProgress();
         alert("该目录下没有找到 .md 文件。");
         return;
       }
-      const defaultBookTitle = rootDir.split(/[/\\]/).filter(Boolean).pop() || "作品";
-      const bookTitle = window.prompt("电子书标题", defaultBookTitle);
-      if (bookTitle === null) {
-        finishExportProgress();
-        return;
-      }
-      const bookAuthor = window.prompt("作者", "");
-      if (bookAuthor === null) {
-        finishExportProgress();
-        return;
-      }
-      let coverPath = null;
-      if (window.confirm("是否选择封面图片？")) {
-        coverPath = await window.electronAPI.pickCoverImage();
-      }
-      const chapters = [];
-      const total = files.length;
-      for (let i = 0; i < files.length; i++) {
-        const { path: chapterPath, rel } = files[i];
-        const pct = Math.round(8 + (82 * (i + 1)) / total);
-        startExportProgress("epub", `正在渲染 ${i + 1}/${total}: ${rel}`, pct);
-        const readRes = await window.electronAPI.readFile(chapterPath);
-        if (!readRes || readRes.content == null) {
-          console.warn("read chapter failed", chapterPath, readRes);
-          continue;
-        }
-        const mdText = String(readRes.content);
-        const chapterTitle = deriveChapterTitle(mdText, chapterPath);
-        const bodyHtml = await renderMarkdownChapterHtml(mdText, chapterPath);
-        const fullDoc = `<!DOCTYPE html><html><body><div class="markdown-body">${bodyHtml}</div></body></html>`;
-        const inlined = await window.electronAPI.convertHtmlForClipboard({
-          html: fullDoc,
-          skipJuice: true,
-        });
-        if (!inlined) {
-          alert(`章节「${rel}」处理失败，已跳过`);
-          continue;
-        }
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(inlined, "text/html");
-        const mdInner =
-          doc.querySelector(".markdown-body")?.innerHTML || doc.body.innerHTML;
-        chapters.push({ title: chapterTitle, htmlBody: mdInner });
-      }
-      if (!chapters.length) {
-        finishExportProgress();
-        alert("没有成功渲染任何章节。");
-        return;
-      }
-      let mdThemeCss = "";
-      if (customThemes[mdTheme]) {
-        mdThemeCss = extractWechatPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
-      } else {
-        mdThemeCss = extractPreviewStyles(mdTheme) || "";
-      }
-      startExportProgress("epub", "正在打包 EPUB…", 94);
-      const result = await window.electronAPI.exportEpubBook({
-        title: bookTitle || defaultBookTitle,
-        author: bookAuthor || "佚名",
-        language: "zh-CN",
-        coverPath,
-        chapters,
-        mdThemeCss,
-        codeThemeKey: themeKey,
-      });
-      finishExportProgress();
-      if (result.canceled) return;
-      if (result.success && result.path) {
-        showToast("✅ EPUB 已保存", 6000, result.path);
-      } else {
-        alert(`导出失败：${result?.error || "未知错误"}`);
-      }
+      const defaultBookTitle =
+        rootDir.split(/[/\\]/).filter(Boolean).pop() || "作品";
+      setEpubWizard({ files, defaultTitle: defaultBookTitle });
     } catch (e) {
-      finishExportProgress();
       console.error(e);
       alert(`导出失败：${e.message || e}`);
     }
@@ -2648,11 +2667,78 @@ body::-webkit-scrollbar,
         </span>
       </div>
 
+      {epubWizard && (
+        <div
+          className="epub-meta-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="epub-meta-dialog-title"
+          onClick={() => setEpubWizard(null)}
+        >
+          <div className="epub-meta-card" onClick={(e) => e.stopPropagation()}>
+            <div className="epub-meta-title" id="epub-meta-dialog-title">
+              导出 EPUB
+            </div>
+            <p className="epub-meta-hint">
+              已找到 {epubWizard.files.length} 个 Markdown 文件，填写元数据后开始打包。
+            </p>
+            <div className="epub-meta-form">
+              <label className="epub-meta-row">
+                <span>书名</span>
+                <input
+                  type="text"
+                  value={epubFormTitle}
+                  onChange={(e) => setEpubFormTitle(e.target.value)}
+                  autoFocus
+                />
+              </label>
+              <label className="epub-meta-row">
+                <span>作者</span>
+                <input
+                  type="text"
+                  value={epubFormAuthor}
+                  onChange={(e) => setEpubFormAuthor(e.target.value)}
+                  placeholder="可选"
+                />
+              </label>
+              <label className="epub-meta-row epub-meta-check">
+                <input
+                  type="checkbox"
+                  checked={epubFormPickCover}
+                  onChange={(e) => setEpubFormPickCover(e.target.checked)}
+                />
+                <span>导出前选择封面图片</span>
+              </label>
+            </div>
+            <div className="epub-meta-actions">
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={() => setEpubWizard(null)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="toolbar-button"
+                onClick={() => handleEpubMetaConfirm()}
+              >
+                开始导出
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {exportProgress.visible && (
         <div className="export-progress-overlay">
           <div className="export-progress-card">
             <div className="export-progress-title">
-              {exportProgress.type === "pdf" ? "导出 PDF" : "导出图片"}
+              {exportProgress.type === "pdf"
+                ? "导出 PDF"
+                : exportProgress.type === "epub"
+                  ? "导出 EPUB"
+                  : "导出图片"}
             </div>
             <div className="export-progress-message">
               {exportProgress.message || "正在处理，请稍候..."}

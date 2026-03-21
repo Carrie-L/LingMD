@@ -1,4 +1,4 @@
-﻿/* @import "github-markdown-css/github-markdown.css"; */
+/* @import "github-markdown-css/github-markdown.css"; */
 /* 鉁?鏂板锛氫负 CSS 鍙橀噺鎻愪緵涓€濂楅粯璁ゅ€硷紙瀵瑰簲浜壊涓婚锛?*/
 .app {
   --md-bg: #ffffff;
@@ -1147,6 +1147,88 @@ html, body {
   text-align: right;
   font-size: 12px;
   color: var(--md-muted);
+}
+
+/* EPUB 元数据弹层（替代 window.prompt，兼容 Electron） */
+.epub-meta-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 270;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.epub-meta-card {
+  width: min(420px, 92vw);
+  background: var(--ui-panel-bg);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 12px;
+  box-shadow: var(--ui-shadow);
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
+  padding: 16px 18px 14px;
+}
+
+.epub-meta-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--md-fg);
+  margin-bottom: 8px;
+}
+
+.epub-meta-hint {
+  font-size: 12px;
+  color: var(--md-muted);
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.epub-meta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.epub-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0;
+}
+
+.epub-meta-row > span {
+  font-size: 12px;
+  color: var(--md-muted);
+}
+
+.epub-meta-row input[type="text"] {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ui-panel-border);
+  background: var(--md-bg);
+  color: var(--md-fg);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.epub-meta-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.epub-meta-check span {
+  font-size: 13px;
+  color: var(--md-fg);
+}
+
+.epub-meta-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 /* ========================================= */

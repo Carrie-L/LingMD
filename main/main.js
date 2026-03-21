@@ -20,6 +20,7 @@ const { pathToFileURL, fileURLToPath } = require("url");
 const juice = require("juice");
 const { log } = require("console");
 const os = require('os');
+const { buildEpubZipBuffer } = require("./epubPack");
 
 const IMAGE_EXPORT_MAX_PIXELS = 80_000_000; // 约 320MB RGBA，防止超长截图内存爆炸
 const IMAGE_EXPORT_FORCE_COMPAT_MODE = true; // 兼容模式更稳定，默认跳过 CDP 主截图
@@ -2169,5 +2170,119 @@ ipcMain.handle("export-to-image", async (event, payload) => {
     console.error("Failed to export image:", error);
     sendExportProgress(sender, { type: 'image', progress: 100, message: `导出失败：${error.message || String(error)}`, done: true, error: true });
     return { success: false, error: error.message || String(error) };
+  }
+});
+
+// -------------------------------------------------------------------
+// EPUB：目录扫描、封面与打包
+// -------------------------------------------------------------------
+ipcMain.handle("pick-book-directory", async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const r = await dialog.showOpenDialog(win, {
+      title: "选择书籍根目录（包含多卷/章 Markdown）",
+      properties: ["openDirectory"],
+    });
+    if (r.canceled || !r.filePaths?.length) return null;
+    return r.filePaths[0];
+  } catch (e) {
+    console.error("pick-book-directory", e);
+    return null;
+  }
+});
+
+ipcMain.handle("pick-cover-image", async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const r = await dialog.showOpenDialog(win, {
+      title: "选择封面图片",
+      properties: ["openFile"],
+      filters: [
+        { name: "Images", extensions: ["jpg", "jpeg", "png", "webp", "gif"] },
+      ],
+    });
+    if (r.canceled || !r.filePaths?.length) return null;
+    return r.filePaths[0];
+  } catch (e) {
+    console.error("pick-cover-image", e);
+    return null;
+  }
+});
+
+ipcMain.handle("scan-markdown-book", async (_event, rootDir) => {
+  if (!rootDir || typeof rootDir !== "string" || !fs.existsSync(rootDir)) {
+    return [];
+  }
+  const out = [];
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (/\.(md|markdown)$/i.test(e.name)) {
+        out.push({ path: full, rel: path.relative(rootDir, full) });
+      }
+    }
+  }
+  walk(rootDir);
+  out.sort((a, b) => a.rel.localeCompare(b.rel, "zh-CN", { numeric: true }));
+  return out;
+});
+
+ipcMain.handle("export-epub-book", async (event, payload) => {
+  const sender = event.sender;
+  try {
+    const { title, author, language, coverPath, chapters, mdThemeCss, codeThemeKey } = payload;
+    if (!chapters || !chapters.length) {
+      return { success: false, error: "没有章节" };
+    }
+    const safeKey = String(codeThemeKey || "tokyo-night-dark").replace(/[^a-z0-9-]/g, "");
+    const hljsPath = path.join(__dirname, "..", "public", "hljs", `${safeKey}.min.css`);
+    let hljsCss = "";
+    if (fs.existsSync(hljsPath)) {
+      hljsCss = fs.readFileSync(hljsPath, "utf8");
+    }
+    const katexPath = path.join(__dirname, "..", "node_modules", "katex", "dist", "katex.min.css");
+    let katexCss = "";
+    if (fs.existsSync(katexPath)) {
+      katexCss = fs.readFileSync(katexPath, "utf8");
+    }
+    const combinedCss = `${mdThemeCss || ""}\n\n/* highlight.js */\n${hljsCss}\n\n/* KaTeX */\n${katexCss}\n\n/* EPUB */\n.epub-cover img{ max-width: 100%; height: auto; display: block; margin: 0 auto; }\n.epub-chapter img, .epub-chapter svg { max-width: 100% !important; height: auto !important; }\n`;
+
+    const buf = await buildEpubZipBuffer({
+      title: title || "未命名",
+      author: author || "佚名",
+      language: language || "zh-CN",
+      coverPath: coverPath || null,
+      chapters,
+      combinedCss,
+    });
+
+    const win = BrowserWindow.fromWebContents(sender);
+    const safeTitle = String(title || "book")
+      .replace(/[<>:"/\\|?*]/g, "_")
+      .trim() || "book";
+    const defaultPath = path.join(getDefaultDir(), `${safeTitle}.epub`);
+    const dlg = await dialog.showSaveDialog(win, {
+      title: "保存 EPUB",
+      defaultPath,
+      filters: [{ name: "EPUB", extensions: ["epub"] }],
+    });
+    if (dlg.canceled || !dlg.filePath) {
+      return { success: false, canceled: true };
+    }
+    let fp = dlg.filePath;
+    if (!fp.toLowerCase().endsWith(".epub")) fp += ".epub";
+    await fs.promises.writeFile(fp, buf);
+    return { success: true, path: fp };
+  } catch (e) {
+    console.error("export-epub-book", e);
+    return { success: false, error: e.message || String(e) };
   }
 });

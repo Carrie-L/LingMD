@@ -8,7 +8,7 @@ import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
 import ThemeEditor from "./ThemeEditor.jsx";
-import { useMarkdownRenderer } from './useMarkdownRenderer';
+import { useMarkdownRenderer, renderMarkdownChapterHtml } from './useMarkdownRenderer';
 import { PreviewWithMermaid } from './PreviewWithMermaid';
 import './styles.css';
 import 'katex/dist/katex.min.css';
@@ -1542,6 +1542,115 @@ function App() {
     }
   };
 
+  const deriveChapterTitle = (markdown, fp) => {
+    const lines = (markdown || "").split(/\r?\n/);
+    for (const line of lines) {
+      const m = line.match(/^\s*#\s+(.+)$/);
+      if (m) return m[1].trim();
+    }
+    const seg = (fp || "").split(/[/\\]/);
+    const base = seg[seg.length - 1] || "chapter";
+    return base.replace(/\.(md|markdown)$/i, "");
+  };
+
+  const handleExportEpub = async () => {
+    if (!window.electronAPI?.pickBookDirectory) {
+      alert("请使用 Electron 桌面版导出 EPUB。");
+      return;
+    }
+    try {
+      startExportProgress("epub", "选择书籍目录…", 2);
+      const rootDir = await window.electronAPI.pickBookDirectory();
+      if (!rootDir) {
+        finishExportProgress();
+        return;
+      }
+      startExportProgress("epub", "扫描 Markdown 文件…", 6);
+      const files = await window.electronAPI.scanMarkdownBook(rootDir);
+      if (!files.length) {
+        finishExportProgress();
+        alert("该目录下没有找到 .md 文件。");
+        return;
+      }
+      const defaultBookTitle = rootDir.split(/[/\\]/).filter(Boolean).pop() || "作品";
+      const bookTitle = window.prompt("电子书标题", defaultBookTitle);
+      if (bookTitle === null) {
+        finishExportProgress();
+        return;
+      }
+      const bookAuthor = window.prompt("作者", "");
+      if (bookAuthor === null) {
+        finishExportProgress();
+        return;
+      }
+      let coverPath = null;
+      if (window.confirm("是否选择封面图片？")) {
+        coverPath = await window.electronAPI.pickCoverImage();
+      }
+      const chapters = [];
+      const total = files.length;
+      for (let i = 0; i < files.length; i++) {
+        const { path: chapterPath, rel } = files[i];
+        const pct = Math.round(8 + (82 * (i + 1)) / total);
+        startExportProgress("epub", `正在渲染 ${i + 1}/${total}: ${rel}`, pct);
+        const readRes = await window.electronAPI.readFile(chapterPath);
+        if (!readRes || readRes.content == null) {
+          console.warn("read chapter failed", chapterPath, readRes);
+          continue;
+        }
+        const mdText = String(readRes.content);
+        const chapterTitle = deriveChapterTitle(mdText, chapterPath);
+        const bodyHtml = await renderMarkdownChapterHtml(mdText, chapterPath);
+        const fullDoc = `<!DOCTYPE html><html><body><div class="markdown-body">${bodyHtml}</div></body></html>`;
+        const inlined = await window.electronAPI.convertHtmlForClipboard({
+          html: fullDoc,
+          skipJuice: true,
+        });
+        if (!inlined) {
+          alert(`章节「${rel}」处理失败，已跳过`);
+          continue;
+        }
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(inlined, "text/html");
+        const mdInner =
+          doc.querySelector(".markdown-body")?.innerHTML || doc.body.innerHTML;
+        chapters.push({ title: chapterTitle, htmlBody: mdInner });
+      }
+      if (!chapters.length) {
+        finishExportProgress();
+        alert("没有成功渲染任何章节。");
+        return;
+      }
+      let mdThemeCss = "";
+      if (customThemes[mdTheme]) {
+        mdThemeCss = extractWechatPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
+      } else {
+        mdThemeCss = extractPreviewStyles(mdTheme) || "";
+      }
+      startExportProgress("epub", "正在打包 EPUB…", 94);
+      const result = await window.electronAPI.exportEpubBook({
+        title: bookTitle || defaultBookTitle,
+        author: bookAuthor || "佚名",
+        language: "zh-CN",
+        coverPath,
+        chapters,
+        mdThemeCss,
+        codeThemeKey: themeKey,
+      });
+      finishExportProgress();
+      if (result.canceled) return;
+      if (result.success && result.path) {
+        showToast("✅ EPUB 已保存", 6000, result.path);
+      } else {
+        alert(`导出失败：${result?.error || "未知错误"}`);
+      }
+    } catch (e) {
+      finishExportProgress();
+      console.error(e);
+      alert(`导出失败：${e.message || e}`);
+    }
+  };
+
   // 获取页面所有 CSS 规则的辅助函数
   const getAllStyles = () => {
     let css = '';
@@ -2252,6 +2361,7 @@ body::-webkit-scrollbar,
         <label onClick={handleExportHtml} className="toolbar-button">导出 HTML</label>
         <label onClick={handleExportPdf} className="toolbar-button">导出 PDF</label>
         <label onClick={handleExportImage} className="toolbar-button">📷 导出图片</label>
+        <label onClick={handleExportEpub} className="toolbar-button">导出 EPUB</label>
 
         {editorUploading && <span className="uploading">上传中...</span>}
 

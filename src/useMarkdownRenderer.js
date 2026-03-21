@@ -34,8 +34,8 @@ hljs.registerLanguage("json", json);
 hljs.registerLanguage("java", java);
 hljs.registerLanguage("kotlin", kotlin);
 
-// Mermaid 初始化将在 App.jsx 中统一处理
-
+import mermaid from "mermaid";
+// Mermaid 初始化仍在 App.jsx 中统一处理；此处用于 EPUB 等离屏导出
 
 import mdFrontMatter from "markdown-it-front-matter";
 
@@ -166,85 +166,175 @@ async function replaceAsync(html, callback) {
   return html.replace(regex, () => results.shift());
 }
 
-// ====== 新增的 helper：把 mermaid div 替换为 SVG ======
-// 输入：rawHtml 包含 `<div class="mermaid">...code...</div>`
-// 输出：rawHtml 中相应 div 被替换为返回的 SVG 字符串（内联 svg）
-// 若渲染失败或 mermaid API 不可用，则回退为原始 div（不破坏原有内容）
+/** 将 `<div class="mermaid">` 替换为内联 SVG（与 MermaidRenderer 使用相同 API） */
 async function renderMermaidBlocksToSvg(rawHtml) {
-  if (!rawHtml || rawHtml.indexOf('class="mermaid"') === -1) return rawHtml;
+  if (!rawHtml || !rawHtml.includes("mermaid")) return rawHtml;
 
-  // 正则匹配所有 mermaid div（非贪婪）
   const mermaidRegex =
     /<div\s+class=(?:"|')mermaid(?:"|')\s*>([\s\S]*?)<\/div>/gi;
+  const matches = [...rawHtml.matchAll(mermaidRegex)];
+  if (!matches.length) return rawHtml;
 
-  const tasks = [];
-  const matches = [];
-  rawHtml.replace(mermaidRegex, (match, code) => {
-    matches.push({ match, code });
+  let result = rawHtml;
+  for (let i = 0; i < matches.length; i++) {
+    const full = matches[i][0];
+    const code = (matches[i][1] || "").trim();
+    if (!code) continue;
+    try {
+      const id = `epub-mmd-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+      const { svg } = await mermaid.render(id, code);
+      if (svg && typeof svg === "string" && svg.trim().length > 0) {
+        result = result.replace(full, svg);
+      }
+    } catch (e) {
+      console.warn("[useMarkdownRenderer] mermaid.render failed:", e);
+    }
+  }
+  return result;
+}
+
+const DOM_PURIFY_MARKDOWN_CONFIG = {
+  ALLOWED_TAGS: [
+    "p",
+    "div",
+    "span",
+    "br",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "strong",
+    "b",
+    "em",
+    "i",
+    "u",
+    "del",
+    "s",
+    "code",
+    "blockquote",
+    "hr",
+    "pre",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "a",
+    "img",
+    "body",
+    "input",
+    "style",
+    "svg",
+    "g",
+    "path",
+    "circle",
+    "rect",
+    "ellipse",
+    "line",
+    "polyline",
+    "polygon",
+    "text",
+    "tspan",
+    "defs",
+    "marker",
+    "use",
+    "clipPath",
+    "foreignObject",
+    "switch",
+    "ruby",
+    "rt",
+    "rp",
+  ],
+  ALLOWED_ATTR: [
+    "href",
+    "src",
+    "alt",
+    "title",
+    "colspan",
+    "rowspan",
+    "class",
+    "data-task-index",
+    "style",
+    "id",
+    "type",
+    "checked",
+    "disabled",
+    "align",
+    "role",
+    "aria-hidden",
+    "width",
+    "height",
+    "viewBox",
+    "xmlns",
+    "x",
+    "y",
+    "dx",
+    "dy",
+    "fill",
+    "stroke",
+    "stroke-width",
+    "stroke-dasharray",
+    "transform",
+    "d",
+    "r",
+    "cx",
+    "cy",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "points",
+    "text-anchor",
+    "dominant-baseline",
+    "font-family",
+    "font-size",
+    "font-weight",
+  ],
+  ALLOWED_URI_REGEXP:
+    /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  ADD_PROTOCOLS: ["safe-file"],
+};
+
+/**
+ * 单章 Markdown → 已净化 HTML（含 Mermaid SVG），供 EPUB 等导出使用。
+ * 需在 Electron 渲染进程调用，以便解析本地图片与 Mermaid。
+ */
+export async function renderMarkdownChapterHtml(content, filePath) {
+  const withObsidianImages = (content || "").replace(
+    /!\[\[(.+?)\]\]/g,
+    (m, p1) => `![](${encodeURIComponent(p1.trim())})`
+  );
+  const md = createMarkdownIt();
+  let rawHtml = md.render(withObsidianImages);
+
+  rawHtml = await replaceAsync(rawHtml, async (match, src, rest) => {
+    try {
+      if (!window.electronAPI?.resolveImagePath) return match;
+      const decodedSrc = decodeURIComponent(src);
+      const fileDir = filePath
+        ? window.electronAPI.path.dirname(filePath)
+        : "";
+      const resolvedPath = await window.electronAPI.resolveImagePath({
+        fileDir,
+        src: decodedSrc,
+      });
+      if (resolvedPath) {
+        return `<img src="${resolvedPath}" ${rest}>`;
+      }
+    } catch (err) {
+      console.error("[renderMarkdownChapterHtml] 图片路径解析失败:", src, err);
+    }
     return match;
   });
 
-  if (!matches.length) return rawHtml;
-
-  for (let i = 0; i < matches.length; i++) {
-    const original = matches[i].match;
-    // code 里可能还包含 HTML 实体（如果你的 markdown 渲染步骤曾经 escape 过），
-    // 但在你的项目里 markdown-it 直接放入了原始文本，所以这里通常是原始 mermaid 源。
-    const code = matches[i].code || "";
-    let svg = null;
-
-    try {
-      if (typeof document !== 'undefined' && mermaid && mermaid.render) {
-        svg = await new Promise((resolve, reject) => {
-          const id = `mermaid-${Date.now()}-${i}-${Math.round(
-            Math.random() * 10000
-          )}`;
-
-          // 必要的防护：只有在浏览器环境且 document 存在时创建临时容器
-          if (typeof document === "undefined") {
-            // 没有 DOM 环境，无法渲染内联 SVG，回退
-            return resolve(null);
-          }
-
-          try {
-            // 创建一个临时容器元素并传入 render，避免 d3 select 时 selection.node() 为 undefined
-            const tempContainer = document.createElement("div");
-            // (可选) 将 tempContainer 暂时挂到 document 中，某些浏览器/环境在 detached nodes 上可能有差异：
-            // document.body.appendChild(tempContainer);
-
-            mermaid.parse.render(
-              id,
-              code,
-              (svgCode) => {
-                // 如果之前 append 到 document.body 了，可以移除 tempContainer 以清理
-                // if (tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
-                resolve(svgCode);
-              },
-              tempContainer
-            );
-          } catch (e) {
-            reject(e);
-          }
-        });
-      } else {
-        svg = null;
-      }
-    } catch (e) {
-      console.warn("[Renderer] mermaid.mermaidAPI.render failed for block:", e);
-      svg = null;
-    }
-
-    if (svg && typeof svg === "string" && svg.trim().length > 0) {
-      // Replace the original div (mermaid source) with returned SVG string
-      rawHtml = rawHtml.replace(original, svg);
-    } else {
-      // 回退：保留原始 mermaid div（这样 mermaid.init 在 preview 渲染时仍可作为后备）
-      // 不改变 rawHtml
-      // 但我们可以把原始保持（no-op）
-    }
-  }
-
-  return rawHtml;
+  rawHtml = await renderMermaidBlocksToSvg(rawHtml);
+  return DOMPurify.sanitize(rawHtml, DOM_PURIFY_MARKDOWN_CONFIG);
 }
 
 // 主 hook
@@ -313,117 +403,7 @@ export function useMarkdownRenderer(content, filePath, themeContainerStyles) {
       // }
 
       // 4. 清理 HTML，确保 mermaid 相关的标签和属性不被移除
-      const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-        ALLOWED_TAGS: [
-          "p",
-          "div",
-          "span",
-          "br",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "strong",
-          "b",
-          "em",
-          "i",
-          "u",
-          "del",
-          "s",
-          "code",
-          "blockquote",
-          "hr",
-          "pre",
-          "ul",
-          "ol",
-          "li",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "th",
-          "td",
-          "a",
-          "img",
-          "body",
-          "input",
-          // 允许 style 标签，这样 mermaid 内联的 <style> 不会被移除
-          "style",
-          // Mermaid SVG 相关标签
-          "svg",
-          "g",
-          "path",
-          "circle",
-          "rect",
-          "ellipse",
-          "line",
-          "polyline",
-          "polygon",
-          "text",
-          "tspan",
-          "defs",
-          "marker",
-          "use",
-          "clipPath",
-          "foreignObject",
-          "switch",
-          "ruby",
-          "rt",
-          "rp",
-        ],
-
-        ALLOWED_ATTR: [
-          "href",
-          "src",
-          "alt",
-          "title",
-          "colspan",
-          "rowspan",
-          "class",
-          "data-task-index",
-          "style",
-          "id",
-          "type",
-          "checked",
-          "disabled",
-          "align",
-          "role",
-          "aria-hidden",
-          // Mermaid SVG 相关属性
-          "width",
-          "height",
-          "viewBox",
-          "xmlns",
-          "x",
-          "y",
-          "dx",
-          "dy",
-          "fill",
-          "stroke",
-          "stroke-width",
-          "stroke-dasharray",
-          "transform",
-          "d",
-          "r",
-          "cx",
-          "cy",
-          "x1",
-          "y1",
-          "x2",
-          "y2",
-          "points",
-          "text-anchor",
-          "dominant-baseline",
-          "font-family",
-          "font-size",
-          "font-weight",
-        ],
-        ALLOWED_URI_REGEXP:
-          /^(?:(?:https?|safe-file|file|blob|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-        ADD_PROTOCOLS: ["safe-file"],
-      });
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml, DOM_PURIFY_MARKDOWN_CONFIG);
 
       if (!mounted) return;
 

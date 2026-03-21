@@ -59,4 +59,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   getCustomThemes: () => ipcRenderer.invoke("get-custom-themes"),
   saveCustomThemes: (themes) => ipcRenderer.invoke("save-custom-themes", themes),
+
+  pickBookDirectory: () => ipcRenderer.invoke("pick-book-directory"),
+  pickCoverImage: () => ipcRenderer.invoke("pick-cover-image"),
+  scanMarkdownBook: (rootDir) => ipcRenderer.invoke("scan-markdown-book", rootDir),
+  exportEpubBook: (payload) => ipcRenderer.invoke("export-epub-book", payload),
 });

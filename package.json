@@ -52,6 +52,7 @@
     "electron-store": "^10.1.0",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
+    "jszip": "^3.10.1",
     "juice": "^11.0.1",
     "markdown-it": "^14.1.0",
     "markdown-it-attrs": "^4.3.1",

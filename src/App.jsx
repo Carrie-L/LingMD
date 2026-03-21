@@ -69,6 +69,7 @@ const MD_THEMES = {
   lavenderMist: { name: "Lavender Mist" },
   forestWhisper: { name: "Mint Mountain Trail" },
   roseGold: { name: "Rose Gold" },
+  anneGreenGables: { name: "Anne of Green Gables" },
 };
 
 const DEFAULT_MD_THEME = "light";
@@ -509,6 +510,7 @@ function App() {
     localStorage.getItem("mdTheme") || DEFAULT_MD_THEME
   );
   const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认CODE主题
+  const isAnneTheme = mdTheme === "anneGreenGables";
 
   // 动态加载和卸载 CSS 主题
   useEffect(() => {
@@ -656,6 +658,8 @@ function App() {
     type: "",
     progress: 0,
     message: "",
+    generatedCount: 0,
+    totalCount: 0,
   });
   const exportProgressHideTimerRef = useRef(null);
   const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
@@ -971,6 +975,8 @@ function App() {
       type,
       progress: Math.max(0, Math.min(100, progress)),
       message: message || "正在导出...",
+      generatedCount: 0,
+      totalCount: 0,
     });
   };
 
@@ -984,6 +990,8 @@ function App() {
         type: "",
         progress: 0,
         message: "",
+        generatedCount: 0,
+        totalCount: 0,
       });
       exportProgressHideTimerRef.current = null;
     }, 500);
@@ -1000,6 +1008,12 @@ function App() {
       const nextProgress = Number.isFinite(payload.progress)
         ? Math.max(0, Math.min(100, payload.progress))
         : 0;
+      const nextGeneratedCount = Number.isFinite(payload.generatedCount)
+        ? Math.max(0, Math.floor(payload.generatedCount))
+        : 0;
+      const nextTotalCount = Number.isFinite(payload.totalCount)
+        ? Math.max(0, Math.floor(payload.totalCount))
+        : 0;
 
       setExportProgress((prev) => {
         const sameType = !prev.type || prev.type === nextType;
@@ -1009,6 +1023,8 @@ function App() {
           type: nextType,
           progress: monotonicProgress,
           message: nextMessage,
+          generatedCount: nextGeneratedCount,
+          totalCount: nextTotalCount,
         };
       });
 
@@ -2180,7 +2196,7 @@ body::-webkit-scrollbar,
 
   // 默认编辑模式
   return (
-    <div className="app" data-mdtheme={mdTheme} ref={appRef}>
+    <div className={`app${isAnneTheme ? " theme-anne-green-gables" : ""}`} data-mdtheme={mdTheme} ref={appRef}>
       <div className="toolbar">
         <div className="toolbar-main">
         <div className="app-brand" title="LingMD">
@@ -2289,8 +2305,52 @@ body::-webkit-scrollbar,
         </div>
       </div>
 
+      {isAnneTheme && (
+        <aside className="anne-side-dock" aria-label="Anne of Green Gables quick actions">
+          <button
+            type="button"
+            className="anne-side-dock-item"
+            onClick={handleOpenNativeFileMenu}
+            title="文件菜单"
+          >
+            <span className="anne-side-dock-icon" aria-hidden="true" />
+            <span>File</span>
+          </button>
+          <button
+            type="button"
+            className={`anne-side-dock-item${viewMode === "pure-edit" ? " active" : ""}`}
+            onClick={() => setViewMode("pure-edit")}
+            title="仅编辑模式"
+          >
+            <span className="anne-side-dock-icon" aria-hidden="true" />
+            <span>Edit</span>
+          </button>
+          <button
+            type="button"
+            className={`anne-side-dock-item${viewMode === "preview" ? " active" : ""}`}
+            onClick={() => setViewMode("preview")}
+            title="仅预览模式"
+          >
+            <span className="anne-side-dock-icon" aria-hidden="true" />
+            <span>View</span>
+          </button>
+          <div className="anne-side-dock-label">写作文件</div>
+        </aside>
+      )}
+
       {/* 主布局：目录 + 内容区 + 微信区 */}
       <div className={`main ${showWechat ? "wechat-visible" : ""} ${showOutline ? "outline-visible" : ""} mode-${viewMode}`}>
+        {isAnneTheme && (
+          <div className="anne-scene-decoration" aria-hidden="true">
+            <div className="anne-scene-vine anne-scene-vine-left" />
+            <div className="anne-scene-vine anne-scene-vine-right" />
+            <div className="anne-scene-photo anne-scene-photo-top" />
+            <div className="anne-scene-photo anne-scene-photo-bottom" />
+            <div className="anne-scene-radio" />
+            <div className="anne-scene-petal anne-scene-petal-left" />
+            <div className="anne-scene-petal anne-scene-petal-right" />
+          </div>
+        )}
 
         {/* 左侧目录 */}
         {showOutline && (
@@ -2487,6 +2547,27 @@ body::-webkit-scrollbar,
             <div className="export-progress-message">
               {exportProgress.message || "正在处理，请稍候..."}
             </div>
+            {exportProgress.type === "image" && exportProgress.totalCount > 0 && (
+              <div className="export-progress-segment">
+                <div className="export-progress-segment-label">
+                  {`已生成图片：${Math.min(exportProgress.generatedCount, exportProgress.totalCount)} / ${exportProgress.totalCount}`}
+                </div>
+                <div className="export-progress-segment-bar">
+                  <div
+                    className="export-progress-segment-fill"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (Math.min(exportProgress.generatedCount, exportProgress.totalCount) / Math.max(1, exportProgress.totalCount)) * 100
+                        )
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="export-progress-bar">
               <div
                 className="export-progress-fill"

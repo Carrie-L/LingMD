@@ -1,5 +1,5 @@
 // Editor.jsx - CodeMirror 6 版本，配置为纯文本写作模式
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { EditorView, keymap, placeholder } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -8,6 +8,257 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
   const editorContainerRef = useRef(null);
   const editorViewRef = useRef(null);
   const isUpdatingRef = useRef(false);
+  const findInputRef = useRef(null);
+  const replaceInputRef = useRef(null);
+
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchMode, setSearchMode] = useState('find'); // 'find' | 'replace'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [searchMeta, setSearchMeta] = useState({ current: 0, total: 0, message: '' });
+
+  const searchVisibleRef = useRef(false);
+  const searchQueryRef = useRef('');
+  const replaceTextRef = useRef('');
+  const caseSensitiveRef = useRef(false);
+
+  const openSearchPanelRef = useRef(() => false);
+  const closeSearchPanelRef = useRef(() => false);
+  const findNextRef = useRef(() => false);
+  const replaceCurrentRef = useRef(() => false);
+  const replaceAllRef = useRef(() => false);
+  const refreshSearchMetaRef = useRef(() => []);
+
+  const normalize = (text, cs) => (cs ? text : text.toLowerCase());
+
+  const collectMatches = (docText, needle, cs) => {
+    if (!needle) return [];
+    const source = normalize(docText, cs);
+    const target = normalize(needle, cs);
+    if (!target) return [];
+
+    const matches = [];
+    let fromIndex = 0;
+    while (fromIndex <= source.length) {
+      const idx = source.indexOf(target, fromIndex);
+      if (idx === -1) break;
+      matches.push({ from: idx, to: idx + needle.length });
+      fromIndex = idx + Math.max(target.length, 1);
+    }
+    return matches;
+  };
+
+  const refreshSearchMeta = (message = '') => {
+    const view = editorViewRef.current;
+    if (!view) return [];
+
+    const query = searchQueryRef.current;
+    if (!query) {
+      setSearchMeta({ current: 0, total: 0, message });
+      return [];
+    }
+
+    const matches = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    const sel = view.state.selection.main;
+    const currentIndex = matches.findIndex((m) => m.from === sel.from && m.to === sel.to);
+
+    setSearchMeta({
+      current: currentIndex >= 0 ? currentIndex + 1 : 0,
+      total: matches.length,
+      message: message || (matches.length === 0 ? '未找到匹配项' : ''),
+    });
+    return matches;
+  };
+
+  const openSearchPanel = (mode = 'find') => {
+    const view = editorViewRef.current;
+    if (!view) return false;
+
+    setSearchVisible(true);
+    searchVisibleRef.current = true;
+    setSearchMode(mode);
+    setSearchMeta((prev) => ({ ...prev, message: '' }));
+
+    const sel = view.state.selection.main;
+    if (sel.from !== sel.to) {
+      const selected = view.state.sliceDoc(sel.from, sel.to);
+      if (selected && selected !== searchQueryRef.current) {
+        searchQueryRef.current = selected;
+        setSearchQuery(selected);
+      }
+    }
+
+    requestAnimationFrame(() => {
+      if (mode === 'replace' && searchQueryRef.current && replaceInputRef.current) {
+        replaceInputRef.current.focus();
+        replaceInputRef.current.select();
+      } else if (findInputRef.current) {
+        findInputRef.current.focus();
+        findInputRef.current.select();
+      }
+    });
+
+    refreshSearchMeta('');
+    return true;
+  };
+
+  const closeSearchPanel = () => {
+    setSearchVisible(false);
+    searchVisibleRef.current = false;
+    setSearchMeta((prev) => ({ ...prev, message: '' }));
+    editorViewRef.current?.focus();
+    return true;
+  };
+
+  const findNextMatch = (direction = 1) => {
+    const view = editorViewRef.current;
+    if (!view) return false;
+
+    const query = searchQueryRef.current;
+    if (!query) {
+      setSearchMeta({ current: 0, total: 0, message: '请输入查找内容' });
+      return false;
+    }
+
+    const matches = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    if (matches.length === 0) {
+      setSearchMeta({ current: 0, total: 0, message: '未找到匹配项' });
+      return false;
+    }
+
+    const sel = view.state.selection.main;
+    const currentIndex = matches.findIndex((m) => m.from === sel.from && m.to === sel.to);
+    let targetIndex = -1;
+
+    if (direction > 0) {
+      if (currentIndex >= 0) {
+        targetIndex = (currentIndex + 1) % matches.length;
+      } else {
+        targetIndex = matches.findIndex((m) => m.from >= sel.to);
+        if (targetIndex === -1) targetIndex = 0;
+      }
+    } else {
+      if (currentIndex >= 0) {
+        targetIndex = (currentIndex - 1 + matches.length) % matches.length;
+      } else {
+        for (let i = matches.length - 1; i >= 0; i -= 1) {
+          if (matches[i].to <= sel.from) {
+            targetIndex = i;
+            break;
+          }
+        }
+        if (targetIndex === -1) targetIndex = matches.length - 1;
+      }
+    }
+
+    const target = matches[targetIndex];
+    view.dispatch({
+      selection: { anchor: target.from, head: target.to },
+      scrollIntoView: true,
+    });
+    setSearchMeta({ current: targetIndex + 1, total: matches.length, message: '' });
+    return true;
+  };
+
+  const replaceCurrent = () => {
+    const view = editorViewRef.current;
+    if (!view) return false;
+
+    const query = searchQueryRef.current;
+    if (!query) {
+      setSearchMeta({ current: 0, total: 0, message: '请输入查找内容' });
+      return false;
+    }
+
+    let matches = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    if (matches.length === 0) {
+      setSearchMeta({ current: 0, total: 0, message: '未找到可替换项' });
+      return false;
+    }
+
+    let sel = view.state.selection.main;
+    let currentIndex = matches.findIndex((m) => m.from === sel.from && m.to === sel.to);
+
+    if (currentIndex === -1) {
+      if (!findNextMatch(1)) return false;
+      sel = view.state.selection.main;
+      matches = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+      currentIndex = matches.findIndex((m) => m.from === sel.from && m.to === sel.to);
+      if (currentIndex === -1) return false;
+    }
+
+    const insert = replaceTextRef.current;
+    view.dispatch({
+      changes: { from: sel.from, to: sel.to, insert },
+      selection: { anchor: sel.from, head: sel.from + insert.length },
+      scrollIntoView: true,
+    });
+
+    const remaining = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    if (remaining.length === 0) {
+      setSearchMeta({ current: 0, total: 0, message: '替换完成' });
+      return true;
+    }
+
+    findNextMatch(1);
+    return true;
+  };
+
+  const replaceAllMatches = () => {
+    const view = editorViewRef.current;
+    if (!view) return false;
+
+    const query = searchQueryRef.current;
+    if (!query) {
+      setSearchMeta({ current: 0, total: 0, message: '请输入查找内容' });
+      return false;
+    }
+
+    const matches = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    if (matches.length === 0) {
+      setSearchMeta({ current: 0, total: 0, message: '未找到可替换项' });
+      return false;
+    }
+
+    const insert = replaceTextRef.current;
+    const changes = matches.map((m) => ({ from: m.from, to: m.to, insert }));
+    view.dispatch({ changes });
+
+    const replacedCount = matches.length;
+    const remaining = collectMatches(view.state.doc.toString(), query, caseSensitiveRef.current);
+    setSearchMeta({
+      current: 0,
+      total: remaining.length,
+      message: `已全部替换 ${replacedCount} 处`,
+    });
+    return true;
+  };
+
+  useEffect(() => {
+    searchVisibleRef.current = searchVisible;
+  }, [searchVisible]);
+
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  useEffect(() => {
+    replaceTextRef.current = replaceText;
+  }, [replaceText]);
+
+  useEffect(() => {
+    caseSensitiveRef.current = caseSensitive;
+  }, [caseSensitive]);
+
+  useEffect(() => {
+    openSearchPanelRef.current = openSearchPanel;
+    closeSearchPanelRef.current = closeSearchPanel;
+    findNextRef.current = findNextMatch;
+    replaceCurrentRef.current = replaceCurrent;
+    replaceAllRef.current = replaceAllMatches;
+    refreshSearchMetaRef.current = refreshSearchMeta;
+  });
 
   // 初始化 CodeMirror
   useEffect(() => {
@@ -33,6 +284,30 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
           ...defaultKeymap,
           ...historyKeymap,
           // 自定义快捷键
+          {
+            key: 'Mod-f',
+            run: () => openSearchPanelRef.current('find'),
+          },
+          {
+            key: 'Mod-r',
+            run: () => openSearchPanelRef.current('replace'),
+          },
+          {
+            key: 'Mod-h',
+            run: () => openSearchPanelRef.current('replace'),
+          },
+          {
+            key: 'F3',
+            run: () => findNextRef.current(1),
+          },
+          {
+            key: 'Shift-F3',
+            run: () => findNextRef.current(-1),
+          },
+          {
+            key: 'Mod-Shift-r',
+            run: () => replaceAllRef.current(),
+          },
           {
             key: 'Mod-b',
             run: (view) => {
@@ -92,6 +367,10 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
           {
             key: 'Escape',
             run: () => {
+              if (searchVisibleRef.current) {
+                closeSearchPanelRef.current();
+                return true;
+              }
               if (document.fullscreenElement) {
                 document.exitFullscreen().catch(() => {});
                 return true;
@@ -110,6 +389,10 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
           if (update.docChanged && !isUpdatingRef.current) {
             const newValue = update.state.doc.toString();
             onChange && onChange(newValue);
+
+            if (searchVisibleRef.current && searchQueryRef.current) {
+              refreshSearchMetaRef.current('');
+            }
           }
         }),
       ],
@@ -440,11 +723,103 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
   }, []);
 
   return (
-    <div
-      className="editor codemirror-editor"
-      ref={editorContainerRef}
-      style={{ height: '100%', width: '100%' }}
-    />
+    <div className="editor-shell" style={{ height: '100%', width: '100%' }}>
+      <div
+        className="editor codemirror-editor"
+        ref={editorContainerRef}
+        style={{ height: '100%', width: '100%' }}
+      />
+
+      {searchVisible && (
+        <div className="editor-search-panel" role="dialog" aria-label="查找替换">
+          <div className="editor-search-row">
+            <input
+              ref={findInputRef}
+              type="text"
+              className="editor-search-input"
+              value={searchQuery}
+              placeholder="查找（Ctrl+F）"
+              onChange={(e) => {
+                const next = e.target.value;
+                searchQueryRef.current = next;
+                setSearchQuery(next);
+                refreshSearchMeta('');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  findNextMatch(e.shiftKey ? -1 : 1);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  closeSearchPanel();
+                }
+              }}
+            />
+
+            <label className="editor-search-check" title="区分大小写">
+              <input
+                type="checkbox"
+                checked={caseSensitive}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  caseSensitiveRef.current = next;
+                  setCaseSensitive(next);
+                  refreshSearchMeta('');
+                }}
+              />
+              大小写
+            </label>
+
+            <button type="button" onClick={() => findNextMatch(-1)} title="上一个（Shift+F3）">上一个</button>
+            <button type="button" onClick={() => findNextMatch(1)} title="下一个（F3）">下一个</button>
+
+            {searchMode === 'find' ? (
+              <button type="button" onClick={() => setSearchMode('replace')} title="切换到替换（Ctrl+R）">替换</button>
+            ) : (
+              <button type="button" onClick={() => setSearchMode('find')} title="只查找">仅查找</button>
+            )}
+            <button type="button" onClick={closeSearchPanel} title="关闭（Esc）">关闭</button>
+          </div>
+
+          {searchMode === 'replace' && (
+            <div className="editor-search-row">
+              <input
+                ref={replaceInputRef}
+                type="text"
+                className="editor-search-input"
+                value={replaceText}
+                placeholder="替换为（Ctrl+R）"
+                onChange={(e) => {
+                  const next = e.target.value;
+                  replaceTextRef.current = next;
+                  setReplaceText(next);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.ctrlKey || e.metaKey) {
+                      replaceAllMatches();
+                    } else {
+                      replaceCurrent();
+                    }
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeSearchPanel();
+                  }
+                }}
+              />
+              <button type="button" onClick={replaceCurrent} title="替换当前并跳到下一个">替换</button>
+              <button type="button" onClick={replaceAllMatches} title="全部替换（Ctrl+Shift+R）">全部替换</button>
+            </div>
+          )}
+
+          <div className="editor-search-meta">
+            <span>{`${searchMeta.current}/${searchMeta.total}`}</span>
+            <span>{searchMeta.message}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

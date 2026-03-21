@@ -1824,7 +1824,9 @@ ipcMain.handle("export-to-image", async (event, payload) => {
           sendExportProgress(sender, {
             type: 'image',
             progress: segProgress,
-            message: '正在生成图片...',
+            message: '正在生成高清图片...',
+            generatedCount: segmentCount,
+            totalCount: totalSegments,
           });
         }
 
@@ -2031,6 +2033,8 @@ ipcMain.handle("export-to-image", async (event, payload) => {
           type: 'image',
           progress: segProgress,
           message: '正在生成高清图片...',
+          generatedCount: segmentCount,
+          totalCount: expectedSegments,
         });
 
         const nextCssOffset = cssTop + cssChunkHeight;

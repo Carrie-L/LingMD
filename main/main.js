@@ -2209,6 +2209,27 @@ ipcMain.handle("pick-cover-image", async (event) => {
   }
 });
 
+ipcMain.handle("epub-cover-hint", async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    await dialog.showMessageBox(win, {
+      type: "info",
+      title: "选择封面图片",
+      message:
+        "接下来将打开系统文件选择器，请选择一张用作电子书封面的图片。\n\n" +
+        "建议：比例接近实体书封面、画面清晰；支持 JPG、PNG、WebP 等。\n" +
+        "若暂时不需要封面，请在文件框中点击「取消」。",
+      buttons: ["知道了"],
+      defaultId: 0,
+      noLink: true,
+    });
+    return true;
+  } catch (e) {
+    console.error("epub-cover-hint", e);
+    return false;
+  }
+});
+
 ipcMain.handle("scan-markdown-book", async (_event, rootDir) => {
   if (!rootDir || typeof rootDir !== "string" || !fs.existsSync(rootDir)) {
     return [];
@@ -2253,7 +2274,7 @@ ipcMain.handle("export-epub-book", async (event, payload) => {
     if (fs.existsSync(katexPath)) {
       katexCss = fs.readFileSync(katexPath, "utf8");
     }
-    const combinedCss = `${mdThemeCss || ""}\n\n/* highlight.js */\n${hljsCss}\n\n/* KaTeX */\n${katexCss}\n\n/* EPUB */\n.epub-cover img{ max-width: 100%; height: auto; display: block; margin: 0 auto; }\n.epub-chapter img, .epub-chapter svg { max-width: 100% !important; height: auto !important; }\n`;
+    const combinedCss = `${mdThemeCss || ""}\n\n/* highlight.js */\n${hljsCss}\n\n/* KaTeX */\n${katexCss}\n\n/* EPUB */\n.epub-cover img{ max-width: 100%; height: auto; display: block; margin: 0 auto; }\n.epub-chapter img, .epub-chapter svg { max-width: 100% !important; height: auto !important; }\n\n/* EPUB 目录（按子文件夹分卷） */\nnav#toc > ol { list-style: none; padding-left: 0; }\nnav#toc ol ol { list-style: disc; padding-left: 1.25em; margin: 0.35em 0 0.5em; }\n.epub-toc-vol { display: block; font-weight: 600; margin: 0.35em 0 0.2em; }\n`;
 
     const buf = await buildEpubZipBuffer({
       title: title || "未命名",

@@ -1567,10 +1567,24 @@ function App() {
     return base.replace(/\.(md|markdown)$/i, "");
   };
 
+  /** 相对书籍根目录的第一级子文件夹名 = 卷（用于 EPUB 分层目录） */
+  const deriveVolumeLabel = (rel) => {
+    if (!rel) return "";
+    const norm = String(rel).replace(/\\/g, "/");
+    const parts = norm.split("/").filter(Boolean);
+    if (parts.length <= 1) return "";
+    return parts[0];
+  };
+
   const runEpubExportCore = async (files, bookTitle, bookAuthor, pickCover) => {
     let coverPath = null;
-    if (pickCover && window.electronAPI?.pickCoverImage) {
-      coverPath = await window.electronAPI.pickCoverImage();
+    if (pickCover) {
+      if (typeof window.electronAPI?.epubCoverHint === "function") {
+        await window.electronAPI.epubCoverHint();
+      }
+      if (typeof window.electronAPI?.pickCoverImage === "function") {
+        coverPath = await window.electronAPI.pickCoverImage();
+      }
     }
     const chapters = [];
     const total = files.length;
@@ -1600,7 +1614,11 @@ function App() {
       const doc = parser.parseFromString(inlined, "text/html");
       const mdInner =
         doc.querySelector(".markdown-body")?.innerHTML || doc.body.innerHTML;
-      chapters.push({ title: chapterTitle, htmlBody: mdInner });
+      chapters.push({
+        title: chapterTitle,
+        htmlBody: mdInner,
+        volume: deriveVolumeLabel(rel),
+      });
     }
     if (!chapters.length) {
       finishExportProgress();
@@ -2680,7 +2698,8 @@ body::-webkit-scrollbar,
               导出 EPUB
             </div>
             <p className="epub-meta-hint">
-              已找到 {epubWizard.files.length} 个 Markdown 文件，填写元数据后开始打包。
+              已找到 {epubWizard.files.length} 个 Markdown 文件。目录按子文件夹分卷（例如{" "}
+              <code>vol1/01.md</code> 归入「vol1」卷），根目录下的章节排在目录最前。
             </p>
             <div className="epub-meta-form">
               <label className="epub-meta-row">
@@ -2707,8 +2726,11 @@ body::-webkit-scrollbar,
                   checked={epubFormPickCover}
                   onChange={(e) => setEpubFormPickCover(e.target.checked)}
                 />
-                <span>导出前选择封面图片</span>
+                <span>为电子书选择封面图片</span>
               </label>
+              <p className="epub-meta-cover-tip">
+                勾选后：先弹出简短说明，再打开系统文件选择器；不需要封面时在文件框里点「取消」即可。
+              </p>
             </div>
             <div className="epub-meta-actions">
               <button

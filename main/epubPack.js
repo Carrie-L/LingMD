@@ -16,12 +16,50 @@ function escapeXml(s) {
 }
 
 /**
+ * 按卷（子文件夹）生成分层目录：根目录下的 md 为平铺；子文件夹内为「卷名 → 章节」嵌套。
+ * @param {{ title: string, volume?: string }[]} chapters
+ */
+function buildNavTocInnerOl(chapters) {
+  const topLevelLis = [];
+  let i = 0;
+  while (i < chapters.length) {
+    const vol = String(chapters[i].volume || "").trim();
+    let j = i + 1;
+    while (j < chapters.length && String(chapters[j].volume || "").trim() === vol) {
+      j += 1;
+    }
+
+    if (!vol) {
+      for (let k = i; k < j; k++) {
+        const num = String(k + 1).padStart(3, "0");
+        topLevelLis.push(
+          `      <li><a href="chapter-${num}.xhtml">${escapeXml(chapters[k].title)}</a></li>`
+        );
+      }
+    } else {
+      const inner = [];
+      for (let k = i; k < j; k++) {
+        const num = String(k + 1).padStart(3, "0");
+        inner.push(
+          `        <li><a href="chapter-${num}.xhtml">${escapeXml(chapters[k].title)}</a></li>`
+        );
+      }
+      topLevelLis.push(
+        `      <li>\n        <span class="epub-toc-vol">${escapeXml(vol)}</span>\n        <ol>\n${inner.join("\n")}\n        </ol>\n      </li>`
+      );
+    }
+    i = j;
+  }
+  return topLevelLis.join("\n");
+}
+
+/**
  * @param {object} options
  * @param {string} options.title
  * @param {string} options.author
  * @param {string} [options.language]
  * @param {string|null} [options.coverPath]
- * @param {{ title: string, htmlBody: string }[]} options.chapters
+ * @param {{ title: string, htmlBody: string, volume?: string }[]} options.chapters — volume 为相对根目录的第一级子文件夹名（卷）
  * @param {string} options.combinedCss
  */
 async function buildEpubZipBuffer(options) {
@@ -131,12 +169,7 @@ ${ch.htmlBody}
     spineItems.push(`    <itemref idref="${id}"/>`);
   });
 
-  const navOl = chapters
-    .map((ch, i) => {
-      const num = String(i + 1).padStart(3, "0");
-      return `      <li><a href="chapter-${num}.xhtml">${escapeXml(ch.title)}</a></li>`;
-    })
-    .join("\n");
+  const navOl = buildNavTocInnerOl(chapters);
 
   const nav = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>

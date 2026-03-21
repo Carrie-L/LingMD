@@ -1231,6 +1231,20 @@ html, body {
   margin-top: 14px;
 }
 
+.epub-meta-hint code {
+  font-size: 12px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--md-code-bg) 85%, transparent);
+}
+
+.epub-meta-cover-tip {
+  font-size: 12px;
+  color: var(--md-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
 /* ========================================= */
 /*       Markdown 鍩虹鎺掔増锛堜娇鐢?CSS 鍙橀噺锛?       */
 /* ========================================= */

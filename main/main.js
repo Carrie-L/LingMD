@@ -2209,27 +2209,6 @@ ipcMain.handle("pick-cover-image", async (event) => {
   }
 });
 
-ipcMain.handle("epub-cover-hint", async (event) => {
-  try {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    await dialog.showMessageBox(win, {
-      type: "info",
-      title: "选择封面图片",
-      message:
-        "接下来将打开系统文件选择器，请选择一张用作电子书封面的图片。\n\n" +
-        "建议：比例接近实体书封面、画面清晰；支持 JPG、PNG、WebP 等。\n" +
-        "若暂时不需要封面，请在文件框中点击「取消」。",
-      buttons: ["知道了"],
-      defaultId: 0,
-      noLink: true,
-    });
-    return true;
-  } catch (e) {
-    console.error("epub-cover-hint", e);
-    return false;
-  }
-});
-
 ipcMain.handle("scan-markdown-book", async (_event, rootDir) => {
   if (!rootDir || typeof rootDir !== "string" || !fs.existsSync(rootDir)) {
     return [];

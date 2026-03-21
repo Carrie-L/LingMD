@@ -657,7 +657,8 @@ function App() {
   const [epubWizard, setEpubWizard] = useState(null);
   const [epubFormTitle, setEpubFormTitle] = useState("");
   const [epubFormAuthor, setEpubFormAuthor] = useState("");
-  const [epubFormPickCover, setEpubFormPickCover] = useState(false);
+  /** 封面文件绝对路径，未选则为 null */
+  const [epubCoverPath, setEpubCoverPath] = useState(null);
 
   const [exportProgress, setExportProgress] = useState({
     visible: false,
@@ -1552,7 +1553,7 @@ function App() {
     if (epubWizard) {
       setEpubFormTitle(epubWizard.defaultTitle || "");
       setEpubFormAuthor("");
-      setEpubFormPickCover(false);
+      setEpubCoverPath(null);
     }
   }, [epubWizard]);
 
@@ -1576,16 +1577,13 @@ function App() {
     return parts[0];
   };
 
-  const runEpubExportCore = async (files, bookTitle, bookAuthor, pickCover) => {
-    let coverPath = null;
-    if (pickCover) {
-      if (typeof window.electronAPI?.epubCoverHint === "function") {
-        await window.electronAPI.epubCoverHint();
-      }
-      if (typeof window.electronAPI?.pickCoverImage === "function") {
-        coverPath = await window.electronAPI.pickCoverImage();
-      }
-    }
+  const handleEpubPickCover = async () => {
+    if (typeof window.electronAPI?.pickCoverImage !== "function") return;
+    const p = await window.electronAPI.pickCoverImage();
+    if (p) setEpubCoverPath(p);
+  };
+
+  const runEpubExportCore = async (files, bookTitle, bookAuthor, coverPath) => {
     const chapters = [];
     const total = files.length;
     startExportProgress("epub", "正在渲染章节…", 4);
@@ -1636,7 +1634,7 @@ function App() {
       title: bookTitle,
       author: bookAuthor,
       language: "zh-CN",
-      coverPath,
+      coverPath: coverPath || null,
       chapters,
       mdThemeCss,
       codeThemeKey: themeKey,
@@ -1655,10 +1653,10 @@ function App() {
     const { files, defaultTitle } = epubWizard;
     const bookTitle = epubFormTitle.trim() || defaultTitle;
     const bookAuthor = epubFormAuthor.trim() || "佚名";
-    const pickCover = epubFormPickCover;
+    const coverPath = epubCoverPath;
     setEpubWizard(null);
     try {
-      await runEpubExportCore(files, bookTitle, bookAuthor, pickCover);
+      await runEpubExportCore(files, bookTitle, bookAuthor, coverPath);
     } catch (e) {
       finishExportProgress();
       console.error(e);
@@ -2720,17 +2718,26 @@ body::-webkit-scrollbar,
                   placeholder="可选"
                 />
               </label>
-              <label className="epub-meta-row epub-meta-check">
-                <input
-                  type="checkbox"
-                  checked={epubFormPickCover}
-                  onChange={(e) => setEpubFormPickCover(e.target.checked)}
-                />
-                <span>为电子书选择封面图片</span>
-              </label>
-              <p className="epub-meta-cover-tip">
-                勾选后：先弹出简短说明，再打开系统文件选择器；不需要封面时在文件框里点「取消」即可。
-              </p>
+              <div className="epub-meta-row epub-meta-cover-row">
+                <span>封面</span>
+                <div className="epub-meta-cover-actions">
+                  <span
+                    className="epub-meta-cover-path"
+                    title={epubCoverPath || ""}
+                  >
+                    {epubCoverPath
+                      ? epubCoverPath.split(/[/\\]/).filter(Boolean).pop()
+                      : "未选择"}
+                  </span>
+                  <button
+                    type="button"
+                    className="toolbar-button"
+                    onClick={() => handleEpubPickCover()}
+                  >
+                    选择封面
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="epub-meta-actions">
               <button

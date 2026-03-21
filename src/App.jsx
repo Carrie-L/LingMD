@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import MarkdownIt from 'markdown-it';
 import mdKatex from 'markdown-it-katex';
 import DOMPurify from 'dompurify';
-import mermaid from 'mermaid';
 import Editor from "./Editor.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
 import ThemeEditor from "./ThemeEditor.jsx";
 import { useMarkdownRenderer, renderMarkdownChapterHtml } from './useMarkdownRenderer';
+import { initMermaidPreview } from './mermaidInit';
 import { PreviewWithMermaid } from './PreviewWithMermaid';
 import './styles.css';
 import 'katex/dist/katex.min.css';
@@ -16,28 +16,14 @@ import 'katex/dist/katex.min.css';
 
 
 // 这段代码会替换掉你组件内的初始化 useEffect
-const mermaidInitialized = new Promise(resolve => {
+const mermaidInitialized = new Promise((resolve) => {
   try {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'Arial, sans-serif',
-      // ...保留你所有的详细配置...
-      flowchart: {
-        useMaxWidth: false,
-        htmlLabels: true,
-        curve: 'basis',
-        diagramPadding: 20,
-        wrappingWidth: 200,
-        defaultRenderer: 'dagre'
-      }
-    });
-    console.log('✅ Mermaid 已在应用加载时全局初始化');
-    resolve(); // 初始化成功，Promise 完成
+    initMermaidPreview();
+    console.log("✅ Mermaid 已在应用加载时全局初始化");
+    resolve();
   } catch (e) {
-    console.error('❌ Mermaid 全局初始化失败:', e);
-    resolve(); // 即使失败也 resolve，以防阻塞后续渲染
+    console.error("❌ Mermaid 全局初始化失败:", e);
+    resolve();
   }
 });
 

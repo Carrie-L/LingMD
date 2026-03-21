@@ -35,7 +35,7 @@ hljs.registerLanguage("java", java);
 hljs.registerLanguage("kotlin", kotlin);
 
 import mermaid from "mermaid";
-// Mermaid 初始化仍在 App.jsx 中统一处理；此处用于 EPUB 等离屏导出
+import { initMermaidEpubExport, initMermaidPreview } from "./mermaidInit";
 
 import mdFrontMatter from "markdown-it-front-matter";
 
@@ -176,19 +176,24 @@ async function renderMermaidBlocksToSvg(rawHtml) {
   if (!matches.length) return rawHtml;
 
   let result = rawHtml;
-  for (let i = 0; i < matches.length; i++) {
-    const full = matches[i][0];
-    const code = (matches[i][1] || "").trim();
-    if (!code) continue;
-    try {
-      const id = `epub-mmd-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
-      const { svg } = await mermaid.render(id, code);
-      if (svg && typeof svg === "string" && svg.trim().length > 0) {
-        result = result.replace(full, svg);
+  try {
+    initMermaidEpubExport();
+    for (let i = 0; i < matches.length; i++) {
+      const full = matches[i][0];
+      const code = (matches[i][1] || "").trim();
+      if (!code) continue;
+      try {
+        const id = `epub-mmd-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`;
+        const { svg } = await mermaid.render(id, code);
+        if (svg && typeof svg === "string" && svg.trim().length > 0) {
+          result = result.replace(full, svg);
+        }
+      } catch (e) {
+        console.warn("[useMarkdownRenderer] mermaid.render failed:", e);
       }
-    } catch (e) {
-      console.warn("[useMarkdownRenderer] mermaid.render failed:", e);
     }
+  } finally {
+    initMermaidPreview();
   }
   return result;
 }

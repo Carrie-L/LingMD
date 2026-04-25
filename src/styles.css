@@ -55,7 +55,8 @@
 }
 
 /* 榛樿浜壊 UI */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -74,7 +75,7 @@ html, body {
 }
 
 /* background: var(--md-bg); */
-  /* color: var(--md-fg); */
+/* color: var(--md-fg); */
 
 /* 纭繚鎵€鏈夊厓绱犵户鎵跨洅妯″瀷 */
 *,
@@ -132,7 +133,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   /* 浣跨敤 vh 鍗曚綅纭繚鍏ㄥ睆 */
-  
+
 }
 
 
@@ -398,12 +399,15 @@ html, body {
 /* 浠呯紪杈戞椂璁╃紪杈戝櫒鍦ㄦ按骞充笂灞呬腑骞堕檺鍒跺搴?*/
 .layout-editor .editor-wrapper {
   display: flex;
-  justify-content: center; /* 妯悜灞呬腑 */
+  justify-content: center;
+  /* 妯悜灞呬腑 */
   align-items: stretch;
 }
+
 .layout-editor .editor {
   width: min(100%, 1360px);
-  margin: 10px auto; /* 鍨傜洿浠嶄繚鐣?margin */
+  margin: 10px auto;
+  /* 鍨傜洿浠嶄繚鐣?margin */
   height: calc(100% - 20px);
 }
 
@@ -418,6 +422,7 @@ html, body {
   justify-content: center;
   align-items: stretch;
 }
+
 .layout-preview .preview {
   width: min(100%, 1360px);
   margin: 10px auto;
@@ -452,15 +457,18 @@ html, body {
 /* 鍐呭鍖哄鍣?*/
 .content-area {
   display: flex;
-  justify-content: center; /* 灞呬腑鏄剧ず */
+  justify-content: center;
+  /* 灞呬腑鏄剧ず */
   align-items: stretch;
   height: 100%;
   margin: 0 auto;
   padding: 12px 10px;
-  max-width: 1800px; /* 闄愬埗鏈€澶у搴?*/
+  max-width: 1800px;
+  /* 闄愬埗鏈€澶у搴?*/
   overflow: hidden;
 }
-  /* gap: 10px; */
+
+/* gap: 10px; */
 
 /* 缂栬緫妯″紡锛氱紪杈戝櫒鍜岄瑙堝悇鍗犱竴鍗婏紝璐村湪涓€璧峰眳涓?*/
 .mode-edit .content-area {
@@ -469,10 +477,13 @@ html, body {
 }
 
 .mode-edit .editor-wrapper {
-  flex: 1 1 0; /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
-  min-width: 0; /* 鍏佽缂╁皬 */
+  flex: 1 1 0;
+  /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
+  min-width: 0;
+  /* 鍏佽缂╁皬 */
   height: 100%;
-  overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
+  overflow: hidden;
+  /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
   padding: 2px;
@@ -480,16 +491,21 @@ html, body {
 
 .mode-edit .editor-wrapper .editor {
   height: 100%;
-  width: 100%; /* 鍗犳弧wrapper */
-  margin: 0; /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
+  width: 100%;
+  /* 鍗犳弧wrapper */
+  margin: 0;
+  /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
   padding-top: 20px;
 }
 
 .mode-edit .preview-wrapper {
-  flex: 1 1 0; /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
-  min-width: 0; /* 鍏佽缂╁皬 */
+  flex: 1 1 0;
+  /* 浠?寮€濮嬪钩鍧囧垎閰嶏紝鑰屼笉鏄熀浜庡唴瀹?*/
+  min-width: 0;
+  /* 鍏佽缂╁皬 */
   height: 100%;
-  overflow: hidden; /* 闃叉鍐呭鎾戝ぇ */
+  overflow: hidden;
+  /* 闃叉鍐呭鎾戝ぇ */
   display: flex;
   flex-direction: column;
   padding: 2px;
@@ -497,8 +513,10 @@ html, body {
 
 .mode-edit .preview-wrapper .preview {
   height: 100%;
-  width: 100%; /* 鍗犳弧wrapper */
-  margin: 0; /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
+  width: 100%;
+  /* 鍗犳弧wrapper */
+  margin: 0;
+  /* 绉婚櫎榛樿margin锛岄槻姝㈠搴﹀彉鍖?*/
 }
 
 
@@ -517,10 +535,11 @@ html, body {
 }
 
 .mode-preview .preview-wrapper .preview {
-  margin: 0 10px; /* 浠呬繚鐣欏乏鍙宠竟璺濓紝绉婚櫎涓婁笅杈硅窛 */
+  margin: 0 10px;
+  /* 浠呬繚鐣欏乏鍙宠竟璺濓紝绉婚櫎涓婁笅杈硅窛 */
 }
 
-.mode-pure-edit .edit-wrapper{
+.mode-pure-edit .edit-wrapper {
   width: 100%;
   max-width: 1360px;
   height: 100%;
@@ -540,14 +559,17 @@ html, body {
 .main.wechat-visible.layout-split {
   grid-template-columns: 1fr 1fr 375px !important;
 }
+
 .main.wechat-visible.layout-editor {
   /* 鍙湁缂栬緫 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
 }
+
 .main.wechat-visible.layout-preview {
   /* 鍙湁棰勮 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
 }
+
 .main.wechat-visible.layout-unified {
   /* 缁熶竴瑙嗗浘 + 鍙充晶 wechat */
   grid-template-columns: 1fr 375px !important;
@@ -555,22 +577,28 @@ html, body {
 
 /* ========== 灏忓睆 / 鍝嶅簲璋冩暣 ========== */
 @media (max-width: 900px) {
+
   /* 鎵嬫満鎴栫獎灞忔椂锛屽缁堥噰鐢ㄥ崟鍒楋紙缂栬緫鎴栭瑙堝瀭鐩村爢鍙狅級 */
   .main,
   .main.layout-split {
     grid-template-columns: 1fr !important;
   }
+
   .layout-editor .editor,
   .layout-preview .preview {
     width: 96%;
   }
 
-/* 灏忓睆閫傞厤锛氱獎灞忓己鍒堕殣钘?outline锛堟垨鍙樹负 overlay锛?*/
+  /* 灏忓睆閫傞厤锛氱獎灞忓己鍒堕殣钘?outline锛堟垨鍙樹负 overlay锛?*/
   .main.outline-visible.layout-split,
   .main.outline-visible.layout-preview {
-    grid-template-columns: 1fr; /* 闅愯棌 outline锛屾垨鑰呬綘鍙互鎶婂畠鍙樻垚 overlay 寮圭獥 */
+    grid-template-columns: 1fr;
+    /* 闅愯棌 outline锛屾垨鑰呬綘鍙互鎶婂畠鍙樻垚 overlay 寮圭獥 */
   }
-  .outline-wrapper { display: none; }
+
+  .outline-wrapper {
+    display: none;
+  }
 }
 
 
@@ -610,15 +638,24 @@ html, body {
 /* 瀹為檯瀵艰埅鍖哄煙 */
 .outline {
   padding: 12px;
-  height: calc(100vh - 144px); /* 与 main 上下间距同步，避免贴边 */
+  height: calc(100vh - 144px);
+  /* 与 main 上下间距同步，避免贴边 */
   overflow-y: auto;
   box-sizing: border-box;
   font-size: 12px;
 }
 
 /* 椤圭洰鏍峰紡 */
-.outline ul { list-style: none; margin: 0; padding: 0; }
-.outline li { margin: 6px 0; }
+.outline ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.outline li {
+  margin: 6px 0;
+}
+
 .outline a {
   font-size: 12px;
   color: var(--md-fg);
@@ -626,7 +663,261 @@ html, body {
   display: inline-block;
   width: 100%;
 }
-.outline a:hover { color: var(--md-accent); text-decoration: underline; }
+
+.outline a:hover {
+  color: var(--md-accent);
+  text-decoration: underline;
+}
+
+.sidebar-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-panel-border) 85%, transparent);
+}
+
+.sidebar-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ui-status-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar-tab:hover {
+  background: color-mix(in srgb, var(--md-accent) 10%, transparent);
+  color: var(--md-accent);
+}
+
+.sidebar-tab.active {
+  background: color-mix(in srgb, var(--md-accent) 18%, var(--ui-panel-bg));
+  color: var(--md-accent);
+}
+
+.sidebar-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.outline-wrapper .outline,
+.outline-wrapper .file-explorer {
+  height: 100%;
+}
+
+.outline {
+  padding: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  font-size: 12px;
+}
+
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.file-explorer-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-panel-border) 82%, transparent);
+}
+
+.file-explorer-heading {
+  min-width: 0;
+}
+
+.file-explorer-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--md-muted);
+  margin-bottom: 4px;
+}
+
+.file-explorer-root {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--md-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-explorer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-explorer-selection-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 0;
+  border-top: 1px dashed color-mix(in srgb, var(--ui-panel-border) 70%, transparent);
+}
+
+.file-explorer-selection-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-accent);
+}
+
+.file-explorer-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sidebar-action-button {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--ui-panel-border) 88%, transparent);
+  background: color-mix(in srgb, var(--ui-panel-bg) 92%, white 8%);
+  color: var(--md-fg);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-action-button:hover {
+  background: color-mix(in srgb, var(--md-accent) 12%, var(--ui-panel-bg));
+  border-color: color-mix(in srgb, var(--md-accent) 36%, var(--ui-panel-border));
+  color: var(--md-accent);
+}
+
+.sidebar-action-button.secondary {
+  background: transparent;
+}
+
+.sidebar-action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.file-explorer-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 0 14px;
+}
+
+.file-explorer-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file-explorer-item {
+  margin: 0;
+}
+
+.file-explorer-row-shell {
+  display: flex;
+  align-items: stretch;
+}
+
+.file-explorer-row-shell.selected {
+  background: color-mix(in srgb, var(--md-accent) 10%, transparent);
+}
+
+.file-explorer-row {
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--md-fg);
+  font-size: 12px;
+  padding: 7px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.file-explorer-selectbox {
+  width: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-explorer-selectbox.spacer {
+  pointer-events: none;
+}
+
+.file-explorer-selectbox input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--md-accent);
+  cursor: pointer;
+}
+
+.file-explorer-row:hover {
+  background: color-mix(in srgb, var(--md-accent) 8%, transparent);
+  color: var(--md-accent);
+}
+
+.file-explorer-file.active {
+  background: color-mix(in srgb, var(--md-accent) 16%, var(--ui-panel-bg));
+  color: var(--md-accent);
+}
+
+.file-explorer-caret {
+  width: 12px;
+  color: var(--md-muted);
+  flex: 0 0 12px;
+}
+
+.file-explorer-caret.placeholder {
+  font-size: 9px;
+}
+
+.file-explorer-icon {
+  width: 22px;
+  flex: 0 0 22px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--md-muted);
+}
+
+.file-explorer-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-explorer-empty {
+  padding: 18px 14px;
+  color: var(--md-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
 
 
 
@@ -650,11 +941,9 @@ html, body {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       color-mix(in srgb, var(--ui-panel-bg) 97%, white 3%) 0%,
-      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%
-    );
+      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%);
   border: 1px solid color-mix(in srgb, var(--ui-panel-border) 78%, transparent);
   border-radius: 22px;
   box-shadow:
@@ -665,9 +954,12 @@ html, body {
   -webkit-backdrop-filter: blur(8px) saturate(112%);
   padding: 0;
   min-width: 0;
-  max-width: 1000px; /* 闃叉鍐呭鎾戝ぇ */
-  width: 100%; /* 寮哄埗鍗犳弧鐖跺鍣?*/
-  box-sizing: border-box; /* 纭繚 padding/border 涓嶅鍔犲搴?*/
+  max-width: 1000px;
+  /* 闃叉鍐呭鎾戝ぇ */
+  width: 100%;
+  /* 寮哄埗鍗犳弧鐖跺鍣?*/
+  box-sizing: border-box;
+  /* 纭繚 padding/border 涓嶅鍔犲搴?*/
   overflow: hidden;
 }
 
@@ -690,19 +982,17 @@ html, body {
   top: 0;
   height: 4px;
   border-radius: 0 0 999px 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--md-accent) 18%, transparent),
-    color-mix(in srgb, var(--md-accent) 64%, transparent),
-    color-mix(in srgb, var(--md-accent) 18%, transparent)
-  );
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--md-accent) 18%, transparent),
+      color-mix(in srgb, var(--md-accent) 64%, transparent),
+      color-mix(in srgb, var(--md-accent) 18%, transparent));
   opacity: 0.75;
   pointer-events: none;
   z-index: 2;
 }
 
-.editor > *,
-.preview > * {
+.editor>*,
+.preview>* {
   position: relative;
   z-index: 1;
 }
@@ -712,27 +1002,31 @@ html, body {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       color-mix(in srgb, var(--ui-panel-bg) 97%, white 3%) 0%,
-      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%
-    );
+      color-mix(in srgb, var(--ui-panel-bg) 88%, black 12%) 100%);
   border: 1px solid color-mix(in srgb, var(--ui-panel-border) 78%, transparent);
   border-radius: 22px;
   box-shadow:
     0 1px 0 color-mix(in srgb, var(--md-bg) 72%, transparent) inset,
     0 16px 34px rgba(12, 18, 30, 0.14);
-  padding: 0 ;       /* 鎴戜滑鎶?padding 鏀惧埌 markdown-body 鍐咃紝閬垮厤褰卞搷楂樺害璁＄畻 */
-  min-width: 0;     /* 鍏佽鍦?grid 涓缉灏?*/
-  max-width: 100%; /* 闃叉鍐呭鎾戝ぇ */
-  width: 100%; /* 寮哄埗鍗犳弧鐖跺鍣?*/
-  box-sizing: border-box; /* 纭繚 padding/border 涓嶅鍔犲搴?*/
+  padding: 0;
+  /* 鎴戜滑鎶?padding 鏀惧埌 markdown-body 鍐咃紝閬垮厤褰卞搷楂樺害璁＄畻 */
+  min-width: 0;
+  /* 鍏佽鍦?grid 涓缉灏?*/
+  max-width: 100%;
+  /* 闃叉鍐呭鎾戝ぇ */
+  width: 100%;
+  /* 寮哄埗鍗犳弧鐖跺鍣?*/
+  box-sizing: border-box;
+  /* 纭繚 padding/border 涓嶅鍔犲搴?*/
   display: flex;
   flex-direction: column;
   height: 100%;
   backdrop-filter: blur(8px) saturate(112%);
   -webkit-backdrop-filter: blur(8px) saturate(112%);
-  overflow: hidden; /* 澶栧眰涓嶆粴鍔紝鍐呭眰婊氬姩 */
+  overflow: hidden;
+  /* 澶栧眰涓嶆粴鍔紝鍐呭眰婊氬姩 */
 }
 
 /* 鍐呴儴 wrapper锛岃礋璐ｆ拺婊＄埗楂樺害 */
@@ -745,15 +1039,19 @@ html, body {
 
 /* 棰勮鍖哄唴閮ㄤ富浣?*/
 .preview .markdown-body {
-  flex: 1 1 auto;       /* 鍗犳弧鍓╀綑楂樺害 */
-  overflow: auto;       /* 閲嶈锛氱湡姝ｇ殑婊氬姩鍦ㄨ繖閲屽彂鐢?*/
+  flex: 1 1 auto;
+  /* 鍗犳弧鍓╀綑楂樺害 */
+  overflow: auto;
+  /* 閲嶈锛氱湡姝ｇ殑婊氬姩鍦ㄨ繖閲屽彂鐢?*/
   box-sizing: border-box;
   background: var(--md-bg);
   color: var(--md-text);
-  
+
   width: 100%;
-  max-width: none;      /* 鍏佽瀹藉害閾烘弧鍒楋紙涓嶅啀寮哄埗 800px 灞呬腑锛?*/
-  margin: 0;            /* 鍙栨秷灞呬腑 margin */
+  max-width: none;
+  /* 鍏佽瀹藉害閾烘弧鍒楋紙涓嶅啀寮哄埗 800px 灞呬腑锛?*/
+  margin: 0;
+  /* 鍙栨秷灞呬腑 margin */
   font-size: 15px;
   line-height: 1.8;
   padding: 30px clamp(24px, 6vw, 72px) 78px;
@@ -794,22 +1092,27 @@ html, body {
 }
 
 .wechat-export {
-  width: 375px;            /* 鍥哄畾瀹藉害 */
+  width: 375px;
+  /* 鍥哄畾瀹藉害 */
   min-width: 375px;
   max-width: 375px;
   box-sizing: border-box;
-  overflow-x: hidden;      /* 绂佹姘村钩婊氬姩 */
-  overflow-y: auto;        /* 绾靛悜婊氬姩 */
-  height: 100%;            /* 鍗犳弧鐖跺鍣ㄩ珮搴?*/
-  margin-right: 10px;      /* 鍙宠竟璺?*/
-  font-family: 
-          "PingFang SC", "Microsoft YaHei",
-          "Kaiti SC", "KaiTi",
-          "Songti SC", "SimSun", 
-           "Heiti SC", "SimHei",
-          -apple-system, BlinkMacSystemFont,
-          "Hiragino Sans GB", "Noto Sans SC",
-          sans-serif;
+  overflow-x: hidden;
+  /* 绂佹姘村钩婊氬姩 */
+  overflow-y: auto;
+  /* 绾靛悜婊氬姩 */
+  height: 100%;
+  /* 鍗犳弧鐖跺鍣ㄩ珮搴?*/
+  margin-right: 10px;
+  /* 鍙宠竟璺?*/
+  font-family:
+    "PingFang SC", "Microsoft YaHei",
+    "Kaiti SC", "KaiTi",
+    "Songti SC", "SimSun",
+    "Heiti SC", "SimHei",
+    -apple-system, BlinkMacSystemFont,
+    "Hiragino Sans GB", "Noto Sans SC",
+    sans-serif;
   font-weight: 350;
   font-size: 15px;
   letter-spacing: 0.9px;
@@ -823,10 +1126,10 @@ html, body {
   -webkit-backdrop-filter: blur(8px) saturate(112%);
 }
 
-  /* font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", */
-    /* "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; */
+/* font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", */
+/* "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif; */
 
-  /* background: #ffffff;
+/* background: #ffffff;
   border: none;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -848,54 +1151,65 @@ html, body {
   letter-spacing: 1.2px; */
 
 
-.wechat-export .preview-inner { 
-  height: 100%; 
-  display: flex; 
-  flex-direction: column; 
-  overflow: hidden; 
+.wechat-export .preview-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+
 .wechat-export .markdown-body {
   flex: 1 1 auto;
-  overflow-x: hidden !important;  /* 寮哄埗绂佹姘村钩婊氬姩 */
-  overflow-y: auto;                /* 鍙厑璁稿瀭鐩存粴鍔?*/
+  overflow-x: hidden !important;
+  /* 寮哄埗绂佹姘村钩婊氬姩 */
+  overflow-y: auto;
+  /* 鍙厑璁稿瀭鐩存粴鍔?*/
   background: var(--md-bg);
   color: var(--md-text);
   padding: 15px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 100%;                /* 纭繚涓嶈秴鍑虹埗瀹瑰櫒 */
+  max-width: 100%;
+  /* 纭繚涓嶈秴鍑虹埗瀹瑰櫒 */
   margin: 0;
   font-size: 15px;
   line-height: 1.8;
-  word-wrap: break-word;          /* 寮哄埗闀垮崟璇嶆崲琛?*/
-  overflow-wrap: break-word;      /* 寮哄埗闀垮崟璇嶆崲琛?*/
+  word-wrap: break-word;
+  /* 寮哄埗闀垮崟璇嶆崲琛?*/
+  overflow-wrap: break-word;
+  /* 寮哄埗闀垮崟璇嶆崲琛?*/
 }
 
-.wechat-export .markdown-body h2{ 
-  flex: 1 1 auto; 
-  overflow: auto; 
-  padding: 15px; 
-  box-sizing: border-box; 
-  width: 100%; 
-  margin: 0; 
+.wechat-export .markdown-body h2 {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 15px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
   font-size: 21px;
   line-height: 1.8;
 }
 
 .wechat-export .markdown-body table {
-  font-size: 11px;  /* 缂╁皬瀛椾綋锛岃鍐呭鑳藉湪绐勫睆鏄剧ず */
+  font-size: 11px;
+  /* 缂╁皬瀛椾綋锛岃鍐呭鑳藉湪绐勫睆鏄剧ず */
   width: 100%;
   line-height: 1.8;
   letter-spacing: 0.1px;
 }
-.wechat-export .markdown-body th{
-    padding: 4px 4px;  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
-    font-size: 12px;
-    overflow-wrap: break-word;
-   text-align: center;
+
+.wechat-export .markdown-body th {
+  padding: 4px 4px;
+  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
+  font-size: 12px;
+  overflow-wrap: break-word;
+  text-align: center;
 }
+
 .wechat-export .markdown-body td {
-  padding: 4px 4px;  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
+  padding: 4px 4px;
+  /* 鍑忓皬鍐呰竟璺濓紝鑺傜渷绌洪棿 */
   font-size: 12px;
   overflow-wrap: break-word;
 }
@@ -907,14 +1221,14 @@ html, body {
   border: 1px solid var(--md-border);
   padding: .02em .4em;
   border-radius: 4px;
- font-family: 
-          "PingFang SC", "Microsoft YaHei",
-          "Kaiti SC", "KaiTi",
-          "Songti SC", "SimSun", 
-           "Heiti SC", "SimHei",
-          -apple-system, BlinkMacSystemFont,
-          "Hiragino Sans GB", "Noto Sans SC",
-          sans-serif;
+  font-family:
+    "PingFang SC", "Microsoft YaHei",
+    "Kaiti SC", "KaiTi",
+    "Songti SC", "SimSun",
+    "Heiti SC", "SimHei",
+    -apple-system, BlinkMacSystemFont,
+    "Hiragino Sans GB", "Noto Sans SC",
+    sans-serif;
   font-size: 11px;
   margin: 0 0.1em;
   font-weight: 500;
@@ -928,14 +1242,14 @@ html, body {
   border: 1px solid var(--md-border);
   padding: .02em .4em;
   border-radius: 4px;
- font-family: 
-          "PingFang SC", "Microsoft YaHei",
-          "Kaiti SC", "KaiTi",
-          "Songti SC", "SimSun", 
-           "Heiti SC", "SimHei",
-          -apple-system, BlinkMacSystemFont,
-          "Hiragino Sans GB", "Noto Sans SC",
-          sans-serif;
+  font-family:
+    "PingFang SC", "Microsoft YaHei",
+    "Kaiti SC", "KaiTi",
+    "Songti SC", "SimSun",
+    "Heiti SC", "SimHei",
+    -apple-system, BlinkMacSystemFont,
+    "Hiragino Sans GB", "Noto Sans SC",
+    sans-serif;
   font-size: 13px;
   margin: 0 0.1em;
   font-weight: 500;
@@ -954,8 +1268,9 @@ html, body {
   font-size: 10px !important;
   font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
 }
+
 /* letter-spacing: 3px; */
-  /* margin-top: 8px; */
+/* margin-top: 8px; */
 
 
 
@@ -1198,7 +1513,7 @@ html, body {
   font-size: 0;
 }
 
-.epub-meta-row > span {
+.epub-meta-row>span {
   font-size: 12px;
   color: var(--md-muted);
 }
@@ -1250,7 +1565,7 @@ html, body {
 
 .app .markdown-body {
   background: transparent;
-  line-height:1.7em;
+  line-height: 1.7em;
   font-size: 14px;
   word-wrap: break-word;
   color: var(--md-text);
@@ -1277,7 +1592,7 @@ html, body {
   color: var(--md-text);
 }
 
-  /* background: var(--md-bg) !important;
+/* background: var(--md-bg) !important;
   color: var(--md-fg); */
 
 /* 寰俊棰勮鍖?*/
@@ -1410,7 +1725,7 @@ html, body {
   width: 100%;
   margin: 2em 0;
   border: 1px solid var(--md-border);
-  
+
 
 }
 
@@ -1469,9 +1784,11 @@ html, body {
   border-radius: 8px;
   line-height: 1.7;
   font-size: 90%;
-  white-space: pre !important;  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
+  white-space: pre !important;
+  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
   word-break: normal;
-  letter-spacing: normal;  /* 閲嶇疆瀛楅棿璺?*/
+  letter-spacing: normal;
+  /* 閲嶇疆瀛楅棿璺?*/
 }
 
 /* ================================================ */
@@ -1482,9 +1799,10 @@ html, body {
  * 1. 瑙ｅ喅 fun/class 鍏抽敭瀛椾笌鍏跺悗鏍囪瘑绗︾殑绌烘牸涓㈠け闂
  * 渚嬪锛?"funobserveArticles" -> "fun observeArticles"
  */
-.hljs-function .hljs-keyword + .hljs-title,
-.hljs-keyword + .hljs-title.class_ {
-  margin-left: 0.5em; /* 娣诲姞涓€涓按骞抽棿璺濇潵妯℃嫙绌烘牸 */
+.hljs-function .hljs-keyword+.hljs-title,
+.hljs-keyword+.hljs-title.class_ {
+  margin-left: 0.5em;
+  /* 娣诲姞涓€涓按骞抽棿璺濇潵妯℃嫙绌烘牸 */
 }
 
 /*
@@ -1493,7 +1811,8 @@ html, body {
  */
 
 .hljs-comment {
-  white-space: pre-wrap; /* 淇濈暀鎹㈣鍜岀┖鏍硷紝鑷姩鎹㈣ */
+  white-space: pre-wrap;
+  /* 淇濈暀鎹㈣鍜岀┖鏍硷紝鑷姩鎹㈣ */
 }
 
 /*
@@ -1514,8 +1833,10 @@ html, body {
 }
 
 .preview .markdown-body .mermaid svg {
-  max-width: 600px;  /* 闄愬埗鏈€澶у搴︼紝閬垮厤澶ぇ */
-  max-height: 600px; /* 闄愬埗鏈€澶ч珮搴?*/
+  max-width: 600px;
+  /* 闄愬埗鏈€澶у搴︼紝閬垮厤澶ぇ */
+  max-height: 600px;
+  /* 闄愬埗鏈€澶ч珮搴?*/
   width: auto !important;
   height: auto !important;
 }
@@ -1531,7 +1852,8 @@ html, body {
 
 /* 浠ｇ爜鍧楋細淇濇寔鍘熸牱锛屾坊鍔犳按骞虫粴鍔ㄦ潯锛屼笌棰勮鍖烘牱寮忎竴鑷?*/
 .wechat-export .markdown-body pre {
-  overflow-x: auto !important;  /* 姘村钩婊氬姩鏉?*/
+  overflow-x: auto !important;
+  /* 姘村钩婊氬姩鏉?*/
   overflow-y: auto;
   max-width: 100%;
   margin: 1em 0;
@@ -1547,9 +1869,11 @@ html, body {
   border-radius: 8px;
   line-height: 1.7;
   font-size: 90%;
-  white-space: pre !important;  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
+  white-space: pre !important;
+  /* 涓嶆崲琛岋紝淇濇寔浠ｇ爜鍘熸牱 */
   word-break: normal;
-  letter-spacing: normal;  /* 閲嶇疆瀛楅棿璺?*/
+  letter-spacing: normal;
+  /* 閲嶇疆瀛楅棿璺?*/
 }
 
 /* Mermaid 鍥捐〃锛氬浐瀹氬搴︼紝鎸夋瘮渚嬬缉灏忛€傚簲鎵嬫満灞忓箷 */
@@ -1560,8 +1884,10 @@ html, body {
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 375px;  /* 鍏紬鍙峰尯鍩熷搴?375px - 宸﹀彸 padding 30px */
-  overflow: hidden;  /* 绂佹婊氬姩 */
+  max-width: 375px;
+  /* 鍏紬鍙峰尯鍩熷搴?375px - 宸﹀彸 padding 30px */
+  overflow: hidden;
+  /* 绂佹婊氬姩 */
 }
 
 .wechat-export .markdown-body .mermaid svg {
@@ -1602,18 +1928,18 @@ html, body {
 }
 
 .app[data-mdtheme="paper"] {
-  --md-bg: #fcfcfb;
+  --md-bg: #ffffff;
   --md-fg: #1d2a3a;
-  --md-text: #2c3a4e;
-  --md-muted: #6f7c8e;
-  --md-accent: #356ecf;
-  --md-accent-soft: #ecf3ff;
-  --md-border: #d9e0ea;
-  --md-code-bg: #f7f9fc;
+  --md-text: #212121;
+  --md-muted: #fff;
+  --md-accent: #1f2022;
+  --md-accent-soft: #fff;
+  --md-border: #f3f3c7;
+  --md-code-bg: #e5f58b;
   --md-code-fg: #26364a;
-  --md-quote-bg: #f5f8fd;
-  --md-quote-bar: #9eb5d8;
-  --md-table-stripe: #fafbfd;
+  --md-quote-bg: #fcfdf5;
+  --md-quote-bar: #000;
+  --md-table-stripe: #fafdfa;
 }
 
 .app[data-mdtheme="natsumeNotebook"] {
@@ -2082,11 +2408,11 @@ html, body {
   letter-spacing: 0.03em;
 }
 
-.app .wechat-export .markdown-body blockquote > :first-child {
+.app .wechat-export .markdown-body blockquote> :first-child {
   position: relative;
 }
 
-.app .wechat-export .markdown-body blockquote > :first-child::before {
+.app .wechat-export .markdown-body blockquote> :first-child::before {
   content: "";
   position: absolute;
   top: -46px;
@@ -2304,9 +2630,9 @@ html, body {
   letter-spacing: 0.06em;
 }
 
-.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote > :first-child::before,
-.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote > :first-child::before,
-.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote > :first-child::before {
+.app[data-mdtheme="duskCamp"] .wechat-export .markdown-body blockquote> :first-child::before,
+.app[data-mdtheme="mintyFresh"] .wechat-export .markdown-body blockquote> :first-child::before,
+.app[data-mdtheme="forestWhisper"] .wechat-export .markdown-body blockquote> :first-child::before {
   top: -50px;
   right: 14px;
   width: 52px;
@@ -2327,7 +2653,8 @@ html, body {
 .cm-scroller {
   width: 100%;
   height: 100%;
-  box-sizing: border-box; /* 娣诲姞杩欎釜灞炴€э紝璁?padding 鍜?border 涓嶄細褰卞搷瀹藉害璁＄畻锛屾洿绋冲仴 */
+  box-sizing: border-box;
+  /* 娣诲姞杩欎釜灞炴€э紝璁?padding 鍜?border 涓嶄細褰卞搷瀹藉害璁＄畻锛屾洿绋冲仴 */
 }
 
 
@@ -2369,8 +2696,10 @@ html, body {
   height: 100% !important;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden !important; /* 绂佹妯悜婊氬姩 */
-  overflow-y: auto !important; /* 鍏佽鍨傜洿婊氬姩 */
+  overflow-x: hidden !important;
+  /* 绂佹妯悜婊氬姩 */
+  overflow-y: auto !important;
+  /* 鍏佽鍨傜洿婊氬姩 */
   box-sizing: border-box;
 }
 
@@ -2449,7 +2778,7 @@ html, body {
   min-height: 0;
 }
 
-.editor-shell > .editor {
+.editor-shell>.editor {
   width: 100%;
   height: 100%;
 }
@@ -2557,6 +2886,7 @@ html, body {
   .editor .codemirror-editor .cm-editor {
     font-size: 14px;
   }
+
   .editor .codemirror-editor .cm-content {
     padding: 20px;
   }
@@ -2698,7 +3028,7 @@ html, body {
   box-shadow: 0 8px 20px rgba(35, 42, 53, 0.12);
 }
 
-.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export .markdown-body blockquote > :first-child::before {
+.app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .wechat-export .markdown-body blockquote> :first-child::before {
   background: var(--vn-avatar-bg);
 }
 
@@ -2738,18 +3068,14 @@ html, body {
   width: 18px;
   transform: none;
   background-image:
-    radial-gradient(
-      circle at 50% 10px,
+    radial-gradient(circle at 50% 10px,
       color-mix(in srgb, var(--ui-book-page) 94%, #ffffff 6%) 0 2px,
       color-mix(in srgb, var(--ui-book-cover-border) 68%, var(--ui-book-page) 32%) 2px 4px,
-      transparent 4px
-    ),
-    linear-gradient(
-      90deg,
+      transparent 4px),
+    linear-gradient(90deg,
       color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 0 20%,
       color-mix(in srgb, var(--ui-book-spine) 84%, var(--ui-book-page) 16%) 20% 80%,
-      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%
-    );
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%);
   background-repeat: repeat-y, no-repeat;
   background-size: 100% 20px, 100% 100%;
   background-position: center top, center;
@@ -2770,18 +3096,14 @@ html, body {
   right: 14px;
   width: 18px;
   background-image:
-    radial-gradient(
-      circle at 50% 10px,
+    radial-gradient(circle at 50% 10px,
       color-mix(in srgb, var(--ui-book-page) 94%, #ffffff 6%) 0 2px,
       color-mix(in srgb, var(--ui-book-cover-border) 68%, var(--ui-book-page) 32%) 2px 4px,
-      transparent 4px
-    ),
-    linear-gradient(
-      90deg,
+      transparent 4px),
+    linear-gradient(90deg,
       color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 0 20%,
       color-mix(in srgb, var(--ui-book-spine) 84%, var(--ui-book-page) 16%) 20% 80%,
-      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%
-    );
+      color-mix(in srgb, var(--ui-book-spine) 90%, var(--ui-book-page) 10%) 80% 100%);
   background-repeat: repeat-y, no-repeat;
   background-size: 100% 20px, 100% 100%;
   background-position: center top, center;
@@ -2877,6 +3199,7 @@ html, body {
 }
 
 @media (max-width: 1100px) {
+
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-edit .content-area,
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-pure-edit .content-area,
   .app:not([data-mdtheme="paper"]):not([data-mdtheme="midnight"]) .main.mode-preview .content-area {
@@ -3367,11 +3690,9 @@ html, body {
   border-radius: 20px;
   border: 2px solid #5f8c55;
   background:
-    repeating-linear-gradient(
-      180deg,
+    repeating-linear-gradient(180deg,
       #7eac70 0 14px,
-      #6d995f 14px 28px
-    );
+      #6d995f 14px 28px);
   box-shadow: 0 10px 20px rgba(46, 78, 41, 0.2);
 }
 
@@ -3468,4 +3789,3 @@ html, body {
     grid-template-rows: minmax(0, 1fr) minmax(210px, 35%);
   }
 }
-

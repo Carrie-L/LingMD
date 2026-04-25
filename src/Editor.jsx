@@ -3,11 +3,13 @@ import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } f
 import { EditorView, keymap, placeholder } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { buildCodeBlockEdit, buildDoubleBacktickCodeBlockEdit } from './editorShortcuts.mjs';
 
 function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
   const editorContainerRef = useRef(null);
   const editorViewRef = useRef(null);
   const isUpdatingRef = useRef(false);
+  const lastInlineBacktickRef = useRef(null);
   const findInputRef = useRef(null);
   const replaceInputRef = useRef(null);
 
@@ -235,6 +237,45 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
     return true;
   };
 
+  const applyStructuredEdit = (view, edit) => {
+    view.dispatch({
+      changes: { from: edit.from, to: edit.to, insert: edit.insert },
+      selection: { anchor: edit.selectionAnchor, head: edit.selectionHead },
+    });
+  };
+
+  const handleBacktickShortcut = (view) => {
+    const selection = view.state.selection.main;
+    const docText = view.state.doc.toString();
+    const now = Date.now();
+    const doubleBacktickEdit = buildDoubleBacktickCodeBlockEdit({
+      text: docText,
+      selectionFrom: selection.from,
+      selectionTo: selection.to,
+      now,
+      lastInlineBacktick: lastInlineBacktickRef.current,
+    });
+
+    if (doubleBacktickEdit) {
+      applyStructuredEdit(view, doubleBacktickEdit);
+      lastInlineBacktickRef.current = null;
+      return true;
+    }
+
+    const wrapResult = toggleWrap(view, '`', '`');
+    if (wrapResult?.inserted && wrapResult.emptySelection) {
+      lastInlineBacktickRef.current = {
+        from: wrapResult.from,
+        to: wrapResult.to,
+        insertedAt: now,
+      };
+    } else {
+      lastInlineBacktickRef.current = null;
+    }
+
+    return true;
+  };
+
   useEffect(() => {
     searchVisibleRef.current = searchVisible;
   }, [searchVisible]);
@@ -325,8 +366,7 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
           {
             key: '`',
             run: (view) => {
-              toggleWrap(view, '`', '`');
-              return true;
+              return handleBacktickShortcut(view);
             },
           },
           {
@@ -481,12 +521,24 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
         ],
         selection: { anchor: preStart, head: preStart + selected.length },
       });
+      return {
+        inserted: false,
+        emptySelection: selected.length === 0,
+        from: preStart,
+        to: postEnd,
+      };
     } else {
       // 添加包裹
       view.dispatch({
         changes: { from, to, insert: prefix + selected + suffix },
         selection: { anchor: from + prefix.length, head: from + prefix.length + selected.length },
       });
+      return {
+        inserted: true,
+        emptySelection: selected.length === 0,
+        from,
+        to: from + prefix.length + selected.length + suffix.length,
+      };
     }
   };
 
@@ -497,9 +549,7 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
     const to = selection.to;
     const text = state.doc.toString();
 
-    const before = text.slice(0, from);
     const selected = text.slice(from, to);
-    const after = text.slice(to);
 
     const pre = text.slice(Math.max(0, from - 4), from);
     const post = text.slice(to, to + 4);
@@ -515,17 +565,8 @@ function EditorComponent({ value, onChange, onUploadingChange }, forwardedRef) {
       });
     } else {
       // 添加代码块
-      const needNewlineBefore = before.length === 0 || before.endsWith('\n') ? '' : '\n';
-      const needNewlineAfter = after.length === 0 || after.startsWith('\n') ? '' : '\n';
-      const insert = needNewlineBefore + '```\n' + selected + '\n```' + needNewlineAfter;
-
-      view.dispatch({
-        changes: { from, to, insert },
-        selection: {
-          anchor: from + needNewlineBefore.length + 4,
-          head: from + needNewlineBefore.length + 4 + selected.length
-        },
-      });
+      const edit = buildCodeBlockEdit({ text, from, to });
+      applyStructuredEdit(view, edit);
     }
   };
 

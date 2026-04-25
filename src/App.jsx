@@ -3,6 +3,7 @@ import MarkdownIt from 'markdown-it';
 import mdKatex from 'markdown-it-katex';
 import DOMPurify from 'dompurify';
 import Editor from "./Editor.jsx";
+import FileExplorer from "./FileExplorer.jsx";
 import Preview from "./Preview.jsx";
 import Outline from "./Outline.jsx";
 import WechatExport from "./WechatExport.jsx";
@@ -10,6 +11,7 @@ import ThemeEditor from "./ThemeEditor.jsx";
 import { useMarkdownRenderer, renderMarkdownChapterHtml } from './useMarkdownRenderer';
 import { initMermaidPreview } from './mermaidInit';
 import { PreviewWithMermaid } from './PreviewWithMermaid';
+import { getToolbarLeadingActions } from './fileToolbarActions.mjs';
 import './styles.css';
 import 'katex/dist/katex.min.css';
 
@@ -102,7 +104,65 @@ const THEMES = {
 // ✅ 1. 定义一个默认的主题键，确保它一定存在
 const DEFAULT_THEME_KEY = 'tokyo-night-dark';
 
-const extractPreviewStyles = (mdTheme) => {
+function readStoredCodeThemeKey() {
+  try {
+    const k = localStorage.getItem('codeThemeKey');
+    if (k && THEMES[k]) return k;
+  } catch (_) {
+    /* ignore */
+  }
+  return DEFAULT_THEME_KEY;
+}
+
+const EPUB_READER_PADDING = '16px';
+const DEFAULT_PREVIEW_FONT_FAMILY =
+  '"LXGW WenKai", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+
+const isTransparentColor = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  return (
+    !normalized ||
+    normalized === 'transparent' ||
+    normalized === 'rgba(0, 0, 0, 0)' ||
+    normalized === 'rgba(0,0,0,0)'
+  );
+};
+
+const readCssBackground = (style) => {
+  if (!style) return '';
+  const image = String(style.backgroundImage || '').trim();
+  const color = String(style.backgroundColor || '').trim();
+  if (image && image !== 'none') return image;
+  return isTransparentColor(color) ? '' : color;
+};
+
+const readPreviewSnapshot = (rootSelector, bodySelector) => {
+  const bodyElement =
+    document.querySelector(bodySelector) || document.querySelector(rootSelector);
+  if (!bodyElement) return {};
+
+  const bodyStyle = getComputedStyle(bodyElement);
+  const rootElement = document.querySelector(rootSelector);
+  const rootStyle = rootElement ? getComputedStyle(rootElement) : null;
+  const bodyBackground =
+    readCssBackground(bodyStyle) ||
+    readCssBackground(rootStyle) ||
+    bodyStyle.getPropertyValue('--md-bg') ||
+    rootStyle?.getPropertyValue('--md-bg') ||
+    '';
+
+  return {
+    background: bodyBackground.trim(),
+    color: (bodyStyle.color || bodyStyle.getPropertyValue('--md-text') || '').trim(),
+    fontFamily: (bodyStyle.fontFamily || DEFAULT_PREVIEW_FONT_FAMILY).trim(),
+    fontSize: (bodyStyle.fontSize || bodyStyle.getPropertyValue('--md-font-size') || '').trim(),
+    fontWeight: (bodyStyle.fontWeight || '400').trim(),
+    lineHeight: (bodyStyle.lineHeight || bodyStyle.getPropertyValue('--md-line-height') || '').trim(),
+    letterSpacing: (bodyStyle.letterSpacing || '0px').trim(),
+  };
+};
+
+const extractPreviewStyles = (mdTheme, customThemeData) => {
   console.log("333mdTheme", mdTheme);
 
   const previewElement = document.querySelector('.preview');
@@ -110,8 +170,11 @@ const extractPreviewStyles = (mdTheme) => {
   if (!previewElement) return '';
 
   // 获取当前主题的CSS变量
-  const computedStyle = getComputedStyle(previewElement);
-  const cssVariables = {};
+  const cssVariables = { ...(customThemeData?.variables || {}) };
+  if (customThemeData?.settings) {
+    cssVariables['--md-font-size'] = customThemeData.settings.fontSize;
+    cssVariables['--md-line-height'] = customThemeData.settings.lineHeight;
+  }
 
   // 提取所有--md-开头的CSS变量
   for (let i = 0; i < document.styleSheets.length; i++) {
@@ -138,7 +201,29 @@ const extractPreviewStyles = (mdTheme) => {
   console.log("cssVariables", mdTheme, cssVariables);
 
   // 生成完整的CSS字符串，包含所有必要的样式
-  return generateCompleteCSS(cssVariables, mdTheme);
+  let css = generateCompleteCSS(
+    cssVariables,
+    mdTheme,
+    readPreviewSnapshot('.preview', '.preview .markdown-body')
+  );
+  if (customThemeData?.customCss) {
+    css += `\n${customThemeData.customCss}`;
+  }
+  if (customThemeData?.settings) {
+    const settings = customThemeData.settings || {};
+    const headingScale = parseFloat(settings.headingScale || '1.2');
+    const scales = [1, headingScale, headingScale**2, headingScale**3, headingScale**4, headingScale**5];
+    css += `
+      .markdown-body h6 { font-size: ${scales[0]}em; }
+      .markdown-body h5 { font-size: ${scales[1]}em; }
+      .markdown-body h4 { font-size: ${scales[2]}em; }
+      .markdown-body h3 { font-size: ${scales[3]}em; }
+      .markdown-body h2 { font-size: ${scales[4]}em; }
+      .markdown-body h1 { font-size: ${scales[5]}em; }
+      .markdown-body { font-size: ${settings.fontSize || '16px'}; line-height: ${settings.lineHeight || '1.8'}; }
+    `;
+  }
+  return css;
 };
 
 const extractWechatPreviewStyles = (mdTheme, customThemeData) => {
@@ -209,27 +294,44 @@ const extractWechatPreviewStyles = (mdTheme, customThemeData) => {
 };
 
 // 2. 生成完整CSS的函数
-const generateCompleteCSS = (variables, theme) => {
-  // 基础样式
+const generateCompleteCSS = (variables, theme, previewSnapshot = {}) => {
+  const mdBg = (previewSnapshot.background || variables['--md-bg'] || '#fff').trim();
+  const mdText =
+    (previewSnapshot.color || variables['--md-text'] || variables['--md-fg'] || '#3e3e3e').trim();
+  const previewFontFamily = (previewSnapshot.fontFamily || DEFAULT_PREVIEW_FONT_FAMILY).trim();
+  const previewFontSize =
+    (previewSnapshot.fontSize || variables['--md-font-size'] || '15px').trim();
+  const previewLineHeight =
+    (previewSnapshot.lineHeight || variables['--md-line-height'] || '1.8').trim();
+  const previewFontWeight = (previewSnapshot.fontWeight || '400').trim();
+  const previewLetterSpacing = (previewSnapshot.letterSpacing || '0px').trim();
+  // EPUB 阅读器用 html/body 铺底，需与正文背景一致（见 main export-epub-book）
   const baseStyles = `
+:root {
+  --epub-md-bg: ${mdBg};
+  --epub-md-text: ${mdText};
+  --epub-reader-padding: ${EPUB_READER_PADDING};
+  --epub-body-font: ${previewFontFamily};
+  --epub-body-font-size: ${previewFontSize};
+  --epub-body-line-height: ${previewLineHeight};
+}
 /* Markdown Preview Styles - Theme: ${theme} */
 .markdown-body {
-  color: #3e3e3e;
-  background: ${variables['--md-bg'] || '#fff'};
-  margin: 0 0;
-  padding: 0;
-  line-height: 2;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing:0px;
+  color: ${mdText};
+  background: ${mdBg};
+  margin: 0;
+  padding: ${EPUB_READER_PADDING};
+  line-height: ${previewLineHeight};
+  font-size: ${previewFontSize};
+  font-weight: ${previewFontWeight};
+  letter-spacing: ${previewLetterSpacing};
   word-wrap: break-word !important;
-font-family: 
-          PingFang SC, system-ui, -apple-system, BlinkMacSystemFont, Helvetica Neue, Hiragino Sans GB, Microsoft YaHei UI, Microsoft YaHei, Arial, sans-serif;
+  font-family: ${previewFontFamily};
   }
 
 .markdown-body p {
-  margin: 1.5em 0;
-  line-height: 3;
+  margin: 1em 0;
+  line-height: inherit;
 }
 
 .markdown-body p>strong{
@@ -244,45 +346,35 @@ font-family:
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3{
-  line-height: 1.7;
-  margin: 2em 0 0 0;
+  line-height: 1.3;
+  margin: 1.35em 0 0.45em 0;
   font-weight: 700;
 }
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  line-height: 1.5;
-  margin: 2em 0 0 0;
+  line-height: 1.45;
+  margin: 1.15em 0 0.35em 0;
   font-weight: 600;
 }
 
-.markdown-body h1 { font-size: 25px; }
-.markdown-body h2 { font-size: 23px; }
-.markdown-body h3 { font-size: 20px; 
+.markdown-body h1 { font-size: 30px; }
+.markdown-body h2 { font-size: 25px; }
+.markdown-body h3 { font-size: 21px; 
   color: ${variables['--md-accent'] || '#212121'};
-  font-weight: 600;
-  text-align: left;
-  position: left;
-  padding: 0 0 10px 0;
-  border-bottom: 2px solid ${variables['--md-accent'] || '#212121'};}
+  }
 .markdown-body h4 { font-size: 18px; 
   color: ${variables['--md-accent'] || '#212121'};
-  font-weight: 600;
-  text-align: left;
-  position: left;
-  padding: 0 0 7px 0;
-  border-bottom: 2px solid ${variables['--md-accent'] || '#212121'};
 }
 .markdown-body h5 { font-size: 16px; }
 .markdown-body h6 { font-size: 16px;  }
 
 .markdown-body ruby{
   ruby-position: over; 
-  line-height: 3;
 }
 .markdown-body rt{
-  font-size: 10px !important; 
-  letter-spacing: 0px;
+  font-size: 12px; 
+  letter-spacing: 0.08em;
   font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
 }
   
@@ -309,21 +401,21 @@ font-family:
 .markdown-body blockquote {
   background-color: ${variables['--md-quote-bg'] || '#f6f8fa'};
   border-left: 4px solid ${variables['--md-quote-bar'] || '#dfe2e5'};
-  margin: 1em 0;
-  padding: .6em 1em;
+  margin: 2em 0;
+  padding: 1px 1em;
   color: ${variables['--md-fg'] || '#333'};
-  line-height:1.2;
+  font-size: 14px;
 }
 
 /* 列表样式 */
 .markdown-body ul,
 .markdown-body ol {
   padding-left: 1.4em;
-  margin: .8em 0;
+  margin: .3em 0;
 }
 
 .markdown-body li {
-  margin: .8em .3em; 
+  margin: 1em .3em; 
 }
 
 /* todolist 不添加支持了，因为复制到公众号后会导致checkbox和任务换行，且无法修改*/
@@ -446,6 +538,7 @@ const getThemeSpecificStyles = (_theme, variables) => {
 
 
 function App() {
+  const leadingToolbarActions = getToolbarLeadingActions();
   // 全局初始化 mermaid（只在应用启动时初始化一次）
   // useEffect(() => {
   //   try {
@@ -483,6 +576,8 @@ function App() {
   const [viewMode, setViewMode] = useState("edit"); // "edit" | "preview"
   const [showOutline, setShowOutline] = useState(true); // 默认显示目录
   const [headings, setHeadings] = useState([]); // Outline 要的数据 
+  const [workspaceRoot, setWorkspaceRoot] = useState("");
+  const [workspaceFiles, setWorkspaceFiles] = useState([]);
   const [defaultDir, setDefaultDir] = useState("");
   const [lastSaveDir, setLastSaveDir] = useState(null);
 
@@ -495,7 +590,7 @@ function App() {
   const [mdTheme, setMdTheme] = useState(
     localStorage.getItem("mdTheme") || DEFAULT_MD_THEME
   );
-  const [themeKey, setThemeKey] = useState(DEFAULT_THEME_KEY); // 默认CODE主题
+  const [themeKey, setThemeKey] = useState(readStoredCodeThemeKey);
   const isAnneTheme = mdTheme === "anneGreenGables";
 
   // 动态加载和卸载 CSS 主题
@@ -606,6 +701,14 @@ function App() {
     localStorage.setItem("mdTheme", mdTheme);
   }, [mdTheme]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("codeThemeKey", themeKey);
+    } catch (_) {
+      /* ignore */
+    }
+  }, [themeKey]);
+
   // 第二个 useEffect：把页面外层背景同步为当前主题背景
   const appRef = useRef(null);
   useEffect(() => {
@@ -645,6 +748,8 @@ function App() {
   const [epubFormAuthor, setEpubFormAuthor] = useState("");
   /** 封面文件绝对路径，未选则为 null */
   const [epubCoverPath, setEpubCoverPath] = useState(null);
+  const [epubSelectionMode, setEpubSelectionMode] = useState(false);
+  const [selectedEpubDirs, setSelectedEpubDirs] = useState([]);
 
   const [exportProgress, setExportProgress] = useState({
     visible: false,
@@ -655,22 +760,229 @@ function App() {
     totalCount: 0,
   });
   const exportProgressHideTimerRef = useRef(null);
-  const [activeRightTab, setActiveRightTab] = useState("outline"); // outline | wechat
+  const [activeSidebarTab, setActiveSidebarTab] = useState("files");
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
   const fileMenuButtonRef = useRef(null);
+  const persistedFileRef = useRef({ path: null, content: "" });
+  const explicitWorkspaceRef = useRef(false);
   const fileMenuActionsRef = useRef({
     newFile: async () => {},
     open: async () => {},
+    openFolder: async () => {},
     save: async () => {},
+    saveAs: async () => {},
     exportHtml: async () => {},
     exportPdf: async () => {},
     exportImage: async () => {},
+    exportEpub: async () => {},
   });
 
   // 获取当前选中的主题对象
   const currentTheme = THEMES[themeKey];
 
   // 把 editor 的源 markdown 按行扫描，把对应那一行的 - [ ] / - [x] 切换
+  function normalizeFsPath(value) {
+    return String(value || "")
+      .replace(/\\/g, "/")
+      .replace(/\/+/g, "/")
+      .replace(/\/$/, "")
+      .toLowerCase();
+  }
+
+  function markFilePersisted(nextPath, nextContent) {
+    persistedFileRef.current = {
+      path: nextPath || null,
+      content: nextContent || "",
+    };
+  }
+
+  function isPathInside(rootPath, candidatePath) {
+    const normalizedRoot = normalizeFsPath(rootPath);
+    const normalizedCandidate = normalizeFsPath(candidatePath);
+    if (!normalizedRoot || !normalizedCandidate) return false;
+    return (
+      normalizedCandidate === normalizedRoot ||
+      normalizedCandidate.startsWith(`${normalizedRoot}/`)
+    );
+  }
+
+  function getWorkspaceDirectoryOptions(files = []) {
+    const dirs = new Set();
+    for (const file of files) {
+      const rel = String(file?.rel || "").replace(/\\/g, "/");
+      const parts = rel.split("/").filter(Boolean);
+      let current = "";
+      for (let index = 0; index < parts.length - 1; index += 1) {
+        current = current ? `${current}/${parts[index]}` : parts[index];
+        dirs.add(current);
+      }
+    }
+    return Array.from(dirs).sort((left, right) =>
+      left.localeCompare(right, "zh-CN", {
+        numeric: true,
+        sensitivity: "base",
+      })
+    );
+  }
+
+  function getDefaultEpubTitle(rootPath, selectedDirs = []) {
+    if (selectedDirs.length === 1) {
+      const parts = selectedDirs[0].split("/").filter(Boolean);
+      return parts[parts.length - 1] || "作品";
+    }
+    const rootParts = String(rootPath || "").split(/[\\/]+/).filter(Boolean);
+    const rootName = rootParts[rootParts.length - 1];
+    if (selectedDirs.length > 1 && rootName) {
+      return `${rootName} 选集`;
+    }
+    return rootName || "作品";
+  }
+
+  function getSelectedDirectoryFiles(files = [], selectedDirs = []) {
+    const normalizedSelected = selectedDirs
+      .map((dir) => String(dir || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, ""))
+      .filter(Boolean);
+
+    if (!normalizedSelected.length) return [];
+
+    const selectionOrder = new Map(normalizedSelected.map((dir, index) => [dir, index]));
+    const matchPriority = [...normalizedSelected].sort((left, right) => right.length - left.length);
+    const selectedFiles = [];
+
+    for (const file of files) {
+      const rel = String(file?.rel || "").replace(/\\/g, "/");
+      const matchedDir = matchPriority.find((dir) => rel.startsWith(`${dir}/`));
+      if (!matchedDir) continue;
+
+      selectedFiles.push({
+        ...file,
+        volumeLabel: matchedDir,
+        selectionOrder: selectionOrder.get(matchedDir) ?? 0,
+      });
+    }
+
+    selectedFiles.sort((left, right) => {
+      if (left.selectionOrder !== right.selectionOrder) {
+        return left.selectionOrder - right.selectionOrder;
+      }
+      return String(left.rel || "").localeCompare(String(right.rel || ""), "zh-CN", {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+
+    return selectedFiles;
+  }
+
+  async function loadWorkspace(rootDir, options = {}) {
+    const explicit = Boolean(options.explicit);
+    explicitWorkspaceRef.current = explicit;
+
+    if (!rootDir || !window.electronAPI?.scanMarkdownFolder) {
+      setWorkspaceRoot("");
+      setWorkspaceFiles([]);
+      return [];
+    }
+
+    try {
+      const files = await window.electronAPI.scanMarkdownFolder(rootDir);
+      const nextFiles = Array.isArray(files) ? files : [];
+      setWorkspaceRoot(rootDir);
+      setWorkspaceFiles(nextFiles);
+      return nextFiles;
+    } catch (error) {
+      console.error("scanMarkdownFolder failed:", error);
+      showToast("读取文件夹失败: " + (error?.message || String(error)));
+      setWorkspaceRoot(rootDir);
+      setWorkspaceFiles([]);
+      return [];
+    }
+  }
+
+  async function syncWorkspaceForFile(nextPath) {
+    if (!nextPath) return [];
+    if (workspaceRoot && isPathInside(workspaceRoot, nextPath)) {
+      return loadWorkspace(workspaceRoot, { explicit: explicitWorkspaceRef.current });
+    }
+    return loadWorkspace(dirname(nextPath), { explicit: false });
+  }
+
+  async function saveCurrentBufferSilently() {
+    if (!filePath || !window.electronAPI?.saveFile) return true;
+
+    const persisted = persistedFileRef.current;
+    if (persisted.path === filePath && persisted.content === content) {
+      return true;
+    }
+
+    try {
+      const result = await window.electronAPI.saveFile(content, filePath);
+      if (!result || result.success === false) {
+        throw new Error(result?.error || "保存失败");
+      }
+
+      const savedPath = result.path || filePath;
+      markFilePersisted(savedPath, content);
+      if (savedPath !== filePath) {
+        setFilePath(savedPath);
+      }
+      setStatus("已保存");
+      return true;
+    } catch (error) {
+      console.error("silent save failed:", error);
+      showToast("保存当前文件失败: " + (error?.message || String(error)));
+      return false;
+    }
+  }
+
+  async function applyFileResult(result, options = {}) {
+    if (!result?.path) return false;
+    if (result.path === filePath) return true;
+
+    const shouldContinue = options.skipSaveCurrent ? true : await saveCurrentBufferSilently();
+    if (!shouldContinue) return false;
+
+    const nextContent = result.content || "";
+    markFilePersisted(result.path, nextContent);
+    setFilePath(result.path);
+    setContent(nextContent);
+    window.electronAPI?.setLastFile?.(result.path);
+    setStatus(options.status || "已打开");
+
+    if (options.workspaceRoot) {
+      await loadWorkspace(options.workspaceRoot, {
+        explicit: Boolean(options.explicitWorkspace),
+      });
+    } else if (options.syncWorkspace !== false) {
+      await syncWorkspaceForFile(result.path);
+    }
+
+    return true;
+  }
+
+  const workspaceDirectoryOptions = getWorkspaceDirectoryOptions(workspaceFiles);
+
+  useEffect(() => {
+    const validDirs = new Set(workspaceDirectoryOptions);
+    setSelectedEpubDirs((current) => current.filter((dir) => validDirs.has(dir)));
+    if (!validDirs.size) {
+      setEpubSelectionMode(false);
+    }
+  }, [workspaceRoot, workspaceFiles]);
+
+  const toggleEpubDirectorySelection = (dirRel) => {
+    setSelectedEpubDirs((current) =>
+      current.includes(dirRel)
+        ? current.filter((item) => item !== dirRel)
+        : [...current, dirRel]
+    );
+  };
+
+  const cancelEpubDirectorySelection = () => {
+    setEpubSelectionMode(false);
+    setSelectedEpubDirs([]);
+  };
+
   function toggleNthTaskInMarkdown(nth, checked) {
     // 把内容按行分割，逐行查找任务列表项，遇到第 nth 个时切换 [ ] <-> [x]
     const lines = content.split(/\r?\n/);
@@ -1093,11 +1405,29 @@ function App() {
   useEffect(() => {
     if (!filePath) return;
 
+    const persisted = persistedFileRef.current;
+    if (persisted.path === filePath && persisted.content === content) {
+      return;
+    }
+
     setStatus('未保存');
 
     const timer = setTimeout(async () => {
       try {
-        await window.electronAPI.saveFile(content, filePath);
+        const result = await window.electronAPI.saveFile(content, filePath);
+        if (!result || result.success === false) {
+          throw new Error(result?.error || '保存失败');
+        }
+        const savedPath = result.path || filePath;
+        markFilePersisted(savedPath, content);
+        if (savedPath !== filePath) {
+          setFilePath(savedPath);
+        }
+        if (workspaceRoot && isPathInside(workspaceRoot, savedPath)) {
+          loadWorkspace(workspaceRoot, { explicit: explicitWorkspaceRef.current }).catch((error) => {
+            console.error('refresh workspace after auto save failed', error);
+          });
+        }
         setStatus('已自动保存');
       } catch (err) {
         console.error('auto save failed', err);
@@ -1144,10 +1474,13 @@ function App() {
       if (filePath && !opts.forceDialog && !filePath.includes("未命名")) {
         const res = await window.electronAPI.saveFile(content, filePath);
         if (res && res.success) {
-          window.electronAPI.setLastFile(res.path || filePath);
-          setFilePath(res.path || filePath);
+          const savedPath = res.path || filePath;
+          window.electronAPI.setLastFile(savedPath);
+          setFilePath(savedPath);
+          markFilePersisted(savedPath, content);
+          await syncWorkspaceForFile(savedPath);
           setStatus("已保存");
-          showToast("💾 文件已保存在: " + (res.path || filePath));
+          showToast("💾 文件已保存在: " + savedPath);
         } else {
           showToast("保存失败: " + (res && res.error));
         }
@@ -1190,10 +1523,13 @@ function App() {
       // 最后写文件
       const result = await window.electronAPI.saveFile(content, chosen);
       if (result && result.success) {
-        window.electronAPI.setLastFile(result.path || chosen);
-        setFilePath(result.path || chosen);
+        const savedPath = result.path || chosen;
+        window.electronAPI.setLastFile(savedPath);
+        setFilePath(savedPath);
+        markFilePersisted(savedPath, content);
+        await syncWorkspaceForFile(savedPath);
         setStatus("已保存");
-        showToast("💾 文件已保存在: " + (result.path || chosen));
+        showToast("💾 文件已保存在: " + savedPath);
       } else {
         showToast("保存失败: " + (result && result.error));
       }
@@ -1232,11 +1568,9 @@ function App() {
       if (window.electronAPI && typeof window.electronAPI.onLoadLastFile === 'function') {
         window.electronAPI.onLoadLastFile(async (fp) => {
           if (fp) {
-            setFilePath(fp);
             const res = await window.electronAPI.readFile(fp);
             if (res) {
-              setContent(res.content);
-              setStatus("已加载");
+              await applyFileResult(res, { status: "已加载" });
             }
           }
         });
@@ -1256,11 +1590,7 @@ function App() {
   const handleOpen = async () => {
     const result = await window.electronAPI.openFile();
     if (result) {
-      setFilePath(result.path);
-      setContent(result.content);
-      window.electronAPI.setLastFile(result.path);
-      setStatus("已打开");
-    } else {
+      await applyFileResult(result, { status: "已打开" });
     }
   };
 
@@ -1270,11 +1600,56 @@ function App() {
   const handleNewFile = async () => {
     const result = await window.electronAPI.newFile();
     if (result) {
-      setFilePath(result.path);
-      setContent(result.content);
-      window.electronAPI.setLastFile(result.path);
-      setStatus("新建");
-      console.log("🆕 新建文件：", result.path);
+      await applyFileResult(result, { status: "新建" });
+      console.log("新建文件:", result.path);
+    }
+  };
+
+  const handleOpenWorkspaceFile = async (targetPath) => {
+    if (!targetPath || !window.electronAPI?.readFile) return;
+    const result = await window.electronAPI.readFile(targetPath);
+    if (!result) {
+      showToast("读取文件失败");
+      return;
+    }
+    await applyFileResult(result, {
+      status: "已打开",
+      workspaceRoot,
+      explicitWorkspace: explicitWorkspaceRef.current,
+    });
+  };
+
+  const handleOpenFolder = async () => {
+    if (!window.electronAPI?.openFolderDialog) {
+      showToast("当前环境不支持打开文件夹");
+      return;
+    }
+
+    const selected = await window.electronAPI.openFolderDialog();
+    if (!selected?.path) return;
+
+    const files = await loadWorkspace(selected.path, { explicit: true });
+    setActiveSidebarTab("files");
+    setEpubSelectionMode(false);
+    setSelectedEpubDirs([]);
+    setStatus("已打开文件夹");
+    showToast(`已打开文件夹: ${selected.path}`);
+
+    if (!files.length) {
+      return;
+    }
+
+    if (filePath && isPathInside(selected.path, filePath)) {
+      return;
+    }
+
+    const firstFile = await window.electronAPI.readFile(files[0].path);
+    if (firstFile) {
+      await applyFileResult(firstFile, {
+        status: "已打开",
+        workspaceRoot: selected.path,
+        explicitWorkspace: true,
+      });
     }
   };
 
@@ -1574,7 +1949,7 @@ function App() {
     const total = files.length;
     startExportProgress("epub", "正在渲染章节…", 4);
     for (let i = 0; i < files.length; i++) {
-      const { path: chapterPath, rel } = files[i];
+      const { path: chapterPath, rel, volumeLabel } = files[i];
       const pct = Math.round(8 + (82 * (i + 1)) / total);
       startExportProgress("epub", `正在渲染 ${i + 1}/${total}: ${rel}`, pct);
       const readRes = await window.electronAPI.readFile(chapterPath);
@@ -1601,7 +1976,7 @@ function App() {
       chapters.push({
         title: chapterTitle,
         htmlBody: mdInner,
-        volume: deriveVolumeLabel(rel),
+        volume: volumeLabel || deriveVolumeLabel(rel),
       });
     }
     if (!chapters.length) {
@@ -1609,12 +1984,7 @@ function App() {
       alert("没有成功渲染任何章节。");
       return;
     }
-    let mdThemeCss = "";
-    if (customThemes[mdTheme]) {
-      mdThemeCss = extractWechatPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
-    } else {
-      mdThemeCss = extractPreviewStyles(mdTheme) || "";
-    }
+    const mdThemeCss = extractPreviewStyles(mdTheme, customThemes[mdTheme]) || "";
     startExportProgress("epub", "正在打包 EPUB…", 94);
     const result = await window.electronAPI.exportEpubBook({
       title: bookTitle,
@@ -1650,22 +2020,55 @@ function App() {
     }
   };
 
+  const handleConfirmSelectedEpubDirectories = async () => {
+    if (!selectedEpubDirs.length) {
+      showToast("请先在左侧勾选要导出的目录");
+      return;
+    }
+
+    const files = getSelectedDirectoryFiles(workspaceFiles, selectedEpubDirs);
+    if (!files.length) {
+      showToast("选中的目录下没有 Markdown 文件");
+      return;
+    }
+
+    setEpubSelectionMode(false);
+    setEpubWizard({
+      files,
+      defaultTitle: getDefaultEpubTitle(workspaceRoot, selectedEpubDirs),
+      selectedDirs: [...selectedEpubDirs],
+    });
+  };
+
   const handleExportEpub = async () => {
-    if (!window.electronAPI?.pickBookDirectory) {
+    if (!window.electronAPI?.exportEpubBook) {
       alert("请使用 Electron 桌面版导出 EPUB。");
       return;
     }
+
+    if (!workspaceRoot || !workspaceFiles.length) {
+      showToast("请先打开一个包含 Markdown 的文件夹");
+      return;
+    }
+
+    if (!workspaceDirectoryOptions.length) {
+      setEpubWizard({
+        files: workspaceFiles,
+        defaultTitle: getDefaultEpubTitle(workspaceRoot, []),
+        selectedDirs: [],
+      });
+      return;
+    }
+
+    if (!epubSelectionMode) {
+      setActiveSidebarTab("files");
+      setEpubSelectionMode(true);
+      showToast("请在左侧勾选要导出的目录，然后确认导出 EPUB");
+      return;
+    }
+
     try {
-      const rootDir = await window.electronAPI.pickBookDirectory();
-      if (!rootDir) return;
-      const files = await window.electronAPI.scanMarkdownBook(rootDir);
-      if (!files.length) {
-        alert("该目录下没有找到 .md 文件。");
-        return;
-      }
-      const defaultBookTitle =
-        rootDir.split(/[/\\]/).filter(Boolean).pop() || "作品";
-      setEpubWizard({ files, defaultTitle: defaultBookTitle });
+      await handleConfirmSelectedEpubDirectories();
     } catch (e) {
       console.error(e);
       alert(`导出失败：${e.message || e}`);
@@ -2216,6 +2619,9 @@ body::-webkit-scrollbar,
   // 返回路径中的目录部分
   function dirname(filePath) {
     if (!filePath) return '';
+    if (window.electronAPI?.dirname) {
+      return window.electronAPI.dirname(filePath);
+    }
     return filePath.substring(0, filePath.lastIndexOf('/') > -1
       ? filePath.lastIndexOf('/')
       : filePath.lastIndexOf('\\'));
@@ -2281,10 +2687,13 @@ body::-webkit-scrollbar,
   fileMenuActionsRef.current = {
     newFile: handleNewFile,
     open: handleOpen,
+    openFolder: handleOpenFolder,
     save: handleSave,
+    saveAs: () => handleSave({ forceDialog: true }),
     exportHtml: handleExportHtml,
     exportPdf: handleExportPdf,
     exportImage: handleExportImage,
+    exportEpub: handleExportEpub,
   };
 
   useEffect(() => {
@@ -2299,8 +2708,14 @@ body::-webkit-scrollbar,
           case "open":
             await actions.open();
             break;
+          case "open-folder":
+            await actions.openFolder();
+            break;
           case "save":
             await actions.save();
+            break;
+          case "save-as":
+            await actions.saveAs();
             break;
           case "export-html":
             await actions.exportHtml();
@@ -2310,6 +2725,9 @@ body::-webkit-scrollbar,
             break;
           case "export-image":
             await actions.exportImage();
+            break;
+          case "export-epub":
+            await actions.exportEpub();
             break;
           default:
             break;
@@ -2334,16 +2752,52 @@ body::-webkit-scrollbar,
           <span>LingMD</span>
         </div>
 
-        <div className="file-menu">
-          <button
-            ref={fileMenuButtonRef}
-            type="button"
-            className="toolbar-button file-menu-trigger"
-            onClick={handleOpenNativeFileMenu}
-          >
-            File
-          </button>
-        </div>
+        {leadingToolbarActions.map((action) => {
+          if (action.id === "file-menu") {
+            return (
+              <div className="file-menu" key={action.id}>
+                <button
+                  ref={fileMenuButtonRef}
+                  type="button"
+                  className="toolbar-button file-menu-trigger"
+                  onClick={handleOpenNativeFileMenu}
+                >
+                  {action.label}
+                </button>
+              </div>
+            );
+          }
+
+          if (action.id === "new-file") {
+            return (
+              <button
+                key={action.id}
+                type="button"
+                className="toolbar-button"
+                title={action.title}
+                onClick={handleNewFile}
+              >
+                {action.label}
+              </button>
+            );
+          }
+
+          if (action.id === "open-folder") {
+            return (
+              <button
+                key={action.id}
+                type="button"
+                className="toolbar-button"
+                title={action.title}
+                onClick={handleOpenFolder}
+              >
+                {action.label}
+              </button>
+            );
+          }
+
+          return null;
+        })}
         {/* 视图切换按钮 */}
       <button
           className={viewMode === 'edit' ? 'toolbar-button active' : 'toolbar-button'}
@@ -2382,7 +2836,14 @@ body::-webkit-scrollbar,
         <label onClick={handleExportHtml} className="toolbar-button">导出 HTML</label>
         <label onClick={handleExportPdf} className="toolbar-button">导出 PDF</label>
         <label onClick={handleExportImage} className="toolbar-button">📷 导出图片</label>
-        <label onClick={handleExportEpub} className="toolbar-button">导出 EPUB</label>
+        <button
+          type="button"
+          onClick={handleExportEpub}
+          className={epubSelectionMode ? "toolbar-button active" : "toolbar-button"}
+          title={epubSelectionMode ? "确认当前选中的目录并导出 EPUB" : "选择目录后导出 EPUB"}
+        >
+          {epubSelectionMode ? `确认导出 EPUB (${selectedEpubDirs.length})` : "导出 EPUB"}
+        </button>
 
         {editorUploading && <span className="uploading">上传中...</span>}
 
@@ -2485,7 +2946,39 @@ body::-webkit-scrollbar,
 
         {/* 左侧目录 */}
         {showOutline && (
-          <div className="outline-wrapper">
+          <div className="outline-wrapper sidebar-wrapper">
+            <div className="sidebar-tabs" role="tablist" aria-label="sidebar tabs">
+              <button
+                type="button"
+                className={`sidebar-tab${activeSidebarTab === "files" ? " active" : ""}`}
+                onClick={() => setActiveSidebarTab("files")}
+              >
+                文件
+              </button>
+              <button
+                type="button"
+                className={`sidebar-tab${activeSidebarTab === "outline" ? " active" : ""}`}
+                onClick={() => setActiveSidebarTab("outline")}
+              >
+                大纲
+              </button>
+            </div>
+            <div className="sidebar-panel">
+              {activeSidebarTab === "files" ? (
+                <FileExplorer
+                  rootPath={workspaceRoot}
+                  files={workspaceFiles}
+                  activeFilePath={filePath}
+                  onOpenFile={handleOpenWorkspaceFile}
+                  onOpenFolder={handleOpenFolder}
+                  onRevealInSystem={handleOpenInFolder}
+                  exportSelectionMode={epubSelectionMode}
+                  selectedDirectoryRels={selectedEpubDirs}
+                  onToggleDirectorySelection={toggleEpubDirectorySelection}
+                  onConfirmDirectoryExport={handleConfirmSelectedEpubDirectories}
+                  onCancelDirectoryExport={cancelEpubDirectorySelection}
+                />
+              ) : (
             <Outline headings={headings} onNavigate={(id) => {
               console.log('目录点击，id:', id);
 
@@ -2577,6 +3070,8 @@ body::-webkit-scrollbar,
                 console.warn('editorRef.current 或 .el 为空');
               }
             }} />
+              )}
+            </div>
           </div>
         )}
 
@@ -2682,8 +3177,9 @@ body::-webkit-scrollbar,
               导出 EPUB
             </div>
             <p className="epub-meta-hint">
-              已找到 {epubWizard.files.length} 个 Markdown 文件。目录按子文件夹分卷（例如{" "}
-              <code>vol1/01.md</code> 归入「vol1」卷），根目录下的章节排在目录最前。
+              {epubWizard.selectedDirs?.length
+                ? `已选 ${epubWizard.selectedDirs.length} 个目录，共 ${epubWizard.files.length} 个 Markdown 文件。EPUB 目录会按选中的目录分组，并使用当前预览区样式导出。`
+                : `将导出当前工作区中的 ${epubWizard.files.length} 个 Markdown 文件，并使用当前预览区样式导出。`}
             </p>
             <div className="epub-meta-form">
               <label className="epub-meta-row">

@@ -17,8 +17,13 @@ export function initMermaidPreview() {
     theme: "default",
     securityLevel: "loose",
     fontFamily: "Arial, sans-serif",
+    // Mermaid 11：全局 htmlLabels 会参与合并，需显式打开（与 flowchart 一致）
+    htmlLabels: true,
     flowchart: {
       ...baseFlowchart,
+      htmlLabels: true,
+    },
+    class: {
       htmlLabels: true,
     },
   });
@@ -33,8 +38,13 @@ export function initMermaidEpubExport() {
     theme: "default",
     securityLevel: "loose",
     fontFamily: "Arial, sans-serif",
+    // EPUB/SVG：顶层必须为 false，否则仍可能走 foreignObject（阅读器不渲染文字）
+    htmlLabels: false,
     flowchart: {
       ...baseFlowchart,
+      htmlLabels: false,
+    },
+    class: {
       htmlLabels: false,
     },
   });

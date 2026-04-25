@@ -5,7 +5,9 @@ const path = require("path");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("open-file"),
+  openFolderDialog: () => ipcRenderer.invoke("open-folder-dialog"),
   readFile: (filePath) => ipcRenderer.invoke("read-file", filePath),
+  scanMarkdownFolder: (rootDir) => ipcRenderer.invoke("scan-markdown-folder", rootDir),
   saveFile: (content, filePath) => ipcRenderer.invoke("save-file", content, filePath),
   newFile: () => ipcRenderer.invoke("new-file"),
   showSaveDialog: (opts) => ipcRenderer.invoke("show-save-dialog", opts || {}),

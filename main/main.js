@@ -21,6 +21,7 @@ const juice = require("juice");
 const { log } = require("console");
 const os = require('os');
 const { buildEpubZipBuffer } = require("./epubPack");
+const { getFileMenuItems } = require("./fileMenuCommands");
 
 const IMAGE_EXPORT_MAX_PIXELS = 80_000_000; // 约 320MB RGBA，防止超长截图内存爆炸
 const IMAGE_EXPORT_FORCE_COMPAT_MODE = true; // 兼容模式更稳定，默认跳过 CDP 主截图
@@ -295,15 +296,18 @@ ipcMain.handle("show-native-file-menu", (event, payload = {}) => {
     }
   };
 
-  const menu = Menu.buildFromTemplate([
-    { label: "新建", click: () => emitCommand("new") },
-    { label: "打开", click: () => emitCommand("open") },
-    { label: "保存", click: () => emitCommand("save") },
-    { type: "separator" },
-    { label: "导出 HTML", click: () => emitCommand("export-html") },
-    { label: "导出 PDF", click: () => emitCommand("export-pdf") },
-    { label: "导出图片", click: () => emitCommand("export-image") },
-  ]);
+  const menuTemplate = getFileMenuItems().map((item) => {
+    if (item.type === "separator") {
+      return { type: "separator" };
+    }
+
+    return {
+      label: item.label,
+      click: () => emitCommand(item.command),
+    };
+  });
+
+  const menu = Menu.buildFromTemplate(menuTemplate);
 
   const x = Number(payload.x);
   const y = Number(payload.y);
@@ -544,10 +548,63 @@ function getDefaultDir() {
   return fallback;
 }
 
+function scanMarkdownFiles(rootDir) {
+  if (!rootDir || typeof rootDir !== "string" || !fs.existsSync(rootDir)) {
+    return [];
+  }
+
+  const output = [];
+
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_error) {
+      return;
+    }
+
+    entries.sort((left, right) => {
+      if (left.isDirectory() !== right.isDirectory()) {
+        return left.isDirectory() ? -1 : 1;
+      }
+      return left.name.localeCompare(right.name, "zh-CN", {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+
+      if (/\.(md|markdown)$/i.test(entry.name)) {
+        output.push({
+          path: fullPath,
+          rel: path.relative(rootDir, fullPath),
+        });
+      }
+    }
+  }
+
+  walk(rootDir);
+
+  output.sort((left, right) =>
+    left.rel.localeCompare(right.rel, "zh-CN", {
+      numeric: true,
+      sensitivity: "base",
+    })
+  );
+
+  return output;
+}
+
 // 文件 & 目录操作
 ipcMain.handle("open-file", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    filters: [{ name: "Markdown", extensions: ["md"] }],
+    filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
   });
   if (canceled || !filePaths.length) return null;
   const filePath = filePaths[0];
@@ -555,11 +612,30 @@ ipcMain.handle("open-file", async () => {
   return { path: filePath, content };
 });
 
+ipcMain.handle("open-folder-dialog", async (event) => {
+  const win = event?.sender ? BrowserWindow.fromWebContents(event.sender) : null;
+  const result = await dialog.showOpenDialog(win, {
+    title: "选择文件夹",
+    defaultPath: getDefaultDir(),
+    properties: ["openDirectory"],
+  });
+
+  if (result.canceled || !result.filePaths.length) {
+    return null;
+  }
+
+  return { path: result.filePaths[0] };
+});
+
 ipcMain.handle("read-file", (event, filePath) => {
   if (filePath && fs.existsSync(filePath)) {
     return { path: filePath, content: fs.readFileSync(filePath, "utf-8") };
   }
   return null;
+});
+
+ipcMain.handle("scan-markdown-folder", async (_event, rootDir) => {
+  return scanMarkdownFiles(rootDir);
 });
 
 // ---- 新增：在 main.js 中添加 show-save-dialog handler ----
@@ -2210,29 +2286,7 @@ ipcMain.handle("pick-cover-image", async (event) => {
 });
 
 ipcMain.handle("scan-markdown-book", async (_event, rootDir) => {
-  if (!rootDir || typeof rootDir !== "string" || !fs.existsSync(rootDir)) {
-    return [];
-  }
-  const out = [];
-  function walk(dir) {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch (e) {
-      return;
-    }
-    for (const e of entries) {
-      const full = path.join(dir, e.name);
-      if (e.isDirectory()) {
-        walk(full);
-      } else if (/\.(md|markdown)$/i.test(e.name)) {
-        out.push({ path: full, rel: path.relative(rootDir, full) });
-      }
-    }
-  }
-  walk(rootDir);
-  out.sort((a, b) => a.rel.localeCompare(b.rel, "zh-CN", { numeric: true }));
-  return out;
+  return scanMarkdownFiles(rootDir);
 });
 
 ipcMain.handle("export-epub-book", async (event, payload) => {
@@ -2248,12 +2302,54 @@ ipcMain.handle("export-epub-book", async (event, payload) => {
     if (fs.existsSync(hljsPath)) {
       hljsCss = fs.readFileSync(hljsPath, "utf8");
     }
+    if (!hljsCss.trim()) {
+      const fb = path.join(__dirname, "..", "public", "hljs", "tokyo-night-dark.min.css");
+      if (fs.existsSync(fb)) {
+        hljsCss = fs.readFileSync(fb, "utf8");
+      }
+      console.warn("export-epub-book: hljs CSS missing for", safeKey, "used fallback");
+    }
     const katexPath = path.join(__dirname, "..", "node_modules", "katex", "dist", "katex.min.css");
     let katexCss = "";
     if (fs.existsSync(katexPath)) {
       katexCss = fs.readFileSync(katexPath, "utf8");
     }
-    const combinedCss = `${mdThemeCss || ""}\n\n/* highlight.js */\n${hljsCss}\n\n/* KaTeX */\n${katexCss}\n\n/* EPUB */\n.epub-cover img{ max-width: 100%; height: auto; display: block; margin: 0 auto; }\n.epub-chapter img, .epub-chapter svg { max-width: 100% !important; height: auto !important; }\n\n/* EPUB 目录（按子文件夹分卷） */\nnav#toc > ol { list-style: none; padding-left: 0; }\nnav#toc ol ol { list-style: disc; padding-left: 1.25em; margin: 0.35em 0 0.5em; }\n.epub-toc-vol { display: block; font-weight: 600; margin: 0.35em 0 0.2em; }\n`;
+    const epubReaderLayout = `
+/* EPUB: keep the page, reader margin, and chapter body on the same preview-derived background. */
+@page {
+  margin: 0;
+  padding: 0;
+  background: var(--epub-md-bg, #ffffff);
+}
+/* EPUB：整页铺底（避免 Calibre 等阅读器 body 留白，主题背景只包住正文一栏） */
+html,
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100%;
+  background: var(--epub-md-bg, #ffffff) !important;
+  color: var(--epub-md-text, #333333) !important;
+}
+body {
+  font-family: var(--epub-body-font, "LXGW WenKai", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif);
+  font-size: var(--epub-body-font-size, 15px);
+  line-height: var(--epub-body-line-height, 1.8);
+}
+.markdown-body.epub-chapter {
+  min-height: 100%;
+  box-sizing: border-box;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: var(--epub-reader-padding, 16px) !important;
+  background: var(--epub-md-bg, #ffffff) !important;
+  color: var(--epub-md-text, #333333) !important;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+`;
+    const combinedCss = `${mdThemeCss || ""}\n\n/* highlight.js */\n${hljsCss}\n\n/* KaTeX */\n${katexCss}\n\n/* EPUB */\n${epubReaderLayout}\n.epub-cover img{ max-width: 100%; height: auto; display: block; margin: 0 auto; }\n.epub-chapter img, .epub-chapter svg { max-width: 100% !important; height: auto !important; }\n\n/* EPUB 目录（按子文件夹分卷） */\nnav#toc > ol { list-style: none; padding-left: 0; }\nnav#toc ol ol { list-style: disc; padding-left: 1.25em; margin: 0.35em 0 0.5em; }\n.epub-toc-vol { display: block; font-weight: 600; margin: 0.35em 0 0.2em; }\n`;
 
     const buf = await buildEpubZipBuffer({
       title: title || "未命名",
